@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIRP v2.0 - Post Transactions</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px 30px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 10px 10px 0 0;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+            background: white;
+            border-radius: 0 0 15px 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-section {
+            margin-bottom: 25px;
+        }
+
+        .form-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .journal-lines {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .journal-line {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr 1fr 40px;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: end;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .response.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            display: block;
+        }
+
+        .response.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            display: block;
+        }
+
+        .totals {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .totals-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .totals-row.balanced {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .totals-row.unbalanced {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        .api-info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .api-info h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .api-info code {
+            background: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AIRP v2.0 - Post Transactions</h1>
+            <p>Create Journal Entries & Vendor Payments with Event Sourcing</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('journal-entry')">Journal Entry</button>
+            <button class="tab" onclick="switchTab('vendor-payment')">Vendor Payment</button>
+        </div>
+
+        <!-- Journal Entry Tab -->
+        <div id="journal-entry" class="tab-content active">
+            <div class="api-info">
+                <h4>API Endpoint</h4>
+                <p><strong>POST</strong> <code>http://localhost:3001/journal-entries</code></p>
+                <p>Creates a journal entry with double-entry bookkeeping validation</p>
+            </div>
+
+            <div class="form-section">
+                <h3>Journal Entry Details</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Entry Date *</label>
+                        <input type="date" id="je-entry-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Entry Type *</label>
+                        <select id="je-entry-type">
+                            <option value="manual">Manual Entry</option>
+                            <option value="ap_invoice">AP Invoice</option>
+                            <option value="ar_invoice">AR Invoice</option>
+                            <option value="payment">Payment</option>
+                            <option value="adjustment">Adjustment</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Description *</label>
+                    <textarea id="je-description" rows="2" placeholder="e.g., Office rent payment for January 2025"></textarea>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Journal Entry Lines</h3>
+                <div class="journal-lines" id="je-lines">
+                    <!-- Line 1 -->
+                    <div class="journal-line">
+                        <div class="form-group">
+                            <label>Account Code</label>
+                            <input type="text" class="je-account-code" placeholder="5300" list="account-codes">
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <input type="text" class="je-line-desc" placeholder="Rent Expense">
+                        </div>
+                        <div class="form-group">
+                            <label>Debit</label>
+                            <input type="number" class="je-debit" step="0.01" value="0" onchange="calculateJETotals()">
+                        </div>
+                        <div class="form-group">
+                            <label>Credit</label>
+                            <input type="number" class="je-credit" step="0.01" value="0" onchange="calculateJETotals()">
+                        </div>
+                        <div>
+                            <button class="btn btn-danger" onclick="removeJELine(this)">X</button>
+                        </div>
+                    </div>
+                    <!-- Line 2 -->
+                    <div class="journal-line">
+                        <div class="form-group">
+                            <label>Account Code</label>
+                            <input type="text" class="je-account-code" placeholder="1000" list="account-codes">
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <input type="text" class="je-line-desc" placeholder="Cash">
+                        </div>
+                        <div class="form-group">
+                            <label>Debit</label>
+                            <input type="number" class="je-debit" step="0.01" value="0" onchange="calculateJETotals()">
+                        </div>
+                        <div class="form-group">
+                            <label>Credit</label>
+                            <input type="number" class="je-credit" step="0.01" value="0" onchange="calculateJETotals()">
+                        </div>
+                        <div>
+                            <button class="btn btn-danger" onclick="removeJELine(this)">X</button>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="addJELine()">+ Add Line</button>
+
+                <div class="totals">
+                    <div class="totals-row">
+                        <span>Total Debits:</span>
+                        <span id="je-total-debits">0.00</span>
+                    </div>
+                    <div class="totals-row">
+                        <span>Total Credits:</span>
+                        <span id="je-total-credits">0.00</span>
+                    </div>
+                    <div class="totals-row" id="je-balance-status">
+                        <span>Status:</span>
+                        <span>Unbalanced</span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="postJournalEntry()">Post Journal Entry</button>
+
+            <div id="je-response" class="response"></div>
+
+            <datalist id="account-codes">
+                <option value="1000">1000 - Cash</option>
+                <option value="1200">1200 - Accounts Receivable</option>
+                <option value="2100">2100 - Accounts Payable</option>
+                <option value="4000">4000 - Revenue</option>
+                <option value="5100">5100 - Cost of Goods Sold</option>
+                <option value="5200">5200 - Salaries & Wages</option>
+                <option value="5300">5300 - Rent Expense</option>
+                <option value="5400">5400 - Utilities</option>
+                <option value="5500">5500 - Office Supplies</option>
+                <option value="5600">5600 - Professional Fees</option>
+                <option value="5700">5700 - Marketing</option>
+                <option value="5800">5800 - Travel</option>
+                <option value="5900">5900 - IT & Software</option>
+                <option value="6100">6100 - Insurance</option>
+                <option value="6200">6200 - Bank Charges</option>
+            </datalist>
+        </div>
+
+        <!-- Vendor Payment Tab -->
+        <div id="vendor-payment" class="tab-content">
+            <div class="api-info">
+                <h4>API Endpoint</h4>
+                <p><strong>POST</strong> <code>http://localhost:3003/invoices</code></p>
+                <p>Creates a vendor invoice in AP system</p>
+            </div>
+
+            <div class="form-section">
+                <h3>Vendor Information</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Vendor *</label>
+                        <select id="vp-vendor">
+                            <option value="10000000-0000-0000-0000-000000000001">Dubai Properties LLC</option>
+                            <option value="10000000-0000-0000-0000-000000000002">DEWA</option>
+                            <option value="10000000-0000-0000-0000-000000000003">Google LLC</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Invoice Number *</label>
+                        <input type="text" id="vp-invoice-number" placeholder="INV-2025-001">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Invoice Details</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Invoice Date *</label>
+                        <input type="date" id="vp-invoice-date">
+                    </div>
+                    <div class="form-group">
+                        <label>Due Date *</label>
+                        <input type="date" id="vp-due-date">
+                    </div>
+                    <div class="form-group">
+                        <label>Amount *</label>
+                        <input type="number" id="vp-amount" step="0.01" placeholder="5000.00">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Description *</label>
+                    <textarea id="vp-description" rows="2" placeholder="Office rent for January 2025"></textarea>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="postVendorPayment()">Create Vendor Invoice</button>
+
+            <div id="vp-response" class="response"></div>
+        </div>
+    </div>
+
+    <script>
+        const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+        const USER_ID = '00000000-0000-0000-0000-USER00000001';
+
+        // Set default dates
+        document.getElementById('je-entry-date').valueAsDate = new Date();
+        document.getElementById('vp-invoice-date').valueAsDate = new Date();
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 30);
+        document.getElementById('vp-due-date').valueAsDate = dueDate;
+
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function addJELine() {
+            const container = document.getElementById('je-lines');
+            const newLine = document.querySelector('.journal-line').cloneNode(true);
+
+            // Clear values
+            newLine.querySelectorAll('input').forEach(input => {
+                if (input.type === 'number') {
+                    input.value = '0';
+                } else {
+                    input.value = '';
+                }
+            });
+
+            container.appendChild(newLine);
+            calculateJETotals();
+        }
+
+        function removeJELine(button) {
+            const container = document.getElementById('je-lines');
+            if (container.querySelectorAll('.journal-line').length > 1) {
+                button.closest('.journal-line').remove();
+                calculateJETotals();
+            }
+        }
+
+        function calculateJETotals() {
+            let totalDebits = 0;
+            let totalCredits = 0;
+
+            document.querySelectorAll('.je-debit').forEach(input => {
+                totalDebits += parseFloat(input.value) || 0;
+            });
+
+            document.querySelectorAll('.je-credit').forEach(input => {
+                totalCredits += parseFloat(input.value) || 0;
+            });
+
+            document.getElementById('je-total-debits').textContent = totalDebits.toFixed(2);
+            document.getElementById('je-total-credits').textContent = totalCredits.toFixed(2);
+
+            const balanceStatus = document.getElementById('je-balance-status');
+            const diff = Math.abs(totalDebits - totalCredits);
+
+            if (diff < 0.01 && totalDebits > 0) {
+                balanceStatus.className = 'totals-row balanced';
+                balanceStatus.querySelector('span:last-child').textContent = 'Balanced';
+            } else {
+                balanceStatus.className = 'totals-row unbalanced';
+                balanceStatus.querySelector('span:last-child').textContent = `Unbalanced (${diff.toFixed(2)})`;
+            }
+        }
+
+        async function postJournalEntry() {
+            const responseDiv = document.getElementById('je-response');
+            responseDiv.style.display = 'none';
+
+            // Collect data
+            const entryDate = document.getElementById('je-entry-date').value;
+            const entryType = document.getElementById('je-entry-type').value;
+            const description = document.getElementById('je-description').value;
+
+            if (!entryDate || !description) {
+                showResponse('je-response', 'error', 'Please fill in all required fields');
+                return;
+            }
+
+            // Collect lines
+            const lines = [];
+            let lineNumber = 1;
+            document.querySelectorAll('.journal-line').forEach(line => {
+                const accountCode = line.querySelector('.je-account-code').value;
+                const lineDesc = line.querySelector('.je-line-desc').value;
+                const debit = parseFloat(line.querySelector('.je-debit').value) || 0;
+                const credit = parseFloat(line.querySelector('.je-credit').value) || 0;
+
+                if (accountCode && (debit > 0 || credit > 0)) {
+                    lines.push({
+                        lineNumber,
+                        accountCode,
+                        description: lineDesc,
+                        debitAmount: debit,
+                        creditAmount: credit
+                    });
+                    lineNumber++;
+                }
+            });
+
+            if (lines.length < 2) {
+                showResponse('je-response', 'error', 'Journal entry must have at least 2 lines');
+                return;
+            }
+
+            const payload = {
+                tenantId: TENANT_ID,
+                userId: USER_ID,
+                entryDate,
+                entryType,
+                description,
+                lines
+            };
+
+            try {
+                const response = await fetch('http://localhost:3001/journal-entries', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showResponse('je-response', 'success',
+                        `Journal entry created successfully!<br>` +
+                        `Entry ID: ${result.entryId}<br>` +
+                        `Entry Number: ${result.entryNumber || 'Generated'}<br>` +
+                        `Status: ${result.status || 'Posted'}`
+                    );
+                } else {
+                    const error = await response.text();
+                    showResponse('je-response', 'error', `Error: ${error}`);
+                }
+            } catch (err) {
+                showResponse('je-response', 'error', `Error: ${err.message}`);
+            }
+        }
+
+        async function postVendorPayment() {
+            const responseDiv = document.getElementById('vp-response');
+            responseDiv.style.display = 'none';
+
+            // Collect data
+            const vendorId = document.getElementById('vp-vendor').value;
+            const invoiceNumber = document.getElementById('vp-invoice-number').value;
+            const invoiceDate = document.getElementById('vp-invoice-date').value;
+            const dueDate = document.getElementById('vp-due-date').value;
+            const amount = parseFloat(document.getElementById('vp-amount').value);
+            const description = document.getElementById('vp-description').value;
+
+            if (!invoiceNumber || !invoiceDate || !dueDate || !amount || !description) {
+                showResponse('vp-response', 'error', 'Please fill in all required fields');
+                return;
+            }
+
+            const payload = {
+                tenant_id: TENANT_ID,
+                vendor_id: vendorId,
+                invoice_number: invoiceNumber,
+                invoice_date: invoiceDate,
+                due_date: dueDate,
+                total_amount: amount,
+                description,
+                status: 'pending',
+                lines: [
+                    {
+                        line_number: 1,
+                        description,
+                        quantity: 1,
+                        unit_price: amount,
+                        line_amount: amount
+                    }
+                ]
+            };
+
+            try {
+                const response = await fetch('http://localhost:3003/invoices', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showResponse('vp-response', 'success',
+                        `Vendor invoice created successfully!<br>` +
+                        `Invoice ID: ${result.invoice_id || result.id}<br>` +
+                        `Invoice Number: ${invoiceNumber}<br>` +
+                        `Amount: AED ${amount.toFixed(2)}`
+                    );
+                } else {
+                    const error = await response.text();
+                    showResponse('vp-response', 'error', `Error: ${error}`);
+                }
+            } catch (err) {
+                showResponse('vp-response', 'error', `Error: ${err.message}`);
+            }
+        }
+
+        function showResponse(divId, type, message) {
+            const div = document.getElementById(divId);
+            div.className = `response ${type}`;
+            div.innerHTML = message;
+            div.style.display = 'block';
+        }
+
+        // Initialize totals
+        calculateJETotals();
+    </script>
+</body>
+</html>

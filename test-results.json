@@ -1,0 +1,211 @@
+{
+  "timestamp": "2025-10-17T15:56:15.345836",
+  "total_tests": 20,
+  "correct": 20,
+  "accuracy": 100.0,
+  "avg_response_time_ms": 2497.4570512771606,
+  "llm_count": 20,
+  "rule_count": 0,
+  "results": [
+    {
+      "test_id": 1,
+      "description": "Office rent payment for January 2025",
+      "expected_code": "5300",
+      "actual_code": "5300",
+      "correct": true,
+      "confidence": 1.0,
+      "response_time_ms": 2612.1268272399902,
+      "method": "LLM"
+    },
+    {
+      "test_id": 2,
+      "description": "DEWA electricity bill for December",
+      "expected_code": "5400",
+      "actual_code": "5400",
+      "correct": true,
+      "confidence": 1.0,
+      "response_time_ms": 2397.733449935913,
+      "method": "LLM"
+    },
+    {
+      "test_id": 3,
+      "description": "Water charges for office premises",
+      "expected_code": "5400",
+      "actual_code": "5400",
+      "correct": true,
+      "confidence": 0.99,
+      "response_time_ms": 2342.550277709961,
+      "method": "LLM"
+    },
+    {
+      "test_id": 4,
+      "description": "Monthly salary payment to employees",
+      "expected_code": "5200",
+      "actual_code": "5200",
+      "correct": true,
+      "confidence": 1.0,
+      "response_time_ms": 2266.9968605041504,
+      "method": "LLM"
+    },
+    {
+      "test_id": 5,
+      "description": "Payroll processing for December 2024",
+      "expected_code": "5200",
+      "actual_code": "5200",
+      "correct": true,
+      "confidence": 0.95,
+      "response_time_ms": 2590.8236503601074,
+      "method": "LLM"
+    },
+    {
+      "test_id": 6,
+      "description": "Google Workspace subscription annual renewal",
+      "expected_code": "5900",
+      "actual_code": "5900",
+      "correct": true,
+      "confidence": 0.95,
+      "response_time_ms": 2525.9158611297607,
+      "method": "LLM"
+    },
+    {
+      "test_id": 7,
+      "description": "Microsoft Office 365 licenses for 50 users",
+      "expected_code": "5900",
+      "actual_code": "5900",
+      "correct": true,
+      "confidence": 0.98,
+      "response_time_ms": 2353.5587787628174,
+      "method": "LLM"
+    },
+    {
+      "test_id": 8,
+      "description": "AWS cloud hosting services",
+      "expected_code": "5900",
+      "actual_code": "5900",
+      "correct": true,
+      "confidence": 0.95,
+      "response_time_ms": 2337.8853797912598,
+      "method": "LLM"
+    },
+    {
+      "test_id": 9,
+      "description": "Facebook advertising campaign for Q1",
+      "expected_code": "5700",
+      "actual_code": "5700",
+      "correct": true,
+      "confidence": 0.98,
+      "response_time_ms": 2395.0090408325195,
+      "method": "LLM"
+    },
+    {
+      "test_id": 10,
+      "description": "LinkedIn sponsored posts and ads",
+      "expected_code": "5700",
+      "actual_code": "5700",
+      "correct": true,
+      "confidence": 0.98,
+      "response_time_ms": 2663.573980331421,
+      "method": "LLM"
+    },
+    {
+      "test_id": 11,
+      "description": "Google Ads campaign spend",
+      "expected_code": "5700",
+      "actual_code": "5700",
+      "correct": true,
+      "confidence": 0.98,
+      "response_time_ms": 2481.820583343506,
+      "method": "LLM"
+    },
+    {
+      "test_id": 12,
+      "description": "Office stationery and supplies",
+      "expected_code": "5500",
+      "actual_code": "5500",
+      "correct": true,
+      "confidence": 0.98,
+      "response_time_ms": 2450.805425643921,
+      "method": "LLM"
+    },
+    {
+      "test_id": 13,
+      "description": "Printer paper and ink cartridges",
+      "expected_code": "5500",
+      "actual_code": "5500",
+      "correct": true,
+      "confidence": 0.98,
+      "response_time_ms": 2462.839126586914,
+      "method": "LLM"
+    },
+    {
+      "test_id": 14,
+      "description": "Legal consultation fees for contract review",
+      "expected_code": "5600",
+      "actual_code": "5600",
+      "correct": true,
+      "confidence": 0.98,
+      "response_time_ms": 2937.2024536132812,
+      "method": "LLM"
+    },
+    {
+      "test_id": 15,
+      "description": "Audit services for FY 2024",
+      "expected_code": "5600",
+      "actual_code": "5600",
+      "correct": true,
+      "confidence": 0.98,
+      "response_time_ms": 2714.2980098724365,
+      "method": "LLM"
+    },
+    {
+      "test_id": 16,
+      "description": "Management consulting advisory services",
+      "expected_code": "5600",
+      "actual_code": "5600",
+      "correct": true,
+      "confidence": 0.98,
+      "response_time_ms": 2629.3673515319824,
+      "method": "LLM"
+    },
+    {
+      "test_id": 17,
+      "description": "Business flight tickets to London",
+      "expected_code": "5800",
+      "actual_code": "5800",
+      "correct": true,
+      "confidence": 0.98,
+      "response_time_ms": 2101.2532711029053,
+      "method": "LLM"
+    },
+    {
+      "test_id": 18,
+      "description": "Hotel accommodation for conference",
+      "expected_code": "5800",
+      "actual_code": "5800",
+      "correct": true,
+      "confidence": 0.98,
+      "response_time_ms": 2419.3055629730225,
+      "method": "LLM"
+    },
+    {
+      "test_id": 19,
+      "description": "Professional liability insurance premium",
+      "expected_code": "6100",
+      "actual_code": "6100",
+      "correct": true,
+      "confidence": 1.0,
+      "response_time_ms": 2463.3805751800537,
+      "method": "LLM"
+    },
+    {
+      "test_id": 20,
+      "description": "Bank transaction fees and charges",
+      "expected_code": "6200",
+      "actual_code": "6200",
+      "correct": true,
+      "confidence": 1.0,
+      "response_time_ms": 2802.69455909729,
+      "method": "LLM"
+    }
+  ]
+}

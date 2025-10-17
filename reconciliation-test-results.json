@@ -1,0 +1,61 @@
+{
+  "account_id": "00000000-0000-0000-0000-BA0000000001",
+  "timestamp": "2025-10-17T12:27:27.697534",
+  "matches": [
+    {
+      "bank_transaction_id": "BANK-0001",
+      "gl_transaction_id": "JE-2025-101",
+      "confidence_score": 1.0,
+      "match_reasoning": "Exact match on amount and date",
+      "match_type": "exact"
+    },
+    {
+      "bank_transaction_id": "BANK-0002",
+      "gl_transaction_id": "JE-2025-102",
+      "confidence_score": 1.0,
+      "match_reasoning": "Exact match on amount and date",
+      "match_type": "exact"
+    },
+    {
+      "bank_transaction_id": "BANK-0004",
+      "gl_transaction_id": "JE-2025-104",
+      "confidence_score": 1.0,
+      "match_reasoning": "Exact match on amount and date",
+      "match_type": "exact"
+    },
+    {
+      "bank_transaction_id": "BANK-0005",
+      "gl_transaction_id": "JE-2025-105",
+      "confidence_score": 1.0,
+      "match_reasoning": "Exact match on amount and date",
+      "match_type": "exact"
+    },
+    {
+      "bank_transaction_id": "BANK-0006",
+      "gl_transaction_id": "JE-2025-106",
+      "confidence_score": 1.0,
+      "match_reasoning": "Exact match on amount and date",
+      "match_type": "exact"
+    },
+    {
+      "bank_transaction_id": "BANK-0008",
+      "gl_transaction_id": "JE-2025-107",
+      "confidence_score": 1.0,
+      "match_reasoning": "Exact match on amount and date",
+      "match_type": "exact"
+    },
+    {
+      "bank_transaction_id": "BANK-0003",
+      "gl_transaction_id": "JE-2025-103",
+      "confidence_score": 0.85,
+      "match_reasoning": "Fuzzy match: 85% similarity",
+      "match_type": "fuzzy"
+    }
+  ],
+  "unmatched_bank": [
+    "BANK-0007"
+  ],
+  "unmatched_gl": [],
+  "reconciliation_rate": 87.5,
+  "processing_time_ms": 0.399
+}

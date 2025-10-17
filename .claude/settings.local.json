@@ -32,7 +32,19 @@
       "Bash(docker logs:*)",
       "Bash(git init:*)",
       "Bash(git remote add:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: Complete AIRP v2.0 - AI-Native Financial ERP System\n\nComplete implementation of AIRP v2.0 with Event Sourcing, CQRS architecture, and 5 AI microservices.\n\n## Features Implemented:\n\n### Core Services\n- Ledger Writer Service (Event Sourcing + CQRS)\n- Reporting Service with Trial Balance & Financial Reports\n- AP/AR Services for vendor and customer management\n- Treasury Service for cash flow and bank account management\n- FP&A Service for budgeting and forecasting\n- Policy Engine for approval workflows\n- Projection Service for read model materialization\n\n### AI Services (5 Microservices)\n1. AI Transaction Classification (Port 8001)\n2. AI Reconciliation Engine (Port 8002)\n3. AI Policy Advisor (Port 8003)\n4. AI Narrative Generation (Port 8004)\n5. AI Cash Flow Forecasting (Port 8005)\n\n### Ledger & Reporting System\n- General Ledger with account-by-account transaction view\n- Vendor Ledger (AP sub-ledger) with invoice tracking\n- Customer Ledger (AR sub-ledger) with invoice tracking\n- Trial Balance with automated balancing verification\n- Custom query endpoint for complex ledger views\n\n### Frontend Demos\n- Transaction Classification Demo\n- Policy Advisor Demo\n- Cash Flow Forecasting Demo\n- Reconciliation Demo\n- Narrative Generation Demo\n- Financial Reports Dashboard\n- Comprehensive Ledgers Dashboard (GL, AP, AR, TB)\n\n### Infrastructure\n- Docker Compose orchestration\n- PostgreSQL with partitioning and materialized views\n- Kafka for event streaming\n- Prometheus & Grafana for monitoring\n- MinIO for document storage\n\n### Database Schema\n- Complete chart of accounts\n- Journal entries with double-entry bookkeeping\n- AP/AR invoices with line items\n- Bank accounts and transactions\n- Vendors and customers master data\n- Event store with partition tables\n- Trial balance materialized view\n\n## Architecture Highlights:\n- Event Sourcing for full audit trail\n- CQRS pattern for read/write separation\n- Multi-tenant architecture with UUID-based isolation\n- Event-driven microservices communication\n- AI-powered automation for financial operations\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git config:*)",
+      "Bash(git push:*)",
+      "Bash(pip install:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker restart:*)",
+      "Bash(docker-compose build:*)",
+      "Bash(docker-compose restart:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker-compose stop:*)",
+      "Bash(docker rm:*)",
+      "Bash(docker rmi:*)"
     ],
     "deny": [],
     "ask": []

@@ -525,6 +525,8 @@ services:
     environment:
       PORT: 8002
       POSTGRES_HOST: postgres
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      AI_PROVIDER: anthropic
       MODEL_PATH: /models/recon_matcher_v1.pkl
     ports:
       - "8002:8002"
@@ -594,4 +596,18 @@ services:
     depends_on:
       qdrant:
         condition: service_healthy
+    restart: unless-stopped
+
+  ai-query-parser:
+    build:
+      context: ./services/ai-query-parser
+      dockerfile: Dockerfile
+    container_name: airp-ai-query-parser
+    environment:
+      PORT: 8006
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    ports:
+      - "8006:8006"
+    networks:
+      - airp-network
     restart: unless-stopped

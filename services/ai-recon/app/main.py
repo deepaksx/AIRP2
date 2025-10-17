@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 import anthropic
+import httpx
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 
 # Configure logging
@@ -51,7 +52,15 @@ AI_PROVIDER = os.getenv("AI_PROVIDER", "anthropic")
 
 if AI_PROVIDER == "anthropic" and ANTHROPIC_API_KEY and len(ANTHROPIC_API_KEY) > 10:
     try:
-        ai_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        # Create httpx client without proxies to avoid compatibility issues
+        http_client = httpx.Client(timeout=60.0)
+
+        # Initialize Anthropic client with custom httpx client
+        ai_client = anthropic.Anthropic(
+            api_key=ANTHROPIC_API_KEY,
+            http_client=http_client,
+            max_retries=2
+        )
         logger.info("Initialized Anthropic Claude client")
     except Exception as e:
         ai_client = None

@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIRP v2.0 - AI-Native Financial ERP</title>
+    <script>
+        // Redirect to new ChatERP interface
+        window.location.href = '/chaterp.html';
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f0f23;
+            color: #e0e0e0;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            font-size: 2em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo p {
+            font-size: 0.9em;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .quick-actions {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .quick-actions h3 {
+            color: #667eea;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .action-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid transparent;
+        }
+
+        .action-card:hover {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+
+        .action-card h4 {
+            color: #fff;
+            font-size: 0.95em;
+            margin-bottom: 5px;
+        }
+
+        .action-card p {
+            color: #888;
+            font-size: 0.85em;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .header {
+            padding: 20px 30px;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h2 {
+            color: #fff;
+            font-size: 1.8em;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #888;
+        }
+
+        /* Chat Container */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .content-frame {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0f0f23;
+            z-index: 10;
+        }
+
+        .content-frame.active {
+            display: block;
+        }
+
+        .content-frame iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .close-frame {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2em;
+            z-index: 11;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .close-frame:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3em;
+            flex-shrink: 0;
+        }
+
+        .message.ai .message-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .message.user .message-avatar {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .message-content {
+            max-width: 70%;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px 20px;
+            border-radius: 15px;
+            line-height: 1.6;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .message-content pre {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        .message-content code {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        /* Dynamic Result Card */
+        .result-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+
+        .result-card h4 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .result-table th,
+        .result-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .result-table th {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        /* Chat Input */
+        .chat-input-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 10px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            border: 2px solid transparent;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input-container:focus-within {
+            border-color: #667eea;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-size: 1em;
+            padding: 10px;
+        }
+
+        .chat-input::placeholder {
+            color: #666;
+        }
+
+        .send-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            transition: transform 0.3s;
+        }
+
+        .send-button:hover {
+            transform: scale(1.1);
+        }
+
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            width: fit-content;
+        }
+
+        .typing-indicator.active {
+            display: block;
+        }
+
+        .typing-indicator span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
+            margin: 0 3px;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+
+        .suggestions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .suggestion-chip {
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid #667eea;
+            color: #667eea;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .suggestion-chip:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 3px solid #667eea;
+        }
+
+        .stat-card h5 {
+            color: #888;
+            font-size: 0.85em;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .value {
+            font-size: 1.8em;
+            color: #fff;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="logo">
+            <h1>AIRP v2.0</h1>
+            <p>AI-Native Financial ERP</p>
+        </div>
+
+        <div class="quick-actions">
+            <h3>Quick Actions</h3>
+            <div class="action-card" onclick="sendMessage('Show me the general ledger')">
+                <h4>📖 General Ledger</h4>
+                <p>View all account transactions</p>
+            </div>
+            <div class="action-card" onclick="sendMessage('Post a journal entry')">
+                <h4>✍️ Post Journal Entry</h4>
+                <p>Record transactions</p>
+            </div>
+            <div class="action-card" onclick="sendMessage('Show trial balance')">
+                <h4>⚖️ Trial Balance</h4>
+                <p>Check account balances</p>
+            </div>
+            <div class="action-card" onclick="sendMessage('Classify invoice: Google Workspace subscription 2400 AED')">
+                <h4>🤖 AI Classification</h4>
+                <p>Auto-classify transactions</p>
+            </div>
+            <div class="action-card" onclick="sendMessage('Reconcile bank statement')">
+                <h4>🔄 Bank Reconciliation</h4>
+                <p>Match bank & GL entries</p>
+            </div>
+            <div class="action-card" onclick="sendMessage('Show cash flow forecast')">
+                <h4>📊 Cash Flow Forecast</h4>
+                <p>AI-powered predictions</p>
+            </div>
+            <div class="action-card" onclick="sendMessage('Generate financial narrative')">
+                <h4>📝 AI Narrative</h4>
+                <p>Explain financial data</p>
+            </div>
+            <div class="action-card" onclick="sendMessage('Check policy for approval')">
+                <h4>🛡️ Policy Check</h4>
+                <p>Approval workflows</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="header">
+            <h2>AI Financial Assistant</h2>
+            <p>Ask me anything - Post transactions, view reports, get insights...</p>
+        </div>
+
+        <div class="chat-container">
+            <!-- Content Frame Overlay -->
+            <div class="content-frame" id="contentFrame">
+                <button class="close-frame" onclick="closeFrame()">✕</button>
+                <iframe id="contentIframe"></iframe>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="message ai">
+                    <div class="message-avatar">🤖</div>
+                    <div class="message-content">
+                        <p>👋 <strong>Welcome to AIRP v2.0!</strong></p>
+                        <p>I'm your AI financial assistant. I can help you with:</p>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>📝 Post journal entries & vendor payments</li>
+                            <li>📊 View ledgers, trial balance & reports</li>
+                            <li>🤖 Auto-classify transactions with AI</li>
+                            <li>🔄 Reconcile bank statements</li>
+                            <li>📈 Generate cash flow forecasts</li>
+                            <li>✍️ Create financial narratives</li>
+                            <li>✅ Check approval policies</li>
+                        </ul>
+                        <p style="margin-top: 15px;">Just type what you need in natural language!</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="suggestions" id="suggestions">
+                <div class="suggestion-chip" onclick="sendMessage('Post rent payment 5000 AED to Dubai Properties')">Post rent payment</div>
+                <div class="suggestion-chip" onclick="sendMessage('Show me today\\'s transactions')">Today's transactions</div>
+                <div class="suggestion-chip" onclick="sendMessage('What\\'s my cash balance?')">Cash balance</div>
+                <div class="suggestion-chip" onclick="sendMessage('Help me understand my expenses')">Analyze expenses</div>
+            </div>
+
+            <div class="chat-input-container">
+                <input
+                    type="text"
+                    class="chat-input"
+                    id="chatInput"
+                    placeholder="Ask me anything... (e.g., 'Post a journal entry for rent 5000 AED')"
+                    onkeypress="if(event.key==='Enter') sendMessage()"
+                >
+                <button class="send-button" onclick="sendMessage()" id="sendButton">
+                    ➤
+                </button>
+            </div>
+
+            <div class="typing-indicator" id="typingIndicator">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendButton = document.getElementById('sendButton');
+        const typingIndicator = document.getElementById('typingIndicator');
+
+        // Intent patterns and handlers
+        const intentPatterns = {
+            'general_ledger': /show|view|display.*(general ledger|gl|ledger)|ledger/i,
+            'trial_balance': /show|view|display.*(trial balance|tb)/i,
+            'post_journal': /post|create|record.*(journal|entry|je)/i,
+            'post_payment': /post|create|pay.*(payment|invoice|bill)/i,
+            'classify': /classify|categorize|tag/i,
+            'reconcile': /reconcile|reconciliation|match/i,
+            'cash_flow': /cash flow|forecast|projection/i,
+            'narrative': /narrative|explain|describe|summary/i,
+            'policy': /policy|approval|check|authorize/i,
+            'help': /help|what can you|how to/i
+        };
+
+        async function sendMessage(text) {
+            const message = text || chatInput.value.trim();
+            if (!message) return;
+
+            // Clear input
+            chatInput.value = '';
+
+            // Add user message
+            addMessage(message, 'user');
+
+            // Show typing indicator
+            typingIndicator.classList.add('active');
+            sendButton.disabled = true;
+
+            // Detect intent and handle
+            await handleIntent(message);
+
+            // Hide typing indicator
+            typingIndicator.classList.remove('active');
+            sendButton.disabled = false;
+        }
+
+        function addMessage(content, type = 'ai') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = type === 'ai' ? '🤖' : '👤';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.innerHTML = content;
+
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(contentDiv);
+            chatMessages.appendChild(messageDiv);
+
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function handleIntent(message) {
+            const lowerMessage = message.toLowerCase();
+
+            // Detect intent
+            if (intentPatterns.general_ledger.test(message)) {
+                openFrame('/ledgers-dashboard.html');
+                addMessage(`
+                    <p>✅ Opening General Ledger dashboard...</p>
+                    <p>You can view:</p>
+                    <ul style="margin-left: 20px;">
+                        <li>📖 General Ledger (all accounts)</li>
+                        <li>🏢 Vendor Ledger (AP sub-ledger)</li>
+                        <li>👥 Customer Ledger (AR sub-ledger)</li>
+                        <li>⚖️ Trial Balance</li>
+                    </ul>
+                `);
+            }
+            else if (intentPatterns.trial_balance.test(message)) {
+                openFrame('/ledgers-dashboard.html?tab=trial-balance');
+                addMessage('✅ Opening Trial Balance report...');
+            }
+            else if (intentPatterns.post_journal.test(message)) {
+                openFrame('/post-transactions.html');
+                addMessage(`
+                    <p>✅ Opening transaction posting interface...</p>
+                    <p>You can:</p>
+                    <ul style="margin-left: 20px;">
+                        <li>📝 Post journal entries (manual GL entries)</li>
+                        <li>💰 Create vendor invoices (AP)</li>
+                    </ul>
+                    <p>Or tell me the details and I'll help you format it!</p>
+                `);
+            }
+            else if (intentPatterns.classify.test(message)) {
+                // Extract amount and description
+                const amountMatch = message.match(/(\d+(?:,\d{3})*(?:\.\d{2})?)\s*(AED|USD)?/);
+                const amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : null;
+
+                if (amount) {
+                    // Call AI classification
+                    addMessage(`
+                        <p>🤖 Classifying transaction using AI...</p>
+                        <p><strong>Description:</strong> ${message}</p>
+                        <p><strong>Amount:</strong> ${amount} AED</p>
+                    `);
+
+                    try {
+                        const response = await fetch('http://localhost:8001/classify', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                tenant_id: TENANT_ID,
+                                invoice_id: 'chat-' + Date.now(),
+                                transaction_type: 'AP',
+                                lines: [{
+                                    line_number: 1,
+                                    description: message,
+                                    amount: amount,
+                                    quantity: 1
+                                }]
+                            })
+                        });
+
+                        if (response.ok) {
+                            const result = await response.json();
+                            const suggestion = result.suggestions[0];
+                            addMessage(`
+                                <div class="result-card">
+                                    <h4>✅ AI Classification Result</h4>
+                                    <p><strong>Account Code:</strong> ${suggestion.account_code}</p>
+                                    <p><strong>Account Name:</strong> ${suggestion.account_name}</p>
+                                    <p><strong>Confidence:</strong> ${(suggestion.confidence_score * 100).toFixed(0)}%</p>
+                                    <p><strong>Reasoning:</strong> ${suggestion.reasoning}</p>
+                                </div>
+                            `);
+                        }
+                    } catch (err) {
+                        addMessage(`❌ Error classifying transaction: ${err.message}`);
+                    }
+                } else {
+                    openFrame('/classify-demo.html');
+                    addMessage('✅ Opening AI Classification demo...');
+                }
+            }
+            else if (intentPatterns.reconcile.test(message)) {
+                openFrame('/recon-demo.html');
+                addMessage(`
+                    <p>✅ Opening Bank Reconciliation interface...</p>
+                    <p>You can:</p>
+                    <ul style="margin-left: 20px;">
+                        <li>🔄 Upload bank statement CSV</li>
+                        <li>🤖 AI-powered transaction matching</li>
+                        <li>📊 View matched & unmatched transactions</li>
+                    </ul>
+                `);
+            }
+            else if (intentPatterns.cash_flow.test(message)) {
+                openFrame('/cashflow-demo.html');
+                addMessage('✅ Opening AI Cash Flow Forecast...');
+            }
+            else if (intentPatterns.narrative.test(message)) {
+                openFrame('/narrative-demo.html');
+                addMessage('✅ Opening AI Narrative Generation...');
+            }
+            else if (intentPatterns.policy.test(message)) {
+                openFrame('/policy-demo.html');
+                addMessage('✅ Opening AI Policy Advisor...');
+            }
+            else if (intentPatterns.help.test(message)) {
+                addMessage(`
+                    <p><strong>Here's what I can help you with:</strong></p>
+                    <ol style="margin-left: 20px; margin-top: 10px;">
+                        <li><strong>View Data:</strong> "Show me the general ledger", "Display trial balance"</li>
+                        <li><strong>Post Transactions:</strong> "Post a journal entry", "Create vendor invoice"</li>
+                        <li><strong>AI Classification:</strong> "Classify: Google Workspace 2400 AED"</li>
+                        <li><strong>Reconciliation:</strong> "Reconcile bank statement"</li>
+                        <li><strong>Forecasting:</strong> "Show cash flow forecast"</li>
+                        <li><strong>Narratives:</strong> "Generate financial narrative"</li>
+                        <li><strong>Policy Check:</strong> "Check if this needs approval"</li>
+                    </ol>
+                    <p style="margin-top: 15px;">Just ask in natural language!</p>
+                `);
+            }
+            else {
+                // Generic response with suggestions
+                addMessage(`
+                    <p>I'm not sure exactly what you need, but here are some things I can help with:</p>
+                    <div class="stats-grid">
+                        <div class="stat-card" onclick="sendMessage('Show general ledger')">
+                            <h5>View Ledgers</h5>
+                            <p>GL, AP, AR, Trial Balance</p>
+                        </div>
+                        <div class="stat-card" onclick="sendMessage('Post a journal entry')">
+                            <h5>Post Transactions</h5>
+                            <p>Journal entries & invoices</p>
+                        </div>
+                        <div class="stat-card" onclick="sendMessage('Classify transaction')">
+                            <h5>AI Classification</h5>
+                            <p>Auto-categorize with AI</p>
+                        </div>
+                        <div class="stat-card" onclick="sendMessage('Help')">
+                            <h5>Get Help</h5>
+                            <p>See all capabilities</p>
+                        </div>
+                    </div>
+                    <p style="margin-top: 15px;">Click a card above or ask me something specific!</p>
+                `);
+            }
+        }
+
+        function openFrame(url) {
+            // Load URL in iframe
+            document.getElementById('contentIframe').src = url;
+            // Show the overlay
+            document.getElementById('contentFrame').classList.add('active');
+        }
+
+        function closeFrame() {
+            // Hide the overlay
+            document.getElementById('contentFrame').classList.remove('active');
+            // Clear iframe source to stop any running processes
+            document.getElementById('contentIframe').src = '';
+        }
+
+        // Auto-focus input
+        chatInput.focus();
+    </script>
+</body>
+</html>

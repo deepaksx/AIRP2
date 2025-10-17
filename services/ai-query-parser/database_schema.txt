@@ -1,0 +1,274 @@
+⚠️ COMPLETE DATABASE SCHEMA - EXTRACTED FROM POSTGRESQL - MUST FOLLOW EXACTLY ⚠️
+
+═══════════════════════════════════════════════════════════════════════════════
+1. chart_of_accounts (TABLE) - Core GL Account Structure
+═══════════════════════════════════════════════════════════════════════════════
+Columns:
+  - account_id (uuid, PK)
+  - tenant_id (uuid, FK → tenants)
+  - account_code (varchar(50), UNIQUE per tenant)
+  - account_name (varchar(255))
+  - account_type (varchar(50)) - Asset, Liability, Equity, Revenue, Expense
+  - account_subtype (varchar(50))
+  - parent_account_id (uuid, FK → chart_of_accounts, self-referencing)
+  - normal_balance (varchar(10)) - Debit or Credit
+  - is_control_account (boolean, default: false)
+  - is_leaf (boolean, default: true)
+  - currency (char(3), default: 'AED')
+  - status (varchar(20), default: 'active')
+  - ifrs_category (varchar(100))
+  - gaap_category (varchar(100))
+  - tax_category (varchar(50))
+  - created_at (timestamp with time zone)
+  - updated_at (timestamp with time zone)
+  - metadata (jsonb)
+
+❌ CRITICAL: chart_of_accounts DOES NOT HAVE BALANCE COLUMNS!
+   NO: current_balance, balance, debit_balance, credit_balance
+
+═══════════════════════════════════════════════════════════════════════════════
+2. trial_balance (MATERIALIZED VIEW) - Account Balances
+═══════════════════════════════════════════════════════════════════════════════
+Columns:
+  - tenant_id (uuid)
+  - account_code (varchar(50))
+  - account_name (varchar(255))
+  - account_type (varchar(50))
+  - debit_balance (numeric(20,4))
+  - credit_balance (numeric(20,4))
+  - net_balance (numeric(20,4))
+  - period_end_date (timestamp without time zone)
+  - fiscal_year (integer)
+  - fiscal_period (integer)
+
+✅ Use trial_balance for ALL balance queries!
+
+═══════════════════════════════════════════════════════════════════════════════
+3. journal_entries (TABLE) - Journal Entry Headers
+═══════════════════════════════════════════════════════════════════════════════
+Columns:
+  - entry_id (uuid, PK)
+  - tenant_id (uuid, FK → tenants)
+  - entry_number (varchar(50), UNIQUE per tenant)
+  - entry_date (date) ✅ DATE IS HERE!
+  - posting_date (date)
+  - entry_type (varchar(50))
+  - source_type (varchar(50))
+  - source_ref_id (uuid)
+  - description (text)
+  - total_debit (numeric(20,4))
+  - total_credit (numeric(20,4))
+  - currency (char(3), default: 'AED')
+  - status (varchar(20), default: 'draft')
+  - approved_by (uuid), approved_at (timestamp)
+  - posted_by (uuid), posted_at (timestamp)
+  - reversed_by (uuid), reversed_at (timestamp)
+  - reversal_entry_id (uuid)
+  - ai_confidence_score (numeric(5,4))
+  - ai_model_version (varchar(50))
+  - created_at, updated_at (timestamp with time zone)
+  - metadata (jsonb)
+
+═══════════════════════════════════════════════════════════════════════════════
+4. journal_entry_lines (TABLE) - Journal Entry Line Items
+═══════════════════════════════════════════════════════════════════════════════
+Columns:
+  - line_id (uuid, PK)
+  - entry_id (uuid, FK → journal_entries)
+  - tenant_id (uuid, FK → tenants)
+  - line_number (integer)
+  - account_id (uuid, FK → chart_of_accounts)
+  - debit_amount (numeric(20,4), default: 0)
+  - credit_amount (numeric(20,4), default: 0)
+  - currency (char(3), default: 'AED')
+  - exchange_rate (numeric(12,6), default: 1.0)
+  - description (text)
+  - dimension_1, dimension_2, dimension_3, dimension_4 (varchar(50)) - Cost centers, projects
+  - created_at (timestamp with time zone)
+  - metadata (jsonb)
+
+❌ CRITICAL: journal_entry_lines DOES NOT HAVE entry_date!
+   To get entry date, JOIN with journal_entries table!
+
+═══════════════════════════════════════════════════════════════════════════════
+5. gl_balances (TABLE) - Period Balances
+═══════════════════════════════════════════════════════════════════════════════
+Columns:
+  - balance_id (uuid, PK)
+  - tenant_id (uuid, FK → tenants)
+  - account_id (uuid, FK → chart_of_accounts)
+  - fiscal_year (integer)
+  - fiscal_period (integer)
+  - currency (char(3))
+  - debit_amount (numeric(20,4), default: 0)
+  - credit_amount (numeric(20,4), default: 0)
+  - balance (numeric(20,4), default: 0)
+  - last_updated (timestamp with time zone)
+  - last_event_id (uuid)
+
+═══════════════════════════════════════════════════════════════════════════════
+6. vendors (TABLE) - Supplier Master
+═══════════════════════════════════════════════════════════════════════════════
+Columns:
+  - vendor_id (uuid, PK)
+  - tenant_id (uuid, FK → tenants)
+  - vendor_code (varchar(50), UNIQUE per tenant)
+  - vendor_name (varchar(255))
+  - tax_id (varchar(50))
+  - contact_email (varchar(255))
+  - contact_phone (varchar(50))
+  - payment_terms (integer, default: 30)
+  - default_currency (char(3), default: 'AED')
+  - bank_account_name, bank_account_number (varchar)
+  - bank_name (varchar(255))
+  - bank_swift (varchar(20))
+  - iban (varchar(50))
+  - status (varchar(20), default: 'active')
+  - created_at, updated_at (timestamp with time zone)
+  - metadata (jsonb)
+
+═══════════════════════════════════════════════════════════════════════════════
+7. customers (TABLE) - Customer Master
+═══════════════════════════════════════════════════════════════════════════════
+Columns:
+  - customer_id (uuid, PK)
+  - tenant_id (uuid, FK → tenants)
+  - customer_code (varchar(50), UNIQUE per tenant)
+  - customer_name (varchar(255))
+  - tax_id (varchar(50))
+  - contact_email (varchar(255))
+  - contact_phone (varchar(50))
+  - payment_terms (integer, default: 30)
+  - credit_limit (numeric(20,4))
+  - default_currency (char(3), default: 'AED')
+  - status (varchar(20), default: 'active')
+  - created_at, updated_at (timestamp with time zone)
+  - metadata (jsonb)
+
+═══════════════════════════════════════════════════════════════════════════════
+8. ap_invoices (TABLE) - Accounts Payable Invoices
+═══════════════════════════════════════════════════════════════════════════════
+Columns:
+  - invoice_id (uuid, PK)
+  - tenant_id (uuid, FK → tenants)
+  - vendor_id (uuid, FK → vendors)
+  - invoice_number (varchar(100), UNIQUE per tenant+vendor)
+  - invoice_date (date)
+  - due_date (date)
+  - currency (char(3), default: 'AED')
+  - subtotal (numeric(20,4))
+  - tax_amount (numeric(20,4), default: 0)
+  - total_amount (numeric(20,4))
+  - amount_paid (numeric(20,4), default: 0)
+  - amount_outstanding (numeric(20,4))
+  - status (varchar(20), default: 'draft')
+  - approval_status (varchar(20), default: 'pending')
+  - payment_status (varchar(20), default: 'unpaid')
+  - ai_extracted_data (jsonb)
+  - ai_confidence_score (numeric(5,4))
+  - approved_by (uuid), approved_at (timestamp)
+  - paid_at (timestamp with time zone)
+  - created_at, updated_at (timestamp with time zone)
+  - metadata (jsonb)
+
+═══════════════════════════════════════════════════════════════════════════════
+9. ar_invoices (TABLE) - Accounts Receivable Invoices
+═══════════════════════════════════════════════════════════════════════════════
+Columns:
+  - invoice_id (uuid, PK)
+  - tenant_id (uuid, FK → tenants)
+  - customer_id (uuid, FK → customers)
+  - invoice_number (varchar(100), UNIQUE per tenant)
+  - invoice_date (date)
+  - due_date (date)
+  - currency (char(3), default: 'AED')
+  - subtotal (numeric(20,4))
+  - tax_amount (numeric(20,4), default: 0)
+  - total_amount (numeric(20,4))
+  - amount_paid (numeric(20,4), default: 0)
+  - amount_outstanding (numeric(20,4))
+  - status (varchar(20), default: 'draft')
+  - payment_status (varchar(20), default: 'unpaid')
+  - sent_at (timestamp with time zone)
+  - paid_at (timestamp with time zone)
+  - created_at, updated_at (timestamp with time zone)
+  - metadata (jsonb)
+
+═══════════════════════════════════════════════════════════════════════════════
+10. bank_accounts (TABLE) - Bank Account Master
+═══════════════════════════════════════════════════════════════════════════════
+Columns:
+  - bank_account_id (uuid, PK)
+  - tenant_id (uuid, FK → tenants)
+  - account_code (varchar(50), UNIQUE per tenant)
+  - account_name (varchar(255))
+  - bank_name (varchar(255))
+  - account_number (varchar(50))
+  - iban (varchar(50))
+  - swift_code (varchar(20))
+  - currency (char(3), default: 'AED')
+  - account_type (varchar(50), default: 'checking')
+  - gl_account_id (uuid, FK → chart_of_accounts)
+  - current_balance (numeric(20,4), default: 0)
+  - available_balance (numeric(20,4), default: 0)
+  - status (varchar(20), default: 'active')
+  - last_reconciled_date (date)
+  - last_reconciled_balance (numeric(20,4))
+  - created_at, updated_at (timestamp with time zone)
+  - metadata (jsonb)
+
+═══════════════════════════════════════════════════════════════════════════════
+11. bank_transactions (TABLE) - Bank Statement Lines
+═══════════════════════════════════════════════════════════════════════════════
+Columns:
+  - transaction_id (uuid, PK)
+  - tenant_id (uuid, FK → tenants)
+  - bank_account_id (uuid, FK → bank_accounts)
+  - transaction_date (date)
+  - value_date (date)
+  - description (text)
+  - reference (varchar(100))
+  - debit_amount (numeric(20,4), default: 0)
+  - credit_amount (numeric(20,4), default: 0)
+  - balance (numeric(20,4))
+  - currency (char(3))
+  - reconciliation_status (varchar(20), default: 'unreconciled')
+  - matched_journal_entry_id (uuid)
+  - ai_match_confidence (numeric(5,4))
+  - ai_suggested_matches (jsonb)
+  - reconciled_by (uuid), reconciled_at (timestamp)
+  - created_at (timestamp with time zone)
+  - metadata (jsonb)
+
+═══════════════════════════════════════════════════════════════════════════════
+⚠️ CRITICAL SQL GENERATION RULES ⚠️
+═══════════════════════════════════════════════════════════════════════════════
+1. For GL account balances: ALWAYS use trial_balance view or gl_balances table
+2. NEVER select balance columns from chart_of_accounts (they don't exist!)
+3. For entry dates: JOIN journal_entries (has entry_date) with journal_entry_lines
+4. For trial balance analysis: Use simple SUM query on trial_balance view
+5. Always include tenant_id filter in WHERE clause
+6. Use proper foreign key relationships when joining tables
+
+═══════════════════════════════════════════════════════════════════════════════
+⚠️ TRIAL BALANCE ANALYSIS - SIMPLE QUERY ⚠️
+═══════════════════════════════════════════════════════════════════════════════
+For "why is trial balance out of balance" queries:
+
+SELECT
+    SUM(debit_balance) as total_debits,
+    SUM(credit_balance) as total_credits,
+    (SUM(debit_balance) - SUM(credit_balance)) as difference
+FROM trial_balance
+WHERE tenant_id = ?
+
+DO NOT query journal_entry_lines for trial balance analysis!
+
+SQL GENERATION RULES:
+1. NEVER EVER select current_balance, balance, debit_balance, or credit_balance from chart_of_accounts - THESE COLUMNS DON'T EXIST!
+2. DEFAULT behavior for "list accounts" or "show accounts": SELECT account_code, account_name, account_type FROM chart_of_accounts (NO BALANCES)
+3. ONLY include balances when user explicitly asks for "balances", "amounts", or "totals"
+4. For listing accounts WITH balances: Use trial_balance view or JOIN with gl_balances table
+5. Always use proper JOIN syntax
+6. Use COALESCE for null values in aggregations
+7. If you try to select current_balance from chart_of_accounts, the query WILL FAIL

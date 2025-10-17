@@ -1,0 +1,129 @@
+{
+  "timestamp": "2025-10-17T15:58:50.829506",
+  "total_tests": 20,
+  "passed": 20,
+  "failed": 0,
+  "pass_rate": 100.0,
+  "results": [
+    {
+      "test": "Empty Description",
+      "status": "PASS",
+      "account_code": "2100",
+      "confidence": 1.0
+    },
+    {
+      "test": "Whitespace Only",
+      "status": "PASS",
+      "account_code": "5500",
+      "confidence": 0.3
+    },
+    {
+      "test": "Very Long Description (>1000 chars)",
+      "status": "PASS",
+      "account_code": "2100",
+      "confidence": 1.0
+    },
+    {
+      "test": "Arabic Text",
+      "status": "PASS",
+      "account_code": "5300",
+      "confidence": 1.0
+    },
+    {
+      "test": "Mixed Arabic/English",
+      "status": "PASS",
+      "account_code": "5300",
+      "confidence": 1.0
+    },
+    {
+      "test": "Special Characters & Emoji",
+      "status": "PASS",
+      "account_code": "5500",
+      "confidence": 0.95
+    },
+    {
+      "test": "All Uppercase",
+      "status": "PASS",
+      "account_code": "5300",
+      "confidence": 1.0
+    },
+    {
+      "test": "All Lowercase",
+      "status": "PASS",
+      "account_code": "5300",
+      "confidence": 1.0
+    },
+    {
+      "test": "Numbers Only",
+      "status": "PASS",
+      "account_code": "2100",
+      "confidence": 1.0
+    },
+    {
+      "test": "Very Short (1 word)",
+      "status": "PASS",
+      "account_code": "5300",
+      "confidence": 1.0
+    },
+    {
+      "test": "Special Characters Only",
+      "status": "PASS",
+      "account_code": "5500",
+      "confidence": 0.3
+    },
+    {
+      "test": "Ambiguous Description",
+      "status": "PASS",
+      "account_code": "2100",
+      "confidence": 0.95
+    },
+    {
+      "test": "HTML/Script Injection Attempt",
+      "status": "PASS",
+      "account_code": "5300",
+      "confidence": 0.98
+    },
+    {
+      "test": "SQL Injection Attempt",
+      "status": "PASS",
+      "account_code": "5300",
+      "confidence": 0.95
+    },
+    {
+      "test": "Prompt Injection Attempt",
+      "status": "PASS",
+      "account_code": "5300",
+      "confidence": 1.0
+    },
+    {
+      "test": "Zero Amount",
+      "status": "PASS",
+      "account_code": "5300",
+      "confidence": 1.0
+    },
+    {
+      "test": "Negative Amount",
+      "status": "PASS",
+      "account_code": "5300",
+      "confidence": 0.95
+    },
+    {
+      "test": "Very Large Amount",
+      "status": "PASS",
+      "account_code": "5300",
+      "confidence": 1.0
+    },
+    {
+      "test": "Multiple Newlines",
+      "status": "PASS",
+      "account_code": "5300",
+      "confidence": 1.0
+    },
+    {
+      "test": "URL in Description",
+      "status": "PASS",
+      "account_code": "5300",
+      "confidence": 0.99
+    }
+  ]
+}

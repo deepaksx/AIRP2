@@ -15,26 +15,59 @@ export class ReportingService {
   async getTrialBalance(params: any): Promise<any> {
     this.logger.log(`Fetching trial balance for tenant: ${params.tenant_id}`);
 
-    const query = `
-      SELECT account_code, account_name, account_type,
-             debit_balance, credit_balance, net_balance
-      FROM trial_balance
-      WHERE tenant_id = $1
-        AND period_end_date = $2
-      ORDER BY account_code
-    `;
+    let query: string;
+    let queryParams: any[];
 
-    const results = await this.dataSource.query(query, [
-      params.tenant_id,
-      params.period_end_date || new Date(),
-    ]);
+    if (params.period_end_date) {
+      // Query for specific period
+      query = `
+        SELECT account_code, account_name, account_type,
+               debit_balance, credit_balance, net_balance
+        FROM trial_balance
+        WHERE tenant_id = $1
+          AND period_end_date = $2
+        ORDER BY account_code
+      `;
+      queryParams = [params.tenant_id, params.period_end_date];
+    } else {
+      // Query for latest period (most recent period_end_date)
+      query = `
+        SELECT account_code, account_name, account_type,
+               debit_balance, credit_balance, net_balance, period_end_date
+        FROM trial_balance
+        WHERE tenant_id = $1
+          AND period_end_date = (
+            SELECT MAX(period_end_date)
+            FROM trial_balance
+            WHERE tenant_id = $1
+          )
+        ORDER BY account_code
+      `;
+      queryParams = [params.tenant_id];
+    }
+
+    const results = await this.dataSource.query(query, queryParams);
+
+    // Map to expected format with total_debit/total_credit for backwards compatibility
+    const accounts = results.map(r => ({
+      account_code: r.account_code,
+      account_name: r.account_name,
+      account_type: r.account_type,
+      total_debit: r.debit_balance,
+      total_credit: r.credit_balance,
+      net_balance: r.net_balance,
+    }));
 
     return {
       tenant_id: params.tenant_id,
-      period_end_date: params.period_end_date,
-      accounts: results,
-      total_debits: results.reduce((sum, r) => sum + parseFloat(r.debit_balance || 0), 0),
-      total_credits: results.reduce((sum, r) => sum + parseFloat(r.credit_balance || 0), 0),
+      period_end_date: results.length > 0 ? results[0].period_end_date : null,
+      accounts: accounts,
+      total_debits: accounts.reduce((sum, r) => sum + parseFloat(r.total_debit || 0), 0),
+      total_credits: accounts.reduce((sum, r) => sum + parseFloat(r.total_credit || 0), 0),
+      is_balanced: Math.abs(
+        accounts.reduce((sum, r) => sum + parseFloat(r.total_debit || 0), 0) -
+        accounts.reduce((sum, r) => sum + parseFloat(r.total_credit || 0), 0)
+      ) < 0.01,
     };
   }
 
