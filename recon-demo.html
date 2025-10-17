@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Bank Reconciliation Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #4facfe;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 36px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 18px;
+        }
+        .status {
+            text-align: center;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        .status.online {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .recon-section {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            color: white;
+        }
+        .recon-section h2 {
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .recon-button {
+            width: 100%;
+            padding: 18px;
+            background: white;
+            color: #4facfe;
+            border: none;
+            border-radius: 10px;
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 15px;
+        }
+        .recon-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+        }
+        .recon-button:active {
+            transform: translateY(0);
+        }
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #4facfe;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .result {
+            margin-top: 20px;
+            padding: 25px;
+            border-radius: 10px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .result.success {
+            background: #d4edda;
+            border: 3px solid #28a745;
+        }
+        .result.error {
+            background: #f8d7da;
+            border: 3px solid #dc3545;
+        }
+        .result-header {
+            font-size: 22px;
+            font-weight: 600;
+            color: #4facfe;
+            margin-bottom: 20px;
+        }
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .summary-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #4facfe;
+        }
+        .summary-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .summary-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #333;
+        }
+        .summary-value.success {
+            color: #28a745;
+        }
+        .summary-value.warning {
+            color: #ffc107;
+        }
+        .matches-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .section-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .match-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #28a745;
+        }
+        .match-item.fuzzy {
+            border-left-color: #ffc107;
+        }
+        .match-item.ai {
+            border-left-color: #4facfe;
+        }
+        .match-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .match-type-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .match-type-badge.exact {
+            background: #28a745;
+            color: white;
+        }
+        .match-type-badge.fuzzy {
+            background: #ffc107;
+            color: #333;
+        }
+        .match-type-badge.ai {
+            background: #4facfe;
+            color: white;
+        }
+        .confidence-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #4facfe;
+            color: white;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 12px;
+        }
+        .match-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 13px;
+        }
+        .detail-group {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #666;
+            font-size: 11px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .detail-value {
+            color: #333;
+        }
+        .match-reasoning {
+            margin-top: 10px;
+            padding: 10px;
+            background: #fff3cd;
+            border-radius: 5px;
+            font-size: 12px;
+            color: #856404;
+        }
+        .unmatched-section {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        .unmatched-title {
+            font-weight: 600;
+            color: #721c24;
+            margin-bottom: 10px;
+        }
+        .unmatched-item {
+            color: #721c24;
+            font-size: 13px;
+            padding: 5px;
+        }
+        .info-box {
+            background: #d1ecf1;
+            border: 2px solid #17a2b8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            color: #0c5460;
+        }
+        .info-box strong {
+            display: block;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏦 AI Bank Reconciliation</h1>
+        <p class="subtitle">Automatically match bank transactions with GL entries using AI</p>
+
+        <div id="status" class="status">Checking connection...</div>
+
+        <div class="info-box">
+            <strong>📝 How it works:</strong>
+            Click the button below to run a demo reconciliation. The AI will attempt to match sample bank transactions with GL entries using:
+            <ul style="margin-top: 8px; margin-left: 20px;">
+                <li><strong>Exact Matching:</strong> Same amount and date</li>
+                <li><strong>Fuzzy Matching:</strong> Similar amounts and descriptions</li>
+                <li><strong>AI Matching:</strong> Complex pattern recognition for difficult cases</li>
+            </ul>
+        </div>
+
+        <div class="recon-section">
+            <h2>🔍 Run Bank Reconciliation</h2>
+            <p style="margin-bottom: 15px; font-size: 14px;">
+                This demo will reconcile 8 bank transactions against 8 GL entries.
+            </p>
+            <button class="recon-button" onclick="runReconciliation()">
+                🚀 RUN RECONCILIATION
+            </button>
+            <div class="spinner" id="spinner"></div>
+            <div class="result" id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8002/reconcile';
+        const HEALTH_URL = 'http://localhost:8002/health';
+
+        // Sample bank transactions
+        const bankTransactions = [
+            { transaction_id: "B001", transaction_date: "2025-01-15", description: "Office rent payment", amount: 5000.00, transaction_type: "debit", reference_number: "REF001" },
+            { transaction_id: "B002", transaction_date: "2025-01-16", description: "Client payment received", amount: 15000.00, transaction_type: "credit", reference_number: "INV-1234" },
+            { transaction_id: "B003", transaction_date: "2025-01-17", description: "DEWA electricity", amount: 450.00, transaction_type: "debit", reference_number: null },
+            { transaction_id: "B004", transaction_date: "2025-01-18", description: "Office supplies purchase", amount: 350.50, transaction_type: "debit", reference_number: "PO-789" },
+            { transaction_id: "B005", transaction_date: "2025-01-19", description: "Salary payment - staff", amount: 25000.00, transaction_type: "debit", reference_number: null },
+            { transaction_id: "B006", transaction_date: "2025-01-20", description: "Google Workspace subscription", amount: 150.00, transaction_type: "debit", reference_number: null },
+            { transaction_id: "B007", transaction_date: "2025-01-21", description: "Consulting fee received", amount: 8000.00, transaction_type: "credit", reference_number: "INV-5678" },
+            { transaction_id: "B008", transaction_date: "2025-01-22", description: "Marketing - Facebook Ads", amount: 1200.00, transaction_type: "debit", reference_number: "FB-2025-01" }
+        ];
+
+        // Sample GL transactions
+        const glTransactions = [
+            { entry_id: "GL001", entry_date: "2025-01-15", description: "Monthly office rent - Q1", amount: 5000.00, account_code: "6100", account_name: "Rent Expense" },
+            { entry_id: "GL002", entry_date: "2025-01-16", description: "Revenue from consulting services", amount: 15000.00, account_code: "4000", account_name: "Service Revenue" },
+            { entry_id: "GL003", entry_date: "2025-01-17", description: "Utilities - electricity bill", amount: 450.00, account_code: "6200", account_name: "Utilities Expense" },
+            { entry_id: "GL004", entry_date: "2025-01-18", description: "Office supplies and stationery", amount: 350.50, account_code: "5500", account_name: "Office Supplies" },
+            { entry_id: "GL005", entry_date: "2025-01-19", description: "Employee salaries January", amount: 25000.00, account_code: "6300", account_name: "Salaries Expense" },
+            { entry_id: "GL006", entry_date: "2025-01-20", description: "Software subscription - Google", amount: 150.00, account_code: "6400", account_name: "Software & IT" },
+            { entry_id: "GL007", entry_date: "2025-01-21", description: "Professional services revenue", amount: 8000.00, account_code: "4000", account_name: "Service Revenue" },
+            { entry_id: "GL008", entry_date: "2025-01-22", description: "Digital marketing expense", amount: 1200.00, account_code: "6500", account_name: "Marketing Expense" }
+        ];
+
+        async function runReconciliation() {
+            const spinner = document.getElementById('spinner');
+            const result = document.getElementById('result');
+
+            spinner.style.display = 'block';
+            result.style.display = 'none';
+
+            const requestBody = {
+                tenant_id: "00000000-0000-0000-0000-000000000001",
+                account_id: "BANK-001",
+                bank_transactions: bankTransactions,
+                gl_transactions: glTransactions
+            };
+
+            console.log('Sending request to:', API_URL);
+            console.log('Request body:', requestBody);
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                console.log('Response status:', response.status);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log('Response data:', data);
+
+                // Build matches HTML
+                let matchesHtml = '';
+                if (data.matches && data.matches.length > 0) {
+                    matchesHtml = '<div class="matches-section"><div class="section-title">✅ Matched Transactions</div>';
+                    data.matches.forEach(match => {
+                        const bankTxn = bankTransactions.find(b => b.transaction_id === match.bank_transaction_id);
+                        const glTxn = glTransactions.find(g => g.entry_id === match.gl_transaction_id);
+
+                        matchesHtml += `
+                            <div class="match-item ${match.match_type}">
+                                <div class="match-header">
+                                    <div>
+                                        <span class="match-type-badge ${match.match_type}">${match.match_type} match</span>
+                                        <span class="confidence-badge">${(match.confidence_score * 100).toFixed(0)}% confidence</span>
+                                    </div>
+                                </div>
+                                <div class="match-details">
+                                    <div class="detail-group">
+                                        <div class="detail-label">🏦 Bank Transaction</div>
+                                        <div class="detail-value"><strong>${bankTxn.transaction_id}</strong></div>
+                                        <div class="detail-value">${bankTxn.description}</div>
+                                        <div class="detail-value">AED ${bankTxn.amount.toFixed(2)} • ${bankTxn.transaction_date}</div>
+                                    </div>
+                                    <div class="detail-group">
+                                        <div class="detail-label">📒 GL Entry</div>
+                                        <div class="detail-value"><strong>${glTxn.entry_id}</strong></div>
+                                        <div class="detail-value">${glTxn.description}</div>
+                                        <div class="detail-value">${glTxn.account_code} - ${glTxn.account_name}</div>
+                                        <div class="detail-value">AED ${glTxn.amount.toFixed(2)} • ${glTxn.entry_date}</div>
+                                    </div>
+                                </div>
+                                <div class="match-reasoning">
+                                    💡 ${match.match_reasoning}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    matchesHtml += '</div>';
+                }
+
+                // Build unmatched HTML
+                let unmatchedHtml = '';
+                if (data.unmatched_bank.length > 0 || data.unmatched_gl.length > 0) {
+                    unmatchedHtml = '<div class="unmatched-section">';
+                    if (data.unmatched_bank.length > 0) {
+                        unmatchedHtml += '<div class="unmatched-title">⚠️ Unmatched Bank Transactions</div>';
+                        data.unmatched_bank.forEach(id => {
+                            const txn = bankTransactions.find(b => b.transaction_id === id);
+                            unmatchedHtml += `<div class="unmatched-item">• ${txn.transaction_id}: ${txn.description} (AED ${txn.amount.toFixed(2)})</div>`;
+                        });
+                    }
+                    if (data.unmatched_gl.length > 0) {
+                        unmatchedHtml += '<div class="unmatched-title" style="margin-top: 10px;">⚠️ Unmatched GL Entries</div>';
+                        data.unmatched_gl.forEach(id => {
+                            const txn = glTransactions.find(g => g.entry_id === id);
+                            unmatchedHtml += `<div class="unmatched-item">• ${txn.entry_id}: ${txn.description} (AED ${txn.amount.toFixed(2)})</div>`;
+                        });
+                    }
+                    unmatchedHtml += '</div>';
+                }
+
+                result.className = 'result success';
+                result.innerHTML = `
+                    <div class="result-header">✅ Reconciliation Complete</div>
+
+                    <div class="summary-cards">
+                        <div class="summary-card">
+                            <div class="summary-label">Matched</div>
+                            <div class="summary-value success">${data.matches.length}</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Unmatched Bank</div>
+                            <div class="summary-value warning">${data.unmatched_bank.length}</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Unmatched GL</div>
+                            <div class="summary-value warning">${data.unmatched_gl.length}</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Reconciliation Rate</div>
+                            <div class="summary-value ${data.reconciliation_rate >= 90 ? 'success' : 'warning'}">${data.reconciliation_rate.toFixed(1)}%</div>
+                        </div>
+                    </div>
+
+                    ${matchesHtml}
+                    ${unmatchedHtml}
+
+                    <div style="margin-top: 15px; color: #999; font-size: 13px; text-align: center;">
+                        ⚡ Processed in ${data.processing_time_ms.toFixed(2)}ms
+                    </div>
+                `;
+                result.style.display = 'block';
+
+            } catch (error) {
+                console.error('Error:', error);
+                result.className = 'result error';
+                result.innerHTML = `
+                    <div class="result-header">❌ Error</div>
+                    <div style="color: #dc3545; margin-top: 10px; font-size: 16px;">${error.message}</div>
+                    <div style="margin-top: 15px; font-size: 14px; color: #666;">
+                        <strong>Troubleshooting:</strong><br>
+                        1. Make sure Docker containers are running<br>
+                        2. AI Recon service should be at: ${API_URL}<br>
+                        3. Check browser console (F12) for details
+                    </div>
+                `;
+                result.style.display = 'block';
+            } finally {
+                spinner.style.display = 'none';
+            }
+        }
+
+        async function checkConnection() {
+            const statusDiv = document.getElementById('status');
+            try {
+                const response = await fetch(HEALTH_URL);
+                const data = await response.json();
+                console.log('✅ AI Recon Status:', data);
+                statusDiv.className = 'status online';
+                statusDiv.textContent = '✅ Connected to AI Bank Reconciliation (Port 8002)';
+            } catch (error) {
+                console.error('❌ Connection failed:', error);
+                statusDiv.className = 'status offline';
+                statusDiv.textContent = '❌ Cannot connect to AI Recon at ' + HEALTH_URL;
+            }
+        }
+
+        window.onload = checkConnection;
+    </script>
+</body>
+</html>

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Classification - Live Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 36px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 18px;
+        }
+        .custom-test {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            color: white;
+        }
+        .custom-test h2 {
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            background: white;
+        }
+        input:focus {
+            outline: 3px solid rgba(255,255,255,0.5);
+        }
+        .custom-button {
+            width: 100%;
+            padding: 18px;
+            background: white;
+            color: #667eea;
+            border: none;
+            border-radius: 10px;
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 15px;
+        }
+        .custom-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+        }
+        .custom-button:active {
+            transform: translateY(0);
+        }
+        .test-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        .test-title span {
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+        .description {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+            font-size: 16px;
+        }
+        button.test-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button.test-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        button.test-btn:active {
+            transform: translateY(0);
+        }
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .result.success {
+            background: #d4edda;
+            border: 2px solid #28a745;
+        }
+        .result.error {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+        }
+        .result-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .result-value {
+            font-size: 26px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        .confidence-bar {
+            background: #e0e0e0;
+            height: 35px;
+            border-radius: 17px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            transition: width 0.5s ease;
+            font-size: 16px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .divider {
+            border-top: 2px dashed #ddd;
+            margin: 30px 0;
+        }
+        .section-title {
+            font-size: 22px;
+            color: #667eea;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 AI Auto-Accounting</h1>
+        <p class="subtitle">Type your own description and watch AI classify it!</p>
+
+        <!-- CUSTOM INPUT SECTION -->
+        <div class="custom-test">
+            <h2>✏️ Test Your Own Description</h2>
+            <div class="input-group">
+                <label for="customDesc">Invoice Description:</label>
+                <input type="text" id="customDesc"
+                       placeholder="e.g., Google Workspace subscription, Legal fees, Travel expenses..."
+                       value="Office supplies - printer paper">
+            </div>
+            <div class="input-group">
+                <label for="customAmount">Amount (AED):</label>
+                <input type="number" id="customAmount" value="100" step="0.01">
+            </div>
+            <button class="custom-button" onclick="runCustomTest()">
+                🚀 CLASSIFY MY INVOICE
+            </button>
+            <div class="spinner" id="spinnerCustom"></div>
+            <div class="result" id="resultCustom"></div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="section-title">📋 Pre-Made Examples (Click to Test)</div>
+
+        <!-- Test 1 -->
+        <div class="test-section">
+            <div class="test-title"><span>1</span> Office Supplies</div>
+            <div class="description">"Office supplies - printer paper and pens" - $150.00</div>
+            <button class="test-btn" onclick="runTest('test1', 'Office supplies - printer paper and pens', 150)">
+                🔍 Classify
+            </button>
+            <div class="spinner" id="spinner1"></div>
+            <div class="result" id="result1"></div>
+        </div>
+
+        <!-- Test 2 -->
+        <div class="test-section">
+            <div class="test-title"><span>2</span> Rent Expense</div>
+            <div class="description">"Monthly office rent payment" - $5,000.00</div>
+            <button class="test-btn" onclick="runTest('test2', 'Monthly office rent payment', 5000)">
+                🔍 Classify
+            </button>
+            <div class="spinner" id="spinner2"></div>
+            <div class="result" id="result2"></div>
+        </div>
+
+        <!-- Test 3 -->
+        <div class="test-section">
+            <div class="test-title"><span>3</span> Marketing</div>
+            <div class="description">"Facebook advertising campaign" - $2,500.00</div>
+            <button class="test-btn" onclick="runTest('test3', 'Facebook advertising campaign', 2500)">
+                🔍 Classify
+            </button>
+            <div class="spinner" id="spinner3"></div>
+            <div class="result" id="result3"></div>
+        </div>
+
+        <!-- Test 4 -->
+        <div class="test-section">
+            <div class="test-title"><span>4</span> Utilities</div>
+            <div class="description">"DEWA electricity bill" - $450.00</div>
+            <button class="test-btn" onclick="runTest('test4', 'DEWA electricity bill', 450)">
+                🔍 Classify
+            </button>
+            <div class="spinner" id="spinner4"></div>
+            <div class="result" id="result4"></div>
+        </div>
+    </div>
+
+    <script>
+        async function runCustomTest() {
+            const description = document.getElementById('customDesc').value;
+            const amount = parseFloat(document.getElementById('customAmount').value);
+
+            if (!description.trim()) {
+                alert('Please enter a description!');
+                return;
+            }
+
+            await classify('Custom', description, amount);
+        }
+
+        async function runTest(testId, description, amount) {
+            const testNum = testId.replace('test', '');
+            await classify(testNum, description, amount);
+        }
+
+        async function classify(id, description, amount) {
+            const spinner = document.getElementById('spinner' + id);
+            const result = document.getElementById('result' + id);
+
+            // Show loading
+            spinner.style.display = 'block';
+            result.style.display = 'none';
+
+            const requestBody = {
+                tenant_id: "00000000-0000-0000-0000-000000000001",
+                invoice_id: "TEST-" + id + "-" + Date.now(),
+                transaction_type: "AP",
+                lines: [{
+                    line_number: 1,
+                    description: description,
+                    amount: amount,
+                    quantity: 1
+                }]
+            };
+
+            try {
+                const response = await fetch('http://localhost:8001/classify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) throw new Error('API request failed');
+
+                const data = await response.json();
+                const suggestion = data.suggestions[0];
+                const confidence = (suggestion.confidence_score * 100).toFixed(1);
+
+                result.className = 'result success';
+                result.innerHTML = `
+                    <div class="result-label">✅ AI CLASSIFICATION RESULT</div>
+                    <div class="result-value">${suggestion.account_code} - ${suggestion.account_name}</div>
+                    <div class="result-label">Confidence Level:</div>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" style="width: ${confidence}%">${confidence}%</div>
+                    </div>
+                    <div class="result-label">AI Reasoning:</div>
+                    <div style="color: #666; margin-top: 8px; font-size: 15px;">${suggestion.reasoning}</div>
+                    <div style="margin-top: 15px; color: #999; font-size: 13px;">
+                        ⚡ Processed in ${data.processing_time_ms.toFixed(2)}ms
+                    </div>
+                `;
+                result.style.display = 'block';
+
+            } catch (error) {
+                result.className = 'result error';
+                result.innerHTML = `
+                    <div class="result-label">❌ ERROR</div>
+                    <div style="color: #dc3545; margin-top: 10px;">${error.message}</div>
+                    <div style="margin-top: 10px; font-size: 14px; color: #666;">
+                        Make sure the AI service is running at http://localhost:8001
+                    </div>
+                `;
+                result.style.display = 'block';
+            } finally {
+                spinner.style.display = 'none';
+            }
+        }
+
+        // Test connection on load
+        window.onload = async function() {
+            try {
+                const response = await fetch('http://localhost:8001/health');
+                const data = await response.json();
+                console.log('✅ Connected to AI service:', data);
+            } catch (error) {
+                console.error('❌ Cannot connect to AI service:', error);
+            }
+        };
+
+        // Allow Enter key to submit
+        document.getElementById('customDesc').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                runCustomTest();
+            }
+        });
+    </script>
+</body>
+</html>

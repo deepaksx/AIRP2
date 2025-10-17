@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple AI Test</title>
+</head>
+<body style="font-family: Arial; padding: 40px; background: #f0f0f0;">
+    <h1 style="color: #667eea;">🤖 AI Classification Test</h1>
+
+    <div style="background: white; padding: 30px; border-radius: 10px; max-width: 600px;">
+        <input type="text" id="desc" placeholder="Enter description..."
+               style="width: 100%; padding: 10px; font-size: 16px; margin-bottom: 10px;">
+        <button onclick="classify()"
+                style="width: 100%; padding: 15px; background: #667eea; color: white; border: none; border-radius: 5px; font-size: 18px; cursor: pointer;">
+            Classify
+        </button>
+
+        <div id="result" style="margin-top: 20px; padding: 20px; background: #e8f5e9; border-radius: 5px; display: none;">
+            <h3 style="margin: 0 0 10px 0;">Result:</h3>
+            <div id="resultContent"></div>
+        </div>
+
+        <div id="error" style="margin-top: 20px; padding: 20px; background: #ffebee; border-radius: 5px; display: none;">
+            <h3 style="margin: 0 0 10px 0;">Error:</h3>
+            <div id="errorContent"></div>
+        </div>
+    </div>
+
+    <script>
+        async function classify() {
+            const desc = document.getElementById('desc').value;
+            const result = document.getElementById('result');
+            const error = document.getElementById('error');
+            const resultContent = document.getElementById('resultContent');
+            const errorContent = document.getElementById('errorContent');
+
+            result.style.display = 'none';
+            error.style.display = 'none';
+
+            console.log('Sending request to: http://localhost:8001/classify');
+            console.log('Description:', desc);
+
+            try {
+                const response = await fetch('http://localhost:8001/classify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        tenant_id: "00000000-0000-0000-0000-000000000001",
+                        invoice_id: `TEST-${Date.now()}`,
+                        transaction_type: "AP",
+                        lines: [{
+                            line_number: 1,
+                            description: desc,
+                            amount: 100.00,
+                            quantity: 1
+                        }]
+                    })
+                });
+
+                console.log('Response status:', response.status);
+
+                const data = await response.json();
+                console.log('Response data:', data);
+
+                const suggestion = data.suggestions[0];
+                resultContent.innerHTML = `
+                    <strong>Account:</strong> ${suggestion.account_code} - ${suggestion.account_name}<br>
+                    <strong>Confidence:</strong> ${(suggestion.confidence_score * 100).toFixed(1)}%<br>
+                    <strong>Reasoning:</strong> ${suggestion.reasoning}
+                `;
+                result.style.display = 'block';
+
+            } catch (err) {
+                console.error('Error:', err);
+                errorContent.innerHTML = `
+                    <strong>Error:</strong> ${err.message}<br>
+                    <strong>Check browser console for details</strong>
+                `;
+                error.style.display = 'block';
+            }
+        }
+
+        // Test on load
+        console.log('Page loaded. Testing connection...');
+        fetch('http://localhost:8001/health')
+            .then(r => r.json())
+            .then(data => console.log('Health check:', data))
+            .catch(err => console.error('Health check failed:', err));
+    </script>
+</body>
+</html>

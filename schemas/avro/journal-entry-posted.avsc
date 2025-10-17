@@ -1,0 +1,174 @@
+{
+  "type": "record",
+  "name": "JournalEntryPosted",
+  "namespace": "com.airp.events",
+  "doc": "Event emitted when a journal entry is posted to the ledger",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string"
+    },
+    {
+      "name": "tenant_id",
+      "type": "string"
+    },
+    {
+      "name": "aggregate_id",
+      "type": "string",
+      "doc": "Journal Entry ID"
+    },
+    {
+      "name": "aggregate_type",
+      "type": "string",
+      "default": "JournalEntry"
+    },
+    {
+      "name": "event_type",
+      "type": "string",
+      "default": "JournalEntryPosted"
+    },
+    {
+      "name": "event_version",
+      "type": "int",
+      "default": 1
+    },
+    {
+      "name": "timestamp",
+      "type": "long",
+      "logicalType": "timestamp-millis"
+    },
+    {
+      "name": "causation_id",
+      "type": ["null", "string"],
+      "default": null
+    },
+    {
+      "name": "correlation_id",
+      "type": ["null", "string"],
+      "default": null
+    },
+    {
+      "name": "user_id",
+      "type": ["null", "string"],
+      "default": null
+    },
+    {
+      "name": "journal_entry",
+      "type": {
+        "type": "record",
+        "name": "JournalEntryData",
+        "fields": [
+          {
+            "name": "entry_number",
+            "type": "string"
+          },
+          {
+            "name": "entry_date",
+            "type": "string"
+          },
+          {
+            "name": "posting_date",
+            "type": "string"
+          },
+          {
+            "name": "entry_type",
+            "type": "string",
+            "doc": "Standard, Adjusting, Closing, Reversing"
+          },
+          {
+            "name": "source_type",
+            "type": ["null", "string"],
+            "default": null,
+            "doc": "AP, AR, Treasury, Manual, AI-Generated"
+          },
+          {
+            "name": "description",
+            "type": "string"
+          },
+          {
+            "name": "currency",
+            "type": "string",
+            "default": "AED"
+          },
+          {
+            "name": "total_debit",
+            "type": "string",
+            "doc": "Decimal as string"
+          },
+          {
+            "name": "total_credit",
+            "type": "string",
+            "doc": "Decimal as string"
+          },
+          {
+            "name": "lines",
+            "type": {
+              "type": "array",
+              "items": {
+                "type": "record",
+                "name": "JournalEntryLine",
+                "fields": [
+                  {
+                    "name": "line_number",
+                    "type": "int"
+                  },
+                  {
+                    "name": "account_code",
+                    "type": "string"
+                  },
+                  {
+                    "name": "account_name",
+                    "type": "string"
+                  },
+                  {
+                    "name": "debit_amount",
+                    "type": "string"
+                  },
+                  {
+                    "name": "credit_amount",
+                    "type": "string"
+                  },
+                  {
+                    "name": "description",
+                    "type": ["null", "string"],
+                    "default": null
+                  },
+                  {
+                    "name": "dimension_1",
+                    "type": ["null", "string"],
+                    "default": null
+                  },
+                  {
+                    "name": "dimension_2",
+                    "type": ["null", "string"],
+                    "default": null
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "ai_generated",
+            "type": "boolean",
+            "default": false
+          },
+          {
+            "name": "ai_confidence_score",
+            "type": ["null", "string"],
+            "default": null
+          },
+          {
+            "name": "ai_model_version",
+            "type": ["null", "string"],
+            "default": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "metadata",
+      "type": ["null", "string"],
+      "default": null
+    }
+  ]
+}

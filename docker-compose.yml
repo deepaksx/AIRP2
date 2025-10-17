@@ -1,0 +1,597 @@
+# AIRP v2.0 - AI-Native Financial ERP
+# Complete infrastructure stack with all services
+# Usage: docker compose up -d
+
+networks:
+  airp-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  kafka_data:
+  redis_data:
+  minio_data:
+  qdrant_data:
+  grafana_data:
+  prometheus_data:
+
+services:
+  # ============================================
+  # DATABASE - PostgreSQL 15 (Event Store + Projections)
+  # ============================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: airp-postgres
+    environment:
+      POSTGRES_USER: airp_admin
+      POSTGRES_PASSWORD: airp_secure_2024
+      POSTGRES_DB: airp_master
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=en_US.UTF-8"
+      TZ: Asia/Dubai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./schemas/sql/ddl.sql:/docker-entrypoint-initdb.d/01-ddl.sql
+      - ./schemas/sql/seeds:/docker-entrypoint-initdb.d/seeds
+    ports:
+      - "5432:5432"
+    networks:
+      - airp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airp_admin -d airp_master"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=200"
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "effective_cache_size=1GB"
+      - "-c"
+      - "maintenance_work_mem=64MB"
+      - "-c"
+      - "checkpoint_completion_target=0.9"
+      - "-c"
+      - "wal_buffers=16MB"
+      - "-c"
+      - "default_statistics_target=100"
+      - "-c"
+      - "random_page_cost=1.1"
+      - "-c"
+      - "effective_io_concurrency=200"
+      - "-c"
+      - "work_mem=2MB"
+      - "-c"
+      - "min_wal_size=1GB"
+      - "-c"
+      - "max_wal_size=4GB"
+
+  # ============================================
+  # EVENT BUS - Redpanda (Kafka-compatible)
+  # ============================================
+  kafka:
+    image: docker.redpanda.com/redpandadata/redpanda:v23.3.3
+    container_name: airp-kafka
+    command:
+      - redpanda
+      - start
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://kafka:9092,external://localhost:19092
+      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
+      - --advertise-pandaproxy-addr internal://kafka:8082,external://localhost:18082
+      - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:18081
+      - --rpc-addr kafka:33145
+      - --advertise-rpc-addr kafka:33145
+      - --smp 1
+      - --memory 1G
+      - --reserve-memory 0M
+      - --overprovisioned
+      - --node-id 0
+      - --check=false
+    ports:
+      - "19092:19092"
+      - "18081:18081"
+      - "18082:18082"
+    volumes:
+      - kafka_data:/var/lib/redpanda/data
+    networks:
+      - airp-network
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep 'Healthy:.*true' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # Kafka console UI
+  kafka-console:
+    image: docker.redpanda.com/redpandadata/console:v2.4.3
+    container_name: airp-kafka-console
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_SCHEMAREGISTRY_ENABLED: true
+      KAFKA_SCHEMAREGISTRY_URLS: http://kafka:8081
+    ports:
+      - "8080:8080"
+    networks:
+      - airp-network
+    depends_on:
+      - kafka
+
+  # ============================================
+  # CACHE & SESSION - Redis
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: airp-redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - airp-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ============================================
+  # VECTOR DATABASE - Qdrant
+  # ============================================
+  qdrant:
+    image: qdrant/qdrant:v1.7.4
+    container_name: airp-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      QDRANT__SERVICE__GRPC_PORT: 6334
+    networks:
+      - airp-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:6333/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # OBJECT STORAGE - MinIO (S3-compatible)
+  # ============================================
+  minio:
+    image: minio/minio:latest
+    container_name: airp-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - airp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # ============================================
+  # IDENTITY & ACCESS - Keycloak
+  # ============================================
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: airp-keycloak
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/airp_master
+      KC_DB_USERNAME: airp_admin
+      KC_DB_PASSWORD: airp_secure_2024
+      KC_DB_SCHEMA: keycloak
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HOSTNAME_STRICT: false
+      KC_HTTP_ENABLED: true
+      KC_HEALTH_ENABLED: true
+    command: start-dev
+    ports:
+      - "8081:8080"
+    networks:
+      - airp-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ============================================
+  # MONITORING - Prometheus
+  # ============================================
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: airp-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+      - ./infra/config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - airp-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ============================================
+  # VISUALIZATION - Grafana
+  # ============================================
+  grafana:
+    image: grafana/grafana:10.2.3
+    container_name: airp-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_INSTALL_PLUGINS: grafana-clock-panel
+    ports:
+      - "3100:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infra/config/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./infra/config/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    networks:
+      - airp-network
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # TRACING - Jaeger
+  # ============================================
+  jaeger:
+    image: jaegertracing/all-in-one:1.52
+    container_name: airp-jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: true
+    ports:
+      - "6831:6831/udp"  # Jaeger agent
+      - "16686:16686"    # Jaeger UI
+      - "4317:4317"      # OTLP gRPC
+      - "4318:4318"      # OTLP HTTP
+    networks:
+      - airp-network
+
+  # ============================================
+  # CORE SERVICES - NestJS
+  # ============================================
+
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: airp-api-gateway
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      KAFKA_BROKERS: kafka:9092
+      KEYCLOAK_URL: http://keycloak:8080
+      JWT_SECRET: airp_dev_jwt_secret_change_in_prod
+    ports:
+      - "3000:3000"
+    networks:
+      - airp-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ledger-writer:
+    build:
+      context: ./services/ledger-writer
+      dockerfile: Dockerfile
+    container_name: airp-ledger-writer
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      POSTGRES_HOST: postgres
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_GROUP_ID: ledger-writers
+    ports:
+      - "3001:3001"
+    networks:
+      - airp-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+
+  projection-service:
+    build:
+      context: ./services/projection-service
+      dockerfile: Dockerfile
+    container_name: airp-projection-service
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      POSTGRES_HOST: postgres
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_GROUP_ID: projection-consumers
+      REDIS_HOST: redis
+    ports:
+      - "3002:3002"
+    networks:
+      - airp-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ap-service:
+    build:
+      context: ./services/ap-service
+      dockerfile: Dockerfile
+    container_name: airp-ap-service
+    environment:
+      NODE_ENV: development
+      PORT: 3003
+      POSTGRES_HOST: postgres
+      KAFKA_BROKERS: kafka:9092
+    ports:
+      - "3003:3003"
+    networks:
+      - airp-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ar-service:
+    build:
+      context: ./services/ar-service
+      dockerfile: Dockerfile
+    container_name: airp-ar-service
+    environment:
+      NODE_ENV: development
+      PORT: 3004
+      POSTGRES_HOST: postgres
+      KAFKA_BROKERS: kafka:9092
+    ports:
+      - "3004:3004"
+    networks:
+      - airp-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+
+  treasury-service:
+    build:
+      context: ./services/treasury-service
+      dockerfile: Dockerfile
+    container_name: airp-treasury-service
+    environment:
+      NODE_ENV: development
+      PORT: 3005
+      POSTGRES_HOST: postgres
+      KAFKA_BROKERS: kafka:9092
+    ports:
+      - "3005:3005"
+    networks:
+      - airp-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+
+  fpna-service:
+    build:
+      context: ./services/fpna-service
+      dockerfile: Dockerfile
+    container_name: airp-fpna-service
+    environment:
+      NODE_ENV: development
+      PORT: 3006
+      POSTGRES_HOST: postgres
+      KAFKA_BROKERS: kafka:9092
+    ports:
+      - "3006:3006"
+    networks:
+      - airp-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+
+  policy-engine:
+    build:
+      context: ./services/policy-engine
+      dockerfile: Dockerfile
+    container_name: airp-policy-engine
+    environment:
+      NODE_ENV: development
+      PORT: 3007
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    ports:
+      - "3007:3007"
+    networks:
+      - airp-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  reporting-service:
+    build:
+      context: ./services/reporting-service
+      dockerfile: Dockerfile
+    container_name: airp-reporting-service
+    environment:
+      NODE_ENV: development
+      PORT: 3008
+      POSTGRES_HOST: postgres
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin123
+    ports:
+      - "3008:3008"
+    networks:
+      - airp-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ============================================
+  # AI SERVICES - FastAPI Python
+  # ============================================
+
+  ai-auto-accounting:
+    build:
+      context: ./services/ai-auto-accounting
+      dockerfile: Dockerfile
+    container_name: airp-ai-auto-accounting
+    environment:
+      PORT: 8001
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      AI_PROVIDER: anthropic
+      MODEL_PATH: /models/gl_classifier_v1.pkl
+    ports:
+      - "8001:8001"
+    networks:
+      - airp-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./ml/models:/models:ro
+
+  ai-recon:
+    build:
+      context: ./services/ai-recon
+      dockerfile: Dockerfile
+    container_name: airp-ai-recon
+    environment:
+      PORT: 8002
+      POSTGRES_HOST: postgres
+      MODEL_PATH: /models/recon_matcher_v1.pkl
+    ports:
+      - "8002:8002"
+    networks:
+      - airp-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./ml/models:/models:ro
+
+  ai-forecast:
+    build:
+      context: ./services/ai-forecast
+      dockerfile: Dockerfile
+    container_name: airp-ai-forecast
+    environment:
+      PORT: 8003
+      POSTGRES_HOST: postgres
+      MODEL_PATH: /models/prophet_cash_v1.pkl
+    ports:
+      - "8003:8003"
+    networks:
+      - airp-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./ml/models:/models:ro
+
+  ai-narrative:
+    build:
+      context: ./services/ai-narrative
+      dockerfile: Dockerfile
+    container_name: airp-ai-narrative
+    environment:
+      PORT: 8004
+      POSTGRES_HOST: postgres
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      AI_PROVIDER: anthropic
+    ports:
+      - "8004:8004"
+    networks:
+      - airp-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ai-policy-advisor:
+    build:
+      context: ./services/ai-policy-advisor
+      dockerfile: Dockerfile
+    container_name: airp-ai-policy-advisor
+    environment:
+      PORT: 8005
+      QDRANT_URL: http://qdrant:6333
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    ports:
+      - "8005:8005"
+    networks:
+      - airp-network
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    restart: unless-stopped

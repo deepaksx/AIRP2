@@ -1,0 +1,144 @@
+{
+  "type": "record",
+  "name": "AccountReconciled",
+  "namespace": "com.airp.events",
+  "doc": "Event emitted when a bank account is reconciled",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string"
+    },
+    {
+      "name": "tenant_id",
+      "type": "string"
+    },
+    {
+      "name": "aggregate_id",
+      "type": "string",
+      "doc": "Reconciliation ID"
+    },
+    {
+      "name": "aggregate_type",
+      "type": "string",
+      "default": "BankReconciliation"
+    },
+    {
+      "name": "event_type",
+      "type": "string",
+      "default": "AccountReconciled"
+    },
+    {
+      "name": "event_version",
+      "type": "int",
+      "default": 1
+    },
+    {
+      "name": "timestamp",
+      "type": "long",
+      "logicalType": "timestamp-millis"
+    },
+    {
+      "name": "causation_id",
+      "type": ["null", "string"],
+      "default": null
+    },
+    {
+      "name": "correlation_id",
+      "type": ["null", "string"],
+      "default": null
+    },
+    {
+      "name": "user_id",
+      "type": ["null", "string"],
+      "default": null
+    },
+    {
+      "name": "reconciliation_data",
+      "type": {
+        "type": "record",
+        "name": "ReconciliationData",
+        "fields": [
+          {
+            "name": "bank_account_id",
+            "type": "string"
+          },
+          {
+            "name": "statement_date",
+            "type": "string"
+          },
+          {
+            "name": "statement_balance",
+            "type": "string"
+          },
+          {
+            "name": "book_balance",
+            "type": "string"
+          },
+          {
+            "name": "reconciled_balance",
+            "type": "string"
+          },
+          {
+            "name": "currency",
+            "type": "string",
+            "default": "AED"
+          },
+          {
+            "name": "matched_transactions",
+            "type": {
+              "type": "array",
+              "items": {
+                "type": "record",
+                "name": "MatchedTransaction",
+                "fields": [
+                  {
+                    "name": "bank_transaction_id",
+                    "type": "string"
+                  },
+                  {
+                    "name": "journal_entry_id",
+                    "type": "string"
+                  },
+                  {
+                    "name": "amount",
+                    "type": "string"
+                  },
+                  {
+                    "name": "match_type",
+                    "type": "string",
+                    "doc": "exact, partial, ai_suggested"
+                  },
+                  {
+                    "name": "confidence_score",
+                    "type": ["null", "string"],
+                    "default": null
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "unmatched_bank_items",
+            "type": "int",
+            "doc": "Count of unmatched bank transactions"
+          },
+          {
+            "name": "unmatched_book_items",
+            "type": "int",
+            "doc": "Count of unmatched book entries"
+          },
+          {
+            "name": "ai_assisted",
+            "type": "boolean",
+            "default": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "metadata",
+      "type": ["null", "string"],
+      "default": null
+    }
+  ]
+}

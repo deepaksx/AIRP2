@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Cash Flow Forecasting Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #f5576c;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 36px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 18px;
+        }
+        .status {
+            text-align: center;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        .status.online {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .forecast-section {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            color: white;
+        }
+        .forecast-section h2 {
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        input[type="number"], input[type="date"], select {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            background: white;
+        }
+        input:focus, select:focus {
+            outline: 3px solid rgba(255,255,255,0.5);
+        }
+        .forecast-button {
+            width: 100%;
+            padding: 18px;
+            background: white;
+            color: #f5576c;
+            border: none;
+            border-radius: 10px;
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 15px;
+        }
+        .forecast-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+        }
+        .forecast-button:active {
+            transform: translateY(0);
+        }
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #f5576c;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .result {
+            margin-top: 20px;
+            padding: 25px;
+            border-radius: 10px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .result.success {
+            background: #d4edda;
+            border: 3px solid #28a745;
+        }
+        .result.error {
+            background: #f8d7da;
+            border: 3px solid #dc3545;
+        }
+        .result-header {
+            font-size: 22px;
+            font-weight: 600;
+            color: #f5576c;
+            margin-bottom: 20px;
+        }
+        .forecast-chart {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .chart-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .chart-bars {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            height: 200px;
+            border-bottom: 2px solid #333;
+            padding: 10px 0;
+        }
+        .chart-bar {
+            flex: 1;
+            margin: 0 5px;
+            background: linear-gradient(180deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 5px 5px 0 0;
+            position: relative;
+            min-height: 10px;
+            transition: all 0.3s ease;
+        }
+        .chart-bar:hover {
+            opacity: 0.8;
+        }
+        .bar-label {
+            position: absolute;
+            bottom: -25px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            font-weight: 600;
+        }
+        .bar-value {
+            position: absolute;
+            top: -25px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 12px;
+            color: #333;
+            font-weight: 600;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .metric-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #f5576c;
+        }
+        .metric-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+        }
+        .metric-value.positive {
+            color: #28a745;
+        }
+        .metric-value.negative {
+            color: #dc3545;
+        }
+        .insights {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .insights-title {
+            font-weight: 600;
+            color: #856404;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .insight-item {
+            color: #856404;
+            margin-bottom: 5px;
+            padding-left: 20px;
+            position: relative;
+            font-size: 14px;
+        }
+        .insight-item:before {
+            content: "💡";
+            position: absolute;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔮 AI Cash Flow Forecasting</h1>
+        <p class="subtitle">Predict your future cash flow with AI-powered forecasting</p>
+
+        <div id="status" class="status">Checking connection...</div>
+
+        <div class="forecast-section">
+            <h2>📊 Generate Cash Flow Forecast</h2>
+            <div class="input-group">
+                <label for="forecastPeriods">Number of Periods to Forecast:</label>
+                <select id="forecastPeriods">
+                    <option value="3">3 Months</option>
+                    <option value="6" selected>6 Months</option>
+                    <option value="12">12 Months</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="startDate">Forecast Start Date:</label>
+                <input type="date" id="startDate" value="2025-02-01">
+            </div>
+            <div class="input-group">
+                <label for="confidenceLevel">Confidence Level:</label>
+                <select id="confidenceLevel">
+                    <option value="0.8">80% (Conservative)</option>
+                    <option value="0.9" selected>90% (Moderate)</option>
+                    <option value="0.95">95% (Aggressive)</option>
+                </select>
+            </div>
+            <button class="forecast-button" onclick="generateForecast()">
+                🚀 GENERATE FORECAST
+            </button>
+            <div class="spinner" id="spinner"></div>
+            <div class="result" id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8003/forecast';
+        const HEALTH_URL = 'http://localhost:8003/health';
+
+        async function generateForecast() {
+            const periods = parseInt(document.getElementById('forecastPeriods').value);
+            const startDate = document.getElementById('startDate').value;
+            const confidenceLevel = parseFloat(document.getElementById('confidenceLevel').value);
+            const spinner = document.getElementById('spinner');
+            const result = document.getElementById('result');
+
+            spinner.style.display = 'block';
+            result.style.display = 'none';
+
+            // Generate sample historical data (last 30 days)
+            const historicalData = [];
+            for (let i = 30; i >= 1; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                historicalData.push({
+                    date: date.toISOString().split('T')[0],
+                    inflows: Math.random() * 50000 + 30000,  // Random between 30K-80K
+                    outflows: Math.random() * 40000 + 25000,  // Random between 25K-65K
+                    net_cash_flow: Math.random() * 20000 - 5000  // Random between -5K to +15K
+                });
+            }
+
+            const requestBody = {
+                tenant_id: "00000000-0000-0000-0000-000000000001",
+                account_id: "11111111-1111-1111-1111-111111111111",
+                historical_data: historicalData,
+                forecast_days: periods * 30,  // Convert months to days
+                current_balance: 150000.00  // Starting balance of AED 150K
+            };
+
+            console.log('Sending request to:', API_URL);
+            console.log('Request body:', requestBody);
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                console.log('Response status:', response.status);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log('Response data:', data);
+
+                // Sample every 30 days for monthly view
+                const sampledForecasts = data.forecasts.filter((f, i) => i % 30 === 0 || i === data.forecasts.length - 1);
+
+                // Build chart
+                const maxValue = Math.max(...sampledForecasts.map(p => Math.max(p.predicted_inflows, p.predicted_outflows)));
+                const chartHtml = sampledForecasts.map((forecast, idx) => {
+                    const inflowHeight = (forecast.predicted_inflows / maxValue) * 100;
+                    const outflowHeight = (forecast.predicted_outflows / maxValue) * 100;
+                    return `
+                        <div style="flex: 1; margin: 0 5px; display: flex; flex-direction: column; align-items: center;">
+                            <div style="display: flex; gap: 5px; align-items: flex-end; height: 180px;">
+                                <div style="width: 40px; height: ${inflowHeight}%; background: linear-gradient(180deg, #28a745 0%, #20c997 100%); border-radius: 5px; position: relative;">
+                                    <div style="position: absolute; top: -20px; left: 0; right: 0; text-align: center; font-size: 10px; color: #28a745; font-weight: 600;">
+                                        ${(forecast.predicted_inflows / 1000).toFixed(0)}K
+                                    </div>
+                                </div>
+                                <div style="width: 40px; height: ${outflowHeight}%; background: linear-gradient(180deg, #dc3545 0%, #c82333 100%); border-radius: 5px; position: relative;">
+                                    <div style="position: absolute; top: -20px; left: 0; right: 0; text-align: center; font-size: 10px; color: #dc3545; font-weight: 600;">
+                                        ${(forecast.predicted_outflows / 1000).toFixed(0)}K
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="margin-top: 10px; font-size: 11px; color: #666; font-weight: 600;">
+                                Month ${idx + 1}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                // Build insights HTML
+                let insightsHtml = '';
+                if (data.insights) {
+                    insightsHtml = `<div class="insights"><div class="insights-title">💡 AI Insights</div><div class="insight-item">${data.insights}</div></div>`;
+                }
+
+                // Build risk alerts HTML
+                let alertsHtml = '';
+                if (data.risk_alerts && data.risk_alerts.length > 0) {
+                    alertsHtml = '<div class="insights" style="border-color: #dc3545; background: #f8d7da;"><div class="insights-title" style="color: #721c24;">⚠️ Risk Alerts</div>';
+                    data.risk_alerts.forEach(alert => {
+                        alertsHtml += `<div class="insight-item" style="color: #721c24;">${alert}</div>`;
+                    });
+                    alertsHtml += '</div>';
+                }
+
+                result.className = 'result success';
+                result.innerHTML = `
+                    <div class="result-header">✅ Cash Flow Forecast Generated</div>
+
+                    <div class="forecast-chart">
+                        <div class="chart-title">📈 Predicted Cash Inflows vs Outflows</div>
+                        <div style="display: flex; justify-content: center; margin-bottom: 10px; gap: 20px;">
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <div style="width: 15px; height: 15px; background: linear-gradient(180deg, #28a745 0%, #20c997 100%); border-radius: 3px;"></div>
+                                <span style="font-size: 12px; color: #666;">Inflows</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <div style="width: 15px; height: 15px; background: linear-gradient(180deg, #dc3545 0%, #c82333 100%); border-radius: 3px;"></div>
+                                <span style="font-size: 12px; color: #666;">Outflows</span>
+                            </div>
+                        </div>
+                        <div style="overflow-x: auto; padding-bottom: 10px;">
+                            <div style="display: flex; align-items: flex-end; justify-content: flex-start; border-bottom: 2px solid #333; padding-bottom: 10px; min-width: ${sampledForecasts.length * 100}px;">
+                                ${chartHtml}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-label">Current Balance</div>
+                            <div class="metric-value">AED ${(data.current_balance / 1000).toFixed(0)}K</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Final Balance (Day ${data.forecast_horizon_days})</div>
+                            <div class="metric-value ${data.forecasts[data.forecasts.length - 1].predicted_balance >= data.current_balance ? 'positive' : 'negative'}">
+                                AED ${(data.forecasts[data.forecasts.length - 1].predicted_balance / 1000).toFixed(0)}K
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Lowest Balance</div>
+                            <div class="metric-value ${Math.min(...data.forecasts.map(f => f.predicted_balance)) >= 0 ? 'positive' : 'negative'}">
+                                AED ${(Math.min(...data.forecasts.map(f => f.predicted_balance)) / 1000).toFixed(0)}K
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Forecast Horizon</div>
+                            <div class="metric-value" style="font-size: 18px;">${data.forecast_horizon_days} Days</div>
+                        </div>
+                    </div>
+
+                    ${alertsHtml}
+                    ${insightsHtml}
+
+                    <div style="margin-top: 15px; color: #999; font-size: 13px; text-align: center;">
+                        ⚡ Processed in ${data.processing_time_ms.toFixed(2)}ms
+                    </div>
+                `;
+                result.style.display = 'block';
+
+            } catch (error) {
+                console.error('Error:', error);
+                result.className = 'result error';
+                result.innerHTML = `
+                    <div class="result-header">❌ Error</div>
+                    <div style="color: #dc3545; margin-top: 10px; font-size: 16px;">${error.message}</div>
+                    <div style="margin-top: 15px; font-size: 14px; color: #666;">
+                        <strong>Troubleshooting:</strong><br>
+                        1. Make sure Docker containers are running<br>
+                        2. AI Cash Flow service should be at: ${API_URL}<br>
+                        3. Check browser console (F12) for details
+                    </div>
+                `;
+                result.style.display = 'block';
+            } finally {
+                spinner.style.display = 'none';
+            }
+        }
+
+        async function checkConnection() {
+            const statusDiv = document.getElementById('status');
+            try {
+                const response = await fetch(HEALTH_URL);
+                const data = await response.json();
+                console.log('✅ AI Cash Flow Status:', data);
+                statusDiv.className = 'status online';
+                statusDiv.textContent = '✅ Connected to AI Cash Flow Forecasting (Port 8003)';
+            } catch (error) {
+                console.error('❌ Connection failed:', error);
+                statusDiv.className = 'status offline';
+                statusDiv.textContent = '❌ Cannot connect to AI Cash Flow at ' + HEALTH_URL;
+            }
+        }
+
+        window.onload = checkConnection;
+    </script>
+</body>
+</html>

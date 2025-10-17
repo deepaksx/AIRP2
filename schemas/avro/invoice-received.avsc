@@ -1,0 +1,163 @@
+{
+  "type": "record",
+  "name": "InvoiceReceived",
+  "namespace": "com.airp.events",
+  "doc": "Event emitted when an AP/AR invoice is received/created",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string"
+    },
+    {
+      "name": "tenant_id",
+      "type": "string"
+    },
+    {
+      "name": "aggregate_id",
+      "type": "string",
+      "doc": "Invoice ID"
+    },
+    {
+      "name": "aggregate_type",
+      "type": "string",
+      "doc": "APInvoice or ARInvoice"
+    },
+    {
+      "name": "event_type",
+      "type": "string",
+      "default": "InvoiceReceived"
+    },
+    {
+      "name": "event_version",
+      "type": "int",
+      "default": 1
+    },
+    {
+      "name": "timestamp",
+      "type": "long",
+      "logicalType": "timestamp-millis"
+    },
+    {
+      "name": "causation_id",
+      "type": ["null", "string"],
+      "default": null
+    },
+    {
+      "name": "correlation_id",
+      "type": ["null", "string"],
+      "default": null
+    },
+    {
+      "name": "user_id",
+      "type": ["null", "string"],
+      "default": null
+    },
+    {
+      "name": "invoice_data",
+      "type": {
+        "type": "record",
+        "name": "InvoiceData",
+        "fields": [
+          {
+            "name": "invoice_number",
+            "type": "string"
+          },
+          {
+            "name": "invoice_date",
+            "type": "string"
+          },
+          {
+            "name": "due_date",
+            "type": "string"
+          },
+          {
+            "name": "party_id",
+            "type": "string",
+            "doc": "Vendor ID or Customer ID"
+          },
+          {
+            "name": "party_name",
+            "type": "string"
+          },
+          {
+            "name": "currency",
+            "type": "string",
+            "default": "AED"
+          },
+          {
+            "name": "subtotal",
+            "type": "string"
+          },
+          {
+            "name": "tax_amount",
+            "type": "string"
+          },
+          {
+            "name": "total_amount",
+            "type": "string"
+          },
+          {
+            "name": "lines",
+            "type": {
+              "type": "array",
+              "items": {
+                "type": "record",
+                "name": "InvoiceLine",
+                "fields": [
+                  {
+                    "name": "line_number",
+                    "type": "int"
+                  },
+                  {
+                    "name": "description",
+                    "type": "string"
+                  },
+                  {
+                    "name": "quantity",
+                    "type": "string"
+                  },
+                  {
+                    "name": "unit_price",
+                    "type": "string"
+                  },
+                  {
+                    "name": "line_amount",
+                    "type": "string"
+                  },
+                  {
+                    "name": "tax_rate",
+                    "type": "string"
+                  },
+                  {
+                    "name": "tax_amount",
+                    "type": "string"
+                  },
+                  {
+                    "name": "gl_account_code",
+                    "type": ["null", "string"],
+                    "default": null
+                  },
+                  {
+                    "name": "ai_suggested_account",
+                    "type": ["null", "string"],
+                    "default": null
+                  },
+                  {
+                    "name": "ai_confidence",
+                    "type": ["null", "string"],
+                    "default": null
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "metadata",
+      "type": ["null", "string"],
+      "default": null
+    }
+  ]
+}

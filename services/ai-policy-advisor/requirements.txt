@@ -1,0 +1,9 @@
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+anthropic==0.18.1
+openai==1.10.0
+prometheus-client==0.19.0
+# qdrant-client==1.7.3  # Removed: Heavy dependency, not needed for demo mode
+# sentence-transformers==2.3.1  # Removed: 700MB+ CUDA libs, not needed for demo mode
+python-dotenv==1.0.0

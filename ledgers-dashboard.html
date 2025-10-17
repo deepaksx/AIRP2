@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ledgers Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 36px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 18px;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 0;
+        }
+        .tab {
+            padding: 15px 30px;
+            background: #f8f9fa;
+            border: none;
+            border-radius: 10px 10px 0 0;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: #666;
+        }
+        .tab:hover {
+            background: #e9ecef;
+        }
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateY(-3px);
+        }
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .ledger-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-left: 5px solid #667eea;
+        }
+        .account-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #dee2e6;
+        }
+        .account-info h3 {
+            color: #2c3e50;
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+        .account-info .account-code {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .balance-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th {
+            background: #2c3e50;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+            color: #333;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+        .amount {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+        }
+        .debit {
+            color: #dc3545;
+        }
+        .credit {
+            color: #28a745;
+        }
+        .total-row {
+            background: #e9ecef;
+            font-weight: 700;
+            border-top: 2px solid #667eea;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-paid {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-unpaid {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status-overdue {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
+        }
+        .summary-label {
+            font-size: 12px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .summary-value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+        .entity-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+        .entity-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f8f9fa;
+        }
+        .entity-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+        .entity-code {
+            color: #667eea;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 40px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 Ledgers Dashboard</h1>
+        <p class="subtitle">Comprehensive view of General Ledger, Sub-Ledgers, and Trial Balance</p>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('general-ledger')">📖 General Ledger</button>
+            <button class="tab" onclick="switchTab('vendor-ledger')">🏢 Vendor Ledger</button>
+            <button class="tab" onclick="switchTab('customer-ledger')">👥 Customer Ledger</button>
+            <button class="tab" onclick="switchTab('trial-balance')">⚖️ Trial Balance</button>
+        </div>
+
+        <!-- General Ledger Tab -->
+        <div id="general-ledger" class="tab-content active">
+            <div class="spinner" id="gl-spinner"></div>
+            <div id="gl-content"></div>
+        </div>
+
+        <!-- Vendor Ledger Tab -->
+        <div id="vendor-ledger" class="tab-content">
+            <div class="spinner" id="vendor-spinner"></div>
+            <div id="vendor-content"></div>
+        </div>
+
+        <!-- Customer Ledger Tab -->
+        <div id="customer-ledger" class="tab-content">
+            <div class="spinner" id="customer-spinner"></div>
+            <div id="customer-content"></div>
+        </div>
+
+        <!-- Trial Balance Tab -->
+        <div id="trial-balance" class="tab-content">
+            <div class="spinner" id="tb-spinner"></div>
+            <div id="tb-content"></div>
+        </div>
+    </div>
+
+    <script>
+        const QUERY_API = 'http://localhost:3008/api';
+        const REPORTS_API = 'http://localhost:3008/reports';
+        const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+        let glData = null;
+        let vendorData = null;
+        let customerData = null;
+        let trialBalanceData = null;
+
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+
+            // Load data if not already loaded
+            if (tabName === 'general-ledger' && !glData) {
+                loadGeneralLedger();
+            } else if (tabName === 'vendor-ledger' && !vendorData) {
+                loadVendorLedger();
+            } else if (tabName === 'customer-ledger' && !customerData) {
+                loadCustomerLedger();
+            } else if (tabName === 'trial-balance' && !trialBalanceData) {
+                loadTrialBalance();
+            }
+        }
+
+        async function loadGeneralLedger() {
+            const spinner = document.getElementById('gl-spinner');
+            const content = document.getElementById('gl-content');
+
+            spinner.style.display = 'block';
+
+            try {
+                // Query to get GL account balances with transaction details
+                const response = await fetch(`${QUERY_API}/query`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: `
+                            SELECT
+                                coa.account_code,
+                                coa.account_name,
+                                coa.account_type,
+                                coa.normal_balance,
+                                COALESCE(SUM(jel.debit_amount), 0) as total_debits,
+                                COALESCE(SUM(jel.credit_amount), 0) as total_credits,
+                                COALESCE(SUM(jel.debit_amount - jel.credit_amount), 0) as balance,
+                                json_agg(
+                                    json_build_object(
+                                        'entry_number', je.entry_number,
+                                        'entry_date', je.entry_date,
+                                        'description', jel.description,
+                                        'debit_amount', jel.debit_amount,
+                                        'credit_amount', jel.credit_amount
+                                    ) ORDER BY je.entry_date
+                                ) FILTER (WHERE je.entry_id IS NOT NULL) as transactions
+                            FROM chart_of_accounts coa
+                            LEFT JOIN journal_entry_lines jel ON coa.account_id = jel.account_id
+                            LEFT JOIN journal_entries je ON jel.entry_id = je.entry_id
+                            WHERE coa.tenant_id = $1
+                            GROUP BY coa.account_id, coa.account_code, coa.account_name, coa.account_type, coa.normal_balance
+                            HAVING COALESCE(SUM(jel.debit_amount), 0) + COALESCE(SUM(jel.credit_amount), 0) > 0
+                            ORDER BY coa.account_code
+                        `,
+                        params: [TENANT_ID]
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.text();
+                    throw new Error(`Query failed (${response.status}): ${error}`);
+                }
+
+                const data = await response.json();
+                glData = data;
+
+                if (!Array.isArray(data)) {
+                    throw new Error(`Expected array but got: ${typeof data}. Data: ${JSON.stringify(data)}`);
+                }
+
+                if (data.length === 0) {
+                    content.innerHTML = '<div class="empty-state"><h3>No GL transactions found</h3></div>';
+                    return;
+                }
+
+                let html = '<div class="summary-cards">';
+                const totalAccounts = data.length;
+                const totalDebits = data.reduce((sum, acc) => sum + parseFloat(acc.total_debits), 0);
+                const totalCredits = data.reduce((sum, acc) => sum + parseFloat(acc.total_credits), 0);
+
+                html += `
+                    <div class="summary-card">
+                        <div class="summary-label">Total Accounts</div>
+                        <div class="summary-value">${totalAccounts}</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Total Debits</div>
+                        <div class="summary-value">AED ${formatAmount(totalDebits)}</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Total Credits</div>
+                        <div class="summary-value">AED ${formatAmount(totalCredits)}</div>
+                    </div>
+                </div>`;
+
+                // Render each account
+                data.forEach(account => {
+                    const balance = parseFloat(account.balance);
+                    html += `
+                        <div class="ledger-card">
+                            <div class="account-header">
+                                <div class="account-info">
+                                    <h3>${account.account_name}</h3>
+                                    <span class="account-code">${account.account_code} | ${account.account_type}</span>
+                                </div>
+                                <div class="balance-badge">
+                                    Balance: AED ${formatAmount(Math.abs(balance))}
+                                    ${account.normal_balance === 'debit' ? 'DR' : 'CR'}
+                                </div>
+                            </div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th style="width: 120px;">Entry #</th>
+                                        <th style="width: 100px;">Date</th>
+                                        <th>Description</th>
+                                        <th style="width: 150px; text-align: right;">Debit</th>
+                                        <th style="width: 150px; text-align: right;">Credit</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+
+                    if (account.transactions && account.transactions.length > 0) {
+                        account.transactions.forEach(tx => {
+                            html += `
+                                <tr>
+                                    <td>${tx.entry_number}</td>
+                                    <td>${formatDate(tx.entry_date)}</td>
+                                    <td>${tx.description}</td>
+                                    <td class="amount debit">${tx.debit_amount > 0 ? formatAmount(tx.debit_amount) : '-'}</td>
+                                    <td class="amount credit">${tx.credit_amount > 0 ? formatAmount(tx.credit_amount) : '-'}</td>
+                                </tr>
+                            `;
+                        });
+                    }
+
+                    html += `
+                                    <tr class="total-row">
+                                        <td colspan="3" style="text-align: right;"><strong>TOTALS:</strong></td>
+                                        <td class="amount debit">${formatAmount(account.total_debits)}</td>
+                                        <td class="amount credit">${formatAmount(account.total_credits)}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                });
+
+                content.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error loading general ledger:', error);
+                content.innerHTML = `<div class="empty-state"><h3>Error loading general ledger</h3><p>${error.message}</p></div>`;
+            } finally {
+                spinner.style.display = 'none';
+            }
+        }
+
+        async function loadVendorLedger() {
+            const spinner = document.getElementById('vendor-spinner');
+            const content = document.getElementById('vendor-content');
+
+            spinner.style.display = 'block';
+
+            try {
+                // Query vendors with their invoices
+                const response = await fetch(`${QUERY_API}/query`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: `
+                            SELECT
+                                v.vendor_code,
+                                v.vendor_name,
+                                v.contact_email,
+                                v.payment_terms,
+                                COALESCE(SUM(api.total_amount), 0) as total_invoiced,
+                                COALESCE(SUM(api.amount_outstanding), 0) as total_outstanding,
+                                COUNT(api.invoice_id) as invoice_count,
+                                json_agg(
+                                    json_build_object(
+                                        'invoice_number', api.invoice_number,
+                                        'invoice_date', api.invoice_date,
+                                        'due_date', api.due_date,
+                                        'total_amount', api.total_amount,
+                                        'amount_outstanding', api.amount_outstanding,
+                                        'payment_status', api.payment_status
+                                    ) ORDER BY api.invoice_date DESC
+                                ) FILTER (WHERE api.invoice_id IS NOT NULL) as invoices
+                            FROM vendors v
+                            LEFT JOIN ap_invoices api ON v.vendor_id = api.vendor_id
+                            WHERE v.tenant_id = $1
+                            GROUP BY v.vendor_id, v.vendor_code, v.vendor_name, v.contact_email, v.payment_terms
+                            ORDER BY v.vendor_code
+                        `,
+                        params: [TENANT_ID]
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.text();
+                    throw new Error(`Query failed (${response.status}): ${error}`);
+                }
+
+                const data = await response.json();
+                vendorData = data;
+
+                if (!Array.isArray(data)) {
+                    throw new Error(`Expected array but got: ${typeof data}. Data: ${JSON.stringify(data)}`);
+                }
+
+                if (data.length === 0) {
+                    content.innerHTML = '<div class="empty-state"><h3>No vendors found</h3></div>';
+                    return;
+                }
+
+                let html = '<div class="summary-cards">';
+                const totalVendors = data.length;
+                const totalPayable = data.reduce((sum, v) => sum + parseFloat(v.total_outstanding || 0), 0);
+                const totalInvoiced = data.reduce((sum, v) => sum + parseFloat(v.total_invoiced || 0), 0);
+
+                html += `
+                    <div class="summary-card">
+                        <div class="summary-label">Total Vendors</div>
+                        <div class="summary-value">${totalVendors}</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Total Outstanding</div>
+                        <div class="summary-value">AED ${formatAmount(totalPayable)}</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Total Invoiced</div>
+                        <div class="summary-value">AED ${formatAmount(totalInvoiced)}</div>
+                    </div>
+                </div>`;
+
+                // Render each vendor
+                data.forEach(vendor => {
+                    html += `
+                        <div class="entity-card">
+                            <div class="entity-header">
+                                <div>
+                                    <div class="entity-name">${vendor.vendor_name}</div>
+                                    <div class="entity-code">${vendor.vendor_code} | Payment Terms: ${vendor.payment_terms} days</div>
+                                </div>
+                                <div class="balance-badge">
+                                    Outstanding: AED ${formatAmount(vendor.total_outstanding)}
+                                </div>
+                            </div>
+                    `;
+
+                    if (vendor.invoices && vendor.invoices.length > 0) {
+                        html += `
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th style="width: 150px;">Invoice #</th>
+                                        <th style="width: 120px;">Date</th>
+                                        <th style="width: 120px;">Due Date</th>
+                                        <th style="width: 150px; text-align: right;">Amount</th>
+                                        <th style="width: 150px; text-align: right;">Outstanding</th>
+                                        <th style="width: 100px; text-align: center;">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        `;
+
+                        vendor.invoices.forEach(inv => {
+                            const statusClass = inv.payment_status === 'paid' ? 'status-paid' :
+                                              (new Date(inv.due_date) < new Date() ? 'status-overdue' : 'status-unpaid');
+                            html += `
+                                <tr>
+                                    <td>${inv.invoice_number}</td>
+                                    <td>${formatDate(inv.invoice_date)}</td>
+                                    <td>${formatDate(inv.due_date)}</td>
+                                    <td class="amount">${formatAmount(inv.total_amount)}</td>
+                                    <td class="amount">${formatAmount(inv.amount_outstanding)}</td>
+                                    <td style="text-align: center;">
+                                        <span class="status-badge ${statusClass}">${inv.payment_status}</span>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+
+                        html += `
+                                    <tr class="total-row">
+                                        <td colspan="3" style="text-align: right;"><strong>TOTALS:</strong></td>
+                                        <td class="amount">${formatAmount(vendor.total_invoiced)}</td>
+                                        <td class="amount">${formatAmount(vendor.total_outstanding)}</td>
+                                        <td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        `;
+                    } else {
+                        html += '<p style="color: #999; text-align: center; padding: 20px;">No invoices for this vendor</p>';
+                    }
+
+                    html += '</div>';
+                });
+
+                content.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error loading vendor ledger:', error);
+                content.innerHTML = `<div class="empty-state"><h3>Error loading vendor ledger</h3><p>${error.message}</p></div>`;
+            } finally {
+                spinner.style.display = 'none';
+            }
+        }
+
+        async function loadCustomerLedger() {
+            const spinner = document.getElementById('customer-spinner');
+            const content = document.getElementById('customer-content');
+
+            spinner.style.display = 'block';
+
+            try {
+                // Query customers with their invoices
+                const response = await fetch(`${QUERY_API}/query`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: `
+                            SELECT
+                                c.customer_code,
+                                c.customer_name,
+                                c.contact_email,
+                                c.payment_terms,
+                                COALESCE(SUM(ari.total_amount), 0) as total_invoiced,
+                                COALESCE(SUM(ari.amount_outstanding), 0) as total_outstanding,
+                                COUNT(ari.invoice_id) as invoice_count,
+                                json_agg(
+                                    json_build_object(
+                                        'invoice_number', ari.invoice_number,
+                                        'invoice_date', ari.invoice_date,
+                                        'due_date', ari.due_date,
+                                        'total_amount', ari.total_amount,
+                                        'amount_outstanding', ari.amount_outstanding,
+                                        'payment_status', ari.payment_status
+                                    ) ORDER BY ari.invoice_date DESC
+                                ) FILTER (WHERE ari.invoice_id IS NOT NULL) as invoices
+                            FROM customers c
+                            LEFT JOIN ar_invoices ari ON c.customer_id = ari.customer_id
+                            WHERE c.tenant_id = $1
+                            GROUP BY c.customer_id, c.customer_code, c.customer_name, c.contact_email, c.payment_terms
+                            ORDER BY c.customer_code
+                        `,
+                        params: [TENANT_ID]
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.text();
+                    throw new Error(`Query failed (${response.status}): ${error}`);
+                }
+
+                const data = await response.json();
+                customerData = data;
+
+                if (!Array.isArray(data)) {
+                    throw new Error(`Expected array but got: ${typeof data}. Data: ${JSON.stringify(data)}`);
+                }
+
+                if (data.length === 0) {
+                    content.innerHTML = '<div class="empty-state"><h3>No customers found</h3></div>';
+                    return;
+                }
+
+                let html = '<div class="summary-cards">';
+                const totalCustomers = data.length;
+                const totalReceivable = data.reduce((sum, c) => sum + parseFloat(c.total_outstanding || 0), 0);
+                const totalInvoiced = data.reduce((sum, c) => sum + parseFloat(c.total_invoiced || 0), 0);
+
+                html += `
+                    <div class="summary-card">
+                        <div class="summary-label">Total Customers</div>
+                        <div class="summary-value">${totalCustomers}</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Total Outstanding</div>
+                        <div class="summary-value">AED ${formatAmount(totalReceivable)}</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Total Invoiced</div>
+                        <div class="summary-value">AED ${formatAmount(totalInvoiced)}</div>
+                    </div>
+                </div>`;
+
+                // Render each customer
+                data.forEach(customer => {
+                    html += `
+                        <div class="entity-card">
+                            <div class="entity-header">
+                                <div>
+                                    <div class="entity-name">${customer.customer_name}</div>
+                                    <div class="entity-code">${customer.customer_code} | Payment Terms: ${customer.payment_terms} days</div>
+                                </div>
+                                <div class="balance-badge">
+                                    Outstanding: AED ${formatAmount(customer.total_outstanding)}
+                                </div>
+                            </div>
+                    `;
+
+                    if (customer.invoices && customer.invoices.length > 0) {
+                        html += `
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th style="width: 150px;">Invoice #</th>
+                                        <th style="width: 120px;">Date</th>
+                                        <th style="width: 120px;">Due Date</th>
+                                        <th style="width: 150px; text-align: right;">Amount</th>
+                                        <th style="width: 150px; text-align: right;">Outstanding</th>
+                                        <th style="width: 100px; text-align: center;">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        `;
+
+                        customer.invoices.forEach(inv => {
+                            const statusClass = inv.payment_status === 'paid' ? 'status-paid' :
+                                              (new Date(inv.due_date) < new Date() ? 'status-overdue' : 'status-unpaid');
+                            html += `
+                                <tr>
+                                    <td>${inv.invoice_number}</td>
+                                    <td>${formatDate(inv.invoice_date)}</td>
+                                    <td>${formatDate(inv.due_date)}</td>
+                                    <td class="amount">${formatAmount(inv.total_amount)}</td>
+                                    <td class="amount">${formatAmount(inv.amount_outstanding)}</td>
+                                    <td style="text-align: center;">
+                                        <span class="status-badge ${statusClass}">${inv.payment_status}</span>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+
+                        html += `
+                                    <tr class="total-row">
+                                        <td colspan="3" style="text-align: right;"><strong>TOTALS:</strong></td>
+                                        <td class="amount">${formatAmount(customer.total_invoiced)}</td>
+                                        <td class="amount">${formatAmount(customer.total_outstanding)}</td>
+                                        <td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        `;
+                    } else {
+                        html += '<p style="color: #999; text-align: center; padding: 20px;">No invoices for this customer</p>';
+                    }
+
+                    html += '</div>';
+                });
+
+                content.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error loading customer ledger:', error);
+                content.innerHTML = `<div class="empty-state"><h3>Error loading customer ledger</h3><p>${error.message}</p></div>`;
+            } finally {
+                spinner.style.display = 'none';
+            }
+        }
+
+        async function loadTrialBalance() {
+            const spinner = document.getElementById('tb-spinner');
+            const content = document.getElementById('tb-content');
+
+            spinner.style.display = 'block';
+
+            try {
+                const response = await fetch(`${REPORTS_API}/trial-balance?tenant_id=${TENANT_ID}&period_end_date=2025-01-31`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                trialBalanceData = data;
+
+                let totalDebits = 0;
+                let totalCredits = 0;
+
+                let html = '';
+
+                // Group accounts by type
+                const groupedAccounts = {};
+                data.accounts.forEach(account => {
+                    if (!groupedAccounts[account.account_type]) {
+                        groupedAccounts[account.account_type] = [];
+                    }
+                    groupedAccounts[account.account_type].push(account);
+                    totalDebits += parseFloat(account.debit_balance) || 0;
+                    totalCredits += parseFloat(account.credit_balance) || 0;
+                });
+
+                const balanced = Math.abs(totalDebits - totalCredits) < 0.01;
+
+                html += `
+                    <div class="summary-cards">
+                        <div class="summary-card">
+                            <div class="summary-label">Total Debits</div>
+                            <div class="summary-value">AED ${formatAmount(totalDebits)}</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Total Credits</div>
+                            <div class="summary-value">AED ${formatAmount(totalCredits)}</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Status</div>
+                            <div class="summary-value">${balanced ? '✅ Balanced' : '⚠️ Unbalanced'}</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Accounts</div>
+                            <div class="summary-value">${data.accounts.length}</div>
+                        </div>
+                    </div>
+
+                    <div class="ledger-card">
+                        <h3 style="margin-bottom: 20px; color: #2c3e50;">Trial Balance as of ${formatDate(data.period_end_date)}</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 100px;">Code</th>
+                                    <th>Account Name</th>
+                                    <th style="width: 150px; text-align: right;">Debits</th>
+                                    <th style="width: 150px; text-align: right;">Credits</th>
+                                    <th style="width: 150px; text-align: right;">Net Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                // Render by account type
+                Object.keys(groupedAccounts).sort().forEach(accountType => {
+                    html += `
+                        <tr style="background: #667eea; color: white;">
+                            <td colspan="5" style="font-weight: 700; padding: 10px;"><strong>${accountType}</strong></td>
+                        </tr>
+                    `;
+
+                    groupedAccounts[accountType].forEach(account => {
+                        html += `
+                            <tr>
+                                <td>${account.account_code}</td>
+                                <td>${account.account_name}</td>
+                                <td class="amount debit">${formatAmount(account.debit_balance)}</td>
+                                <td class="amount credit">${formatAmount(account.credit_balance)}</td>
+                                <td class="amount">${formatAmount(account.net_balance)}</td>
+                            </tr>
+                        `;
+                    });
+                });
+
+                html += `
+                                <tr class="total-row">
+                                    <td colspan="2"><strong>TOTALS</strong></td>
+                                    <td class="amount debit">${formatAmount(totalDebits)}</td>
+                                    <td class="amount credit">${formatAmount(totalCredits)}</td>
+                                    <td class="amount">${formatAmount(totalDebits - totalCredits)}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                content.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error loading trial balance:', error);
+                content.innerHTML = `<div class="empty-state"><h3>Error loading trial balance</h3><p>${error.message}</p></div>`;
+            } finally {
+                spinner.style.display = 'none';
+            }
+        }
+
+        function formatAmount(amount) {
+            return parseFloat(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function formatDate(dateStr) {
+            return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        // Load general ledger on page load
+        window.onload = loadGeneralLedger;
+    </script>
+</body>
+</html>

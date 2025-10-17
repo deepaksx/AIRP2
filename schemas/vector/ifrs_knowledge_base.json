@@ -1,0 +1,211 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "IFRS Knowledge Base",
+  "description": "Structured IFRS knowledge base for RAG retrieval and policy advisory",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Knowledge base version"
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "standards": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["standard_id", "title", "summary", "sections"],
+        "properties": {
+          "standard_id": {
+            "type": "string",
+            "description": "e.g., IAS 1, IAS 16, IFRS 15"
+          },
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string",
+            "description": "Brief overview"
+          },
+          "effective_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "supersedes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "section_id": {
+                  "type": "string",
+                  "description": "e.g., IAS 16.15"
+                },
+                "heading": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string",
+                  "description": "Full text of the section"
+                },
+                "examples": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "scenario": {
+                        "type": "string"
+                      },
+                      "treatment": {
+                        "type": "string"
+                      },
+                      "journal_entries": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "debit": {
+                              "type": "string"
+                            },
+                            "credit": {
+                              "type": "string"
+                            },
+                            "amount": {
+                              "type": "number"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "implementation_guidance": {
+                  "type": "string"
+                },
+                "common_mistakes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "industry_specific": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "industry": {
+                  "type": "string",
+                  "description": "e.g., Banking, Real Estate, Oil & Gas"
+                },
+                "considerations": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "version": "2024.1",
+      "last_updated": "2024-01-15T00:00:00Z",
+      "standards": [
+        {
+          "standard_id": "IAS 16",
+          "title": "Property, Plant and Equipment",
+          "summary": "IAS 16 prescribes the accounting treatment for property, plant, and equipment (PPE), including recognition, measurement, depreciation, and impairment.",
+          "effective_date": "2005-01-01",
+          "supersedes": ["IAS 16 (1998)"],
+          "sections": [
+            {
+              "section_id": "IAS 16.15",
+              "heading": "Initial Measurement - Cost",
+              "content": "An item of property, plant and equipment that qualifies for recognition as an asset shall be measured at its cost. The cost of an item of PPE comprises: (a) its purchase price, including import duties and non-refundable purchase taxes, after deducting trade discounts and rebates; (b) any costs directly attributable to bringing the asset to the location and condition necessary for it to be capable of operating in the manner intended by management; and (c) the initial estimate of the costs of dismantling and removing the item and restoring the site on which it is located.",
+              "examples": [
+                {
+                  "scenario": "Company purchases manufacturing equipment for AED 1,000,000 plus 5% VAT (non-recoverable), installation costs AED 50,000, and testing costs AED 20,000",
+                  "treatment": "Total capitalization: AED 1,000,000 + AED 50,000 (5% non-recoverable VAT) + AED 50,000 + AED 20,000 = AED 1,120,000",
+                  "journal_entries": [
+                    {
+                      "debit": "Property, Plant & Equipment - Machinery",
+                      "credit": "Cash/Accounts Payable",
+                      "amount": 1120000
+                    }
+                  ]
+                }
+              ],
+              "implementation_guidance": "Carefully identify costs that are directly attributable vs. those that should be expensed. Staff training costs and initial operating losses are not part of the cost of the asset.",
+              "common_mistakes": [
+                "Including staff training costs in PPE cost",
+                "Capitalizing administrative and general overhead costs",
+                "Not including decommissioning costs when there is a present obligation"
+              ]
+            }
+          ],
+          "industry_specific": [
+            {
+              "industry": "Oil & Gas",
+              "considerations": "Exploration and evaluation costs may require separate treatment under IFRS 6 before being transferred to PPE"
+            }
+          ]
+        },
+        {
+          "standard_id": "IFRS 15",
+          "title": "Revenue from Contracts with Customers",
+          "summary": "IFRS 15 establishes principles for reporting information about the nature, amount, timing, and uncertainty of revenue and cash flows from contracts with customers.",
+          "effective_date": "2018-01-01",
+          "supersedes": ["IAS 18", "IAS 11"],
+          "sections": [
+            {
+              "section_id": "IFRS 15.31",
+              "heading": "Five-Step Model",
+              "content": "An entity shall account for a contract with a customer that is within the scope of this Standard only when all of the following criteria are met: (a) the parties have approved the contract and are committed to perform; (b) rights and payment terms can be identified; (c) the contract has commercial substance; (d) it is probable that consideration will be collected.",
+              "examples": [
+                {
+                  "scenario": "SaaS company sells annual software subscription for AED 12,000 paid upfront",
+                  "treatment": "Recognize revenue ratably over 12 months (AED 1,000 per month)",
+                  "journal_entries": [
+                    {
+                      "debit": "Cash",
+                      "credit": "Deferred Revenue",
+                      "amount": 12000
+                    },
+                    {
+                      "debit": "Deferred Revenue",
+                      "credit": "Revenue",
+                      "amount": 1000
+                    }
+                  ]
+                }
+              ],
+              "implementation_guidance": "Identify distinct performance obligations in the contract. Each distinct good or service represents a separate performance obligation.",
+              "common_mistakes": [
+                "Recognizing all revenue upfront for multi-year contracts",
+                "Not allocating transaction price to separate performance obligations",
+                "Ignoring variable consideration and constraints"
+              ]
+            }
+          ],
+          "industry_specific": [
+            {
+              "industry": "Real Estate",
+              "considerations": "Revenue from property sales must consider transfer of control, which may differ from legal title transfer"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

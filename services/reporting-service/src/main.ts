@@ -1,0 +1,28 @@
+import { NestFactory } from '@nestjs/core';
+import { ValidationPipe, Logger } from '@nestjs/common';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const logger = new Logger('ReportingService');
+
+  const app = await NestFactory.create(AppModule);
+
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    transform: true,
+  }));
+
+  app.enableCors();
+
+  const port = process.env.PORT || 3008;
+  await app.listen(port);
+
+  logger.log('='.repeat(60));
+  logger.log('AIRP v2.0 - Reporting Service');
+  logger.log('Financial Statements, Trial Balance & Management Reports');
+  logger.log('='.repeat(60));
+  logger.log(`API Server: http://localhost:${port}`);
+  logger.log('='.repeat(60));
+}
+
+bootstrap();

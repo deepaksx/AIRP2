@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Policy Advisor Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #11998e;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 36px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 18px;
+        }
+        .status {
+            text-align: center;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        .status.online {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .ask-section {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            color: white;
+        }
+        .ask-section h2 {
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            background: white;
+            min-height: 100px;
+            font-family: inherit;
+            resize: vertical;
+        }
+        select {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            background: white;
+            cursor: pointer;
+        }
+        textarea:focus, select:focus {
+            outline: 3px solid rgba(255,255,255,0.5);
+        }
+        .ask-button {
+            width: 100%;
+            padding: 18px;
+            background: white;
+            color: #11998e;
+            border: none;
+            border-radius: 10px;
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 15px;
+        }
+        .ask-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+        }
+        .ask-button:active {
+            transform: translateY(0);
+        }
+        .examples {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .examples-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #11998e;
+            margin-bottom: 15px;
+        }
+        .example-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #11998e;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .example-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(17, 153, 142, 0.2);
+        }
+        .example-category {
+            font-size: 12px;
+            color: #11998e;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .example-question {
+            color: #333;
+            font-size: 16px;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 25px;
+            border-radius: 10px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .result.success {
+            background: #d4edda;
+            border: 3px solid #28a745;
+        }
+        .result.error {
+            background: #f8d7da;
+            border: 3px solid #dc3545;
+        }
+        .result-header {
+            font-size: 22px;
+            font-weight: 600;
+            color: #11998e;
+            margin-bottom: 20px;
+        }
+        .answer-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .answer-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .answer-text {
+            color: #333;
+            line-height: 1.7;
+            font-size: 16px;
+            white-space: pre-wrap;
+        }
+        .confidence-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            background: #11998e;
+            color: white;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        .sources {
+            margin-top: 15px;
+        }
+        .source-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #11998e;
+        }
+        .source-standard {
+            font-weight: 600;
+            color: #11998e;
+            margin-bottom: 5px;
+        }
+        .source-content {
+            color: #666;
+            font-size: 14px;
+        }
+        .recommendations {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .rec-title {
+            font-weight: 600;
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        .rec-item {
+            color: #856404;
+            margin-bottom: 5px;
+            padding-left: 20px;
+            position: relative;
+        }
+        .rec-item:before {
+            content: "→";
+            position: absolute;
+            left: 0;
+        }
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #11998e;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎓 AI Policy Advisor</h1>
+        <p class="subtitle">Ask questions about IFRS, GAAP, and UAE VAT regulations</p>
+
+        <div id="status" class="status">Checking connection...</div>
+
+        <div class="ask-section">
+            <h2>💬 Ask Your Accounting Question</h2>
+            <div class="input-group">
+                <label for="question">Your Question:</label>
+                <textarea id="question" placeholder="e.g., When should I recognize revenue for a 12-month software subscription?">When should revenue be recognized for a service contract?</textarea>
+            </div>
+            <div class="input-group">
+                <label for="contextType">Context Type:</label>
+                <select id="contextType">
+                    <option value="ifrs">IFRS (International Financial Reporting Standards)</option>
+                    <option value="gaap">GAAP (Generally Accepted Accounting Principles)</option>
+                    <option value="vat">UAE VAT (Value Added Tax)</option>
+                    <option value="general">General Accounting</option>
+                </select>
+            </div>
+            <button class="ask-button" onclick="askQuestion()">
+                🔍 GET AI ANSWER
+            </button>
+            <div class="spinner" id="spinner"></div>
+            <div class="result" id="result"></div>
+        </div>
+
+        <div class="examples">
+            <div class="examples-title">💡 Example Questions (Click to Try):</div>
+
+            <div class="example-item" onclick="loadExample('When should I recognize revenue for a 12-month software subscription?', 'ifrs')">
+                <div class="example-category">IFRS - Revenue Recognition</div>
+                <div class="example-question">When should I recognize revenue for a 12-month software subscription?</div>
+            </div>
+
+            <div class="example-item" onclick="loadExample('How do I account for office equipment depreciation?', 'ifrs')">
+                <div class="example-category">IFRS - Property, Plant & Equipment</div>
+                <div class="example-question">How do I account for office equipment depreciation?</div>
+            </div>
+
+            <div class="example-item" onclick="loadExample('What is the UAE VAT rate for zero-rated supplies?', 'vat')">
+                <div class="example-category">UAE VAT</div>
+                <div class="example-question">What is the UAE VAT rate for zero-rated supplies?</div>
+            </div>
+
+            <div class="example-item" onclick="loadExample('When can I capitalize software development costs?', 'ifrs')">
+                <div class="example-category">IFRS - Intangible Assets</div>
+                <div class="example-question">When can I capitalize software development costs?</div>
+            </div>
+
+            <div class="example-item" onclick="loadExample('How should I classify financial instruments?', 'ifrs')">
+                <div class="example-category">IFRS 9 - Financial Instruments</div>
+                <div class="example-question">How should I classify financial instruments?</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8005/query';
+        const HEALTH_URL = 'http://localhost:8005/health';
+
+        function loadExample(question, contextType) {
+            document.getElementById('question').value = question;
+            document.getElementById('contextType').value = contextType;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function askQuestion() {
+            const question = document.getElementById('question').value;
+            const contextType = document.getElementById('contextType').value;
+            const spinner = document.getElementById('spinner');
+            const result = document.getElementById('result');
+
+            if (!question.trim()) {
+                alert('Please enter a question!');
+                return;
+            }
+
+            spinner.style.display = 'block';
+            result.style.display = 'none';
+
+            const requestBody = {
+                tenant_id: "00000000-0000-0000-0000-000000000001",
+                query: question,
+                context_type: contextType
+            };
+
+            console.log('Sending request to:', API_URL);
+            console.log('Request body:', requestBody);
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                console.log('Response status:', response.status);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log('Response data:', data);
+
+                const confidence = (data.confidence_score * 100).toFixed(1);
+
+                // Build sources HTML
+                let sourcesHtml = '';
+                if (data.sources && data.sources.length > 0) {
+                    sourcesHtml = '<div class="sources"><div class="answer-label">📚 Referenced Standards</div>';
+                    data.sources.forEach(source => {
+                        sourcesHtml += `
+                            <div class="source-item">
+                                <div class="source-standard">${source.standard} - ${source.section}</div>
+                                <div class="source-content">${source.content}</div>
+                            </div>
+                        `;
+                    });
+                    sourcesHtml += '</div>';
+                }
+
+                // Build recommendations HTML
+                let recHtml = '';
+                if (data.recommendations && data.recommendations.length > 0) {
+                    recHtml = '<div class="recommendations"><div class="rec-title">💡 Recommendations</div>';
+                    data.recommendations.forEach(rec => {
+                        recHtml += `<div class="rec-item">${rec}</div>`;
+                    });
+                    recHtml += '</div>';
+                }
+
+                result.className = 'result success';
+                result.innerHTML = `
+                    <div class="result-header">✅ AI Policy Advisor Answer</div>
+
+                    <div class="answer-box">
+                        <div class="answer-label">💬 Answer</div>
+                        <div class="answer-text">${data.answer}</div>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <span class="answer-label" style="margin-right: 10px;">Confidence:</span>
+                        <span class="confidence-badge">${confidence}%</span>
+                    </div>
+
+                    ${sourcesHtml}
+                    ${recHtml}
+
+                    <div style="margin-top: 15px; color: #999; font-size: 13px; text-align: center;">
+                        ⚡ Processed in ${data.processing_time_ms.toFixed(2)}ms
+                    </div>
+                `;
+                result.style.display = 'block';
+
+            } catch (error) {
+                console.error('Error:', error);
+                result.className = 'result error';
+                result.innerHTML = `
+                    <div class="result-header">❌ Error</div>
+                    <div style="color: #dc3545; margin-top: 10px; font-size: 16px;">${error.message}</div>
+                    <div style="margin-top: 15px; font-size: 14px; color: #666;">
+                        <strong>Troubleshooting:</strong><br>
+                        1. Make sure Docker containers are running<br>
+                        2. AI Policy Advisor should be at: ${API_URL}<br>
+                        3. Check browser console (F12) for details
+                    </div>
+                `;
+                result.style.display = 'block';
+            } finally {
+                spinner.style.display = 'none';
+            }
+        }
+
+        async function checkConnection() {
+            const statusDiv = document.getElementById('status');
+            try {
+                const response = await fetch(HEALTH_URL);
+                const data = await response.json();
+                console.log('✅ AI Policy Advisor Status:', data);
+                statusDiv.className = 'status online';
+                statusDiv.textContent = '✅ Connected to AI Policy Advisor (Port 8005)';
+            } catch (error) {
+                console.error('❌ Connection failed:', error);
+                statusDiv.className = 'status offline';
+                statusDiv.textContent = '❌ Cannot connect to AI Policy Advisor at ' + HEALTH_URL;
+            }
+        }
+
+        document.getElementById('question').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                askQuestion();
+            }
+        });
+
+        window.onload = checkConnection;
+    </script>
+</body>
+</html>

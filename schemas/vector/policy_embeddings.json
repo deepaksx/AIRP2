@@ -1,0 +1,129 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Policy Embeddings Schema",
+  "description": "Schema for IFRS/GAAP/VAT policy embeddings stored in Qdrant vector database",
+  "type": "object",
+  "properties": {
+    "collection_name": {
+      "type": "string",
+      "default": "ifrs_policies",
+      "description": "Qdrant collection name"
+    },
+    "vector_size": {
+      "type": "integer",
+      "default": 1536,
+      "description": "Embedding dimension (OpenAI ada-002 or similar)"
+    },
+    "distance_metric": {
+      "type": "string",
+      "enum": ["Cosine", "Euclidean", "Dot"],
+      "default": "Cosine"
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "vector", "payload"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique document ID"
+          },
+          "vector": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 1536,
+            "maxItems": 1536,
+            "description": "Embedding vector"
+          },
+          "payload": {
+            "type": "object",
+            "required": ["text", "source", "standard"],
+            "properties": {
+              "text": {
+                "type": "string",
+                "description": "Original policy text"
+              },
+              "source": {
+                "type": "string",
+                "description": "Source document reference (e.g., IAS 16, ASC 606)"
+              },
+              "standard": {
+                "type": "string",
+                "enum": ["IFRS", "GAAP", "UAE_VAT", "ZATCA", "EFRIS"],
+                "description": "Accounting standard"
+              },
+              "category": {
+                "type": "string",
+                "description": "Policy category (e.g., Revenue Recognition, Asset Depreciation)"
+              },
+              "effective_date": {
+                "type": "string",
+                "format": "date",
+                "description": "When this policy became effective"
+              },
+              "keywords": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Keywords for filtering"
+              },
+              "examples": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Practical examples"
+              },
+              "related_policies": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Related policy document IDs"
+              },
+              "metadata": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "collection_name": "ifrs_policies",
+      "vector_size": 1536,
+      "distance_metric": "Cosine",
+      "documents": [
+        {
+          "id": "550e8400-e29b-41d4-a716-446655440000",
+          "vector": [0.1, 0.2, "...1536 dimensions"],
+          "payload": {
+            "text": "IAS 16 Property, Plant and Equipment: An item of PPE shall be measured at cost. Cost includes purchase price, import duties, non-refundable taxes, and directly attributable costs of bringing the asset to working condition.",
+            "source": "IAS 16.15-16",
+            "standard": "IFRS",
+            "category": "Fixed Assets",
+            "effective_date": "2005-01-01",
+            "keywords": ["PPE", "capitalization", "cost", "fixed assets"],
+            "examples": [
+              "Factory machinery purchase price + installation costs + import duties",
+              "Building purchase + legal fees + renovation to make it operational"
+            ],
+            "related_policies": ["IAS 36", "IAS 38"],
+            "metadata": {
+              "last_updated": "2023-01-01",
+              "reviewed_by": "CFO"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

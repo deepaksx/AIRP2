@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Narrative Generation Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #fc5c7d 0%, #6a82fb 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #fc5c7d;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 36px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 18px;
+        }
+        .status {
+            text-align: center;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        .status.online {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .generate-section {
+            background: linear-gradient(135deg, #fc5c7d 0%, #6a82fb 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            color: white;
+        }
+        .generate-section h2 {
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .info-box {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .generate-button {
+            width: 100%;
+            padding: 18px;
+            background: white;
+            color: #fc5c7d;
+            border: none;
+            border-radius: 10px;
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 15px;
+        }
+        .generate-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+        }
+        .generate-button:active {
+            transform: translateY(0);
+        }
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #fc5c7d;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .result {
+            margin-top: 20px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .report-section {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .report-header {
+            font-size: 24px;
+            font-weight: 600;
+            color: #fc5c7d;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #fc5c7d;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #6a82fb;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .section-content {
+            color: #333;
+            line-height: 1.8;
+            font-size: 16px;
+            white-space: pre-wrap;
+        }
+        .insights-list, .recommendations-list {
+            list-style: none;
+            padding: 0;
+        }
+        .insights-list li, .recommendations-list li {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #6a82fb;
+            color: #333;
+            font-size: 15px;
+        }
+        .insights-list li:before {
+            content: "💡 ";
+            margin-right: 8px;
+        }
+        .recommendations-list li:before {
+            content: "✓ ";
+            margin-right: 8px;
+            color: #28a745;
+            font-weight: bold;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .metric-card {
+            background: linear-gradient(135deg, #fc5c7d 0%, #6a82fb 100%);
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
+        }
+        .metric-label {
+            font-size: 12px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .metric-value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+        .period-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #6a82fb;
+            color: white;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 AI Narrative Generation</h1>
+        <p class="subtitle">Automatically generate executive summaries and financial commentary</p>
+
+        <div id="status" class="status">Checking connection...</div>
+
+        <div class="generate-section">
+            <h2>📝 Generate Financial Narrative</h2>
+            <div class="info-box">
+                <strong>What it does:</strong> The AI analyzes your financial metrics and generates professional narratives including:
+                <ul style="margin-top: 10px; margin-left: 20px;">
+                    <li>Executive Summary</li>
+                    <li>Performance Analysis</li>
+                    <li>Variance Commentary</li>
+                    <li>Key Insights</li>
+                    <li>Strategic Recommendations</li>
+                </ul>
+            </div>
+            <button class="generate-button" onclick="generateNarrative()">
+                🚀 GENERATE NARRATIVE REPORT
+            </button>
+            <div class="spinner" id="spinner"></div>
+            <div class="result" id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8004/generate';
+        const HEALTH_URL = 'http://localhost:8004/health';
+
+        async function generateNarrative() {
+            const spinner = document.getElementById('spinner');
+            const result = document.getElementById('result');
+
+            spinner.style.display = 'block';
+            result.style.display = 'none';
+
+            // Sample financial data for January 2025
+            const requestBody = {
+                tenant_id: "00000000-0000-0000-0000-000000000001",
+                report_type: "monthly",
+                period_start: "2025-01-01",
+                period_end: "2025-01-31",
+                current_period: {
+                    revenue: 1250000,
+                    expenses: 980000,
+                    net_income: 270000,
+                    cash_balance: 450000,
+                    accounts_receivable: 320000,
+                    accounts_payable: 185000
+                },
+                previous_period: {
+                    revenue: 1100000,
+                    expenses: 920000,
+                    net_income: 180000,
+                    cash_balance: 380000,
+                    accounts_receivable: 290000,
+                    accounts_payable: 210000
+                },
+                budget: {
+                    revenue: 1200000,
+                    expenses: 950000,
+                    net_income: 250000,
+                    cash_balance: 400000,
+                    accounts_receivable: 300000,
+                    accounts_payable: 200000
+                },
+                key_events: [
+                    "Launched new product line in mid-January",
+                    "Completed office expansion project",
+                    "Secured 3 new enterprise clients"
+                ]
+            };
+
+            console.log('Sending request to:', API_URL);
+            console.log('Request body:', requestBody);
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                console.log('Response status:', response.status);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log('Response data:', data);
+
+                // Calculate key metrics for display
+                const profitMargin = (requestBody.current_period.net_income / requestBody.current_period.revenue * 100).toFixed(1);
+                const revenueGrowth = ((requestBody.current_period.revenue - requestBody.previous_period.revenue) / requestBody.previous_period.revenue * 100).toFixed(1);
+                const budgetVariance = ((requestBody.current_period.revenue - requestBody.budget.revenue) / requestBody.budget.revenue * 100).toFixed(1);
+
+                result.innerHTML = `
+                    <div class="report-section">
+                        <div class="report-header">📈 Financial Narrative Report</div>
+                        <span class="period-badge">Period: January 2025</span>
+
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <div class="metric-label">Revenue</div>
+                                <div class="metric-value">AED ${(requestBody.current_period.revenue / 1000).toFixed(0)}K</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Net Income</div>
+                                <div class="metric-value">AED ${(requestBody.current_period.net_income / 1000).toFixed(0)}K</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Profit Margin</div>
+                                <div class="metric-value">${profitMargin}%</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Revenue Growth</div>
+                                <div class="metric-value">+${revenueGrowth}%</div>
+                            </div>
+                        </div>
+
+                        <div class="section-title">📋 Executive Summary</div>
+                        <div class="section-content">${data.executive_summary}</div>
+
+                        <div class="section-title">📊 Performance Analysis</div>
+                        <div class="section-content">${data.performance_analysis}</div>
+
+                        <div class="section-title">📉 Variance Commentary</div>
+                        <div class="section-content">${data.variance_commentary}</div>
+
+                        <div class="section-title">💡 Key Insights</div>
+                        <ul class="insights-list">
+                            ${data.key_insights.map(insight => `<li>${insight}</li>`).join('')}
+                        </ul>
+
+                        <div class="section-title">✅ Recommendations</div>
+                        <ul class="recommendations-list">
+                            ${data.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                        </ul>
+
+                        <div style="margin-top: 25px; padding-top: 20px; border-top: 2px solid #eee; color: #999; font-size: 13px; text-align: center;">
+                            ⚡ Generated in ${data.processing_time_ms.toFixed(2)}ms | Report Type: ${data.report_type}
+                        </div>
+                    </div>
+                `;
+                result.style.display = 'block';
+
+            } catch (error) {
+                console.error('Error:', error);
+                result.innerHTML = `
+                    <div class="report-section">
+                        <div class="report-header" style="color: #dc3545;">❌ Error</div>
+                        <div style="color: #dc3545; margin-top: 10px; font-size: 16px;">${error.message}</div>
+                        <div style="margin-top: 15px; font-size: 14px; color: #666;">
+                            <strong>Troubleshooting:</strong><br>
+                            1. Make sure Docker containers are running<br>
+                            2. AI Narrative service should be at: ${API_URL}<br>
+                            3. Check browser console (F12) for details
+                        </div>
+                    </div>
+                `;
+                result.style.display = 'block';
+            } finally {
+                spinner.style.display = 'none';
+            }
+        }
+
+        async function checkConnection() {
+            const statusDiv = document.getElementById('status');
+            try {
+                const response = await fetch(HEALTH_URL);
+                const data = await response.json();
+                console.log('✅ AI Narrative Status:', data);
+                statusDiv.className = 'status online';
+                statusDiv.textContent = '✅ Connected to AI Narrative Generation (Port 8004)';
+            } catch (error) {
+                console.error('❌ Connection failed:', error);
+                statusDiv.className = 'status offline';
+                statusDiv.textContent = '❌ Cannot connect to AI Narrative at ' + HEALTH_URL;
+            }
+        }
+
+        window.onload = checkConnection;
+    </script>
+</body>
+</html>

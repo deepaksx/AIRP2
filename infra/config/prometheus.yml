@@ -1,0 +1,89 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'airp-v2'
+    environment: 'development'
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'api-gateway'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['api-gateway:3000']
+
+  - job_name: 'ledger-writer'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['ledger-writer:3001']
+
+  - job_name: 'projection-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['projection-service:3002']
+
+  - job_name: 'ap-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['ap-service:3003']
+
+  - job_name: 'ar-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['ar-service:3004']
+
+  - job_name: 'treasury-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['treasury-service:3005']
+
+  - job_name: 'fpna-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['fpna-service:3006']
+
+  - job_name: 'policy-engine'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['policy-engine:3007']
+
+  - job_name: 'reporting-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['reporting-service:3008']
+
+  - job_name: 'ai-auto-accounting'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['ai-auto-accounting:8001']
+
+  - job_name: 'ai-recon'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['ai-recon:8002']
+
+  - job_name: 'ai-forecast'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['ai-forecast:8003']
+
+  - job_name: 'ai-narrative'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['ai-narrative:8004']
+
+  - job_name: 'ai-policy-advisor'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['ai-policy-advisor:8005']
+
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:5432']
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']

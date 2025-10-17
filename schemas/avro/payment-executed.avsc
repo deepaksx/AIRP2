@@ -1,0 +1,138 @@
+{
+  "type": "record",
+  "name": "PaymentExecuted",
+  "namespace": "com.airp.events",
+  "doc": "Event emitted when a payment is executed",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string"
+    },
+    {
+      "name": "tenant_id",
+      "type": "string"
+    },
+    {
+      "name": "aggregate_id",
+      "type": "string",
+      "doc": "Payment ID"
+    },
+    {
+      "name": "aggregate_type",
+      "type": "string",
+      "default": "Payment"
+    },
+    {
+      "name": "event_type",
+      "type": "string",
+      "default": "PaymentExecuted"
+    },
+    {
+      "name": "event_version",
+      "type": "int",
+      "default": 1
+    },
+    {
+      "name": "timestamp",
+      "type": "long",
+      "logicalType": "timestamp-millis"
+    },
+    {
+      "name": "causation_id",
+      "type": ["null", "string"],
+      "default": null
+    },
+    {
+      "name": "correlation_id",
+      "type": ["null", "string"],
+      "default": null
+    },
+    {
+      "name": "user_id",
+      "type": ["null", "string"],
+      "default": null
+    },
+    {
+      "name": "payment_data",
+      "type": {
+        "type": "record",
+        "name": "PaymentData",
+        "fields": [
+          {
+            "name": "payment_number",
+            "type": "string"
+          },
+          {
+            "name": "payment_date",
+            "type": "string"
+          },
+          {
+            "name": "payment_type",
+            "type": "string",
+            "doc": "AP, AR, Transfer, etc."
+          },
+          {
+            "name": "payment_method",
+            "type": "string",
+            "doc": "Bank Transfer, Check, Card, etc."
+          },
+          {
+            "name": "from_account_id",
+            "type": "string"
+          },
+          {
+            "name": "to_party_id",
+            "type": "string"
+          },
+          {
+            "name": "to_party_name",
+            "type": "string"
+          },
+          {
+            "name": "currency",
+            "type": "string",
+            "default": "AED"
+          },
+          {
+            "name": "amount",
+            "type": "string"
+          },
+          {
+            "name": "reference",
+            "type": ["null", "string"],
+            "default": null
+          },
+          {
+            "name": "invoice_references",
+            "type": {
+              "type": "array",
+              "items": {
+                "type": "record",
+                "name": "InvoiceReference",
+                "fields": [
+                  {
+                    "name": "invoice_id",
+                    "type": "string"
+                  },
+                  {
+                    "name": "invoice_number",
+                    "type": "string"
+                  },
+                  {
+                    "name": "amount_applied",
+                    "type": "string"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "metadata",
+      "type": ["null", "string"],
+      "default": null
+    }
+  ]
+}

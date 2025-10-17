@@ -1,0 +1,311 @@
+{
+  "info": {
+    "name": "AIRP v2.0 - Complete API Collection",
+    "description": "Test all AIRP v2.0 endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "ledger_writer_url",
+      "value": "http://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "ai_accounting_url",
+      "value": "http://localhost:8001",
+      "type": "string"
+    },
+    {
+      "key": "tenant_id",
+      "value": "550e8400-e29b-41d4-a716-446655440000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Checks",
+      "item": [
+        {
+          "name": "Ledger Writer Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{ledger_writer_url}}/health",
+              "host": ["{{ledger_writer_url}}"],
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "AI Auto-Accounting Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{ai_accounting_url}}/health",
+              "host": ["{{ai_accounting_url}}"],
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "AI Classification",
+      "item": [
+        {
+          "name": "Classify Office Supplies",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenant_id\": \"{{tenant_id}}\",\n  \"invoice_id\": \"inv-office-001\",\n  \"vendor_name\": \"Emirates Office Supplies\",\n  \"transaction_type\": \"AP\",\n  \"lines\": [\n    {\n      \"line_number\": 1,\n      \"description\": \"Printer paper, pens, and folders\",\n      \"amount\": 850.00,\n      \"quantity\": 1.0\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{ai_accounting_url}}/classify",
+              "host": ["{{ai_accounting_url}}"],
+              "path": ["classify"]
+            }
+          }
+        },
+        {
+          "name": "Classify Marketing Expense",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenant_id\": \"{{tenant_id}}\",\n  \"invoice_id\": \"inv-marketing-001\",\n  \"vendor_name\": \"Dubai Marketing Agency\",\n  \"transaction_type\": \"AP\",\n  \"lines\": [\n    {\n      \"line_number\": 1,\n      \"description\": \"Social media advertising campaign Q1\",\n      \"amount\": 15000.00,\n      \"quantity\": 1.0\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{ai_accounting_url}}/classify",
+              "host": ["{{ai_accounting_url}}"],
+              "path": ["classify"]
+            }
+          }
+        },
+        {
+          "name": "Classify IT Expense",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenant_id\": \"{{tenant_id}}\",\n  \"invoice_id\": \"inv-it-001\",\n  \"vendor_name\": \"TechSoft Solutions\",\n  \"transaction_type\": \"AP\",\n  \"lines\": [\n    {\n      \"line_number\": 1,\n      \"description\": \"Annual SaaS subscription - project management software\",\n      \"amount\": 5400.00,\n      \"quantity\": 12.0\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{ai_accounting_url}}/classify",
+              "host": ["{{ai_accounting_url}}"],
+              "path": ["classify"]
+            }
+          }
+        },
+        {
+          "name": "Get Chart of Accounts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{ai_accounting_url}}/accounts",
+              "host": ["{{ai_accounting_url}}"],
+              "path": ["accounts"]
+            }
+          }
+        },
+        {
+          "name": "Submit Feedback",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"invoice_id\": \"inv-office-001\",\n  \"line_number\": 1,\n  \"suggested_account\": \"5500\",\n  \"actual_account\": \"5500\",\n  \"is_correct\": true,\n  \"user_id\": \"user-001\",\n  \"notes\": \"Perfect classification\"\n}"
+            },
+            "url": {
+              "raw": "{{ai_accounting_url}}/feedback",
+              "host": ["{{ai_accounting_url}}"],
+              "path": ["feedback"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Journal Entries",
+      "item": [
+        {
+          "name": "Create Journal Entry",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantId\": \"{{tenant_id}}\",\n  \"entryDate\": \"2024-01-15\",\n  \"entryType\": \"Standard\",\n  \"description\": \"Office Supplies Purchase\",\n  \"userId\": \"user-cfo-001\",\n  \"sourceType\": \"AP\",\n  \"aiGenerated\": true,\n  \"aiConfidenceScore\": 0.92,\n  \"lines\": [\n    {\n      \"accountCode\": \"5500\",\n      \"debitAmount\": 892.50,\n      \"creditAmount\": 0,\n      \"description\": \"Office Supplies (incl. 5% VAT)\"\n    },\n    {\n      \"accountCode\": \"2100\",\n      \"debitAmount\": 0,\n      \"creditAmount\": 892.50,\n      \"description\": \"Accounts Payable\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{ledger_writer_url}}/journal-entries",
+              "host": ["{{ledger_writer_url}}"],
+              "path": ["journal-entries"]
+            }
+          }
+        },
+        {
+          "name": "Reverse Journal Entry",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entryId\": \"<ENTRY_ID_FROM_PREVIOUS_RESPONSE>\",\n  \"tenantId\": \"{{tenant_id}}\",\n  \"userId\": \"user-cfo-001\",\n  \"reason\": \"Incorrect vendor - needs correction\"\n}"
+            },
+            "url": {
+              "raw": "{{ledger_writer_url}}/journal-entries/reverse",
+              "host": ["{{ledger_writer_url}}"],
+              "path": ["journal-entries", "reverse"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Event Store",
+      "item": [
+        {
+          "name": "Append Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantId\": \"{{tenant_id}}\",\n  \"aggregateId\": \"test-aggregate-001\",\n  \"aggregateType\": \"TestAggregate\",\n  \"eventType\": \"TestEventCreated\",\n  \"eventData\": {\n    \"message\": \"This is a test event\",\n    \"timestamp\": \"2024-01-15T10:00:00Z\"\n  },\n  \"userId\": \"user-test-001\"\n}"
+            },
+            "url": {
+              "raw": "{{ledger_writer_url}}/events",
+              "host": ["{{ledger_writer_url}}"],
+              "path": ["events"]
+            }
+          }
+        },
+        {
+          "name": "Get Events by Aggregate",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{ledger_writer_url}}/events/aggregate/:aggregateId?tenantId={{tenant_id}}",
+              "host": ["{{ledger_writer_url}}"],
+              "path": ["events", "aggregate", ":aggregateId"],
+              "query": [
+                {
+                  "key": "tenantId",
+                  "value": "{{tenant_id}}"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "aggregateId",
+                  "value": "test-aggregate-001"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Recent Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{ledger_writer_url}}/events/recent?tenantId={{tenant_id}}&limit=10",
+              "host": ["{{ledger_writer_url}}"],
+              "path": ["events", "recent"],
+              "query": [
+                {
+                  "key": "tenantId",
+                  "value": "{{tenant_id}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Event Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{ledger_writer_url}}/events/stats?tenantId={{tenant_id}}",
+              "host": ["{{ledger_writer_url}}"],
+              "path": ["events", "stats"],
+              "query": [
+                {
+                  "key": "tenantId",
+                  "value": "{{tenant_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Verify Event Integrity",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{ledger_writer_url}}/events/verify/:eventId",
+              "host": ["{{ledger_writer_url}}"],
+              "path": ["events", "verify", ":eventId"],
+              "variable": [
+                {
+                  "key": "eventId",
+                  "value": "<EVENT_ID_FROM_RESPONSE>"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

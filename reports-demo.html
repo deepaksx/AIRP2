@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Reports Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #134e5e;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 36px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 18px;
+        }
+        .status {
+            text-align: center;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        .status.online {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .reports-section {
+            background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            color: white;
+        }
+        .reports-section h2 {
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .report-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .report-button {
+            padding: 18px;
+            background: white;
+            color: #134e5e;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .report-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+        .report-button:active {
+            transform: translateY(0);
+        }
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #134e5e;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .result {
+            margin-top: 20px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .report-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #134e5e;
+        }
+        .report-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #134e5e;
+        }
+        .report-period {
+            font-size: 14px;
+            color: #666;
+            background: #f8f9fa;
+            padding: 8px 16px;
+            border-radius: 20px;
+        }
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .summary-card {
+            background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
+        }
+        .summary-label {
+            font-size: 12px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .summary-value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th {
+            background: #134e5e;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            color: #333;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+        .amount {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+        }
+        .account-type-header {
+            background: #71b280;
+            color: white;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 10px 15px;
+            text-transform: uppercase;
+        }
+        .total-row {
+            background: #f8f9fa;
+            font-weight: 700;
+            border-top: 2px solid #134e5e;
+        }
+        .error-message {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Financial Reports Dashboard</h1>
+        <p class="subtitle">Real-time financial reporting powered by Event Sourcing & CQRS</p>
+
+        <div id="status" class="status">Checking connection...</div>
+
+        <div class="reports-section">
+            <h2>📈 Available Reports</h2>
+            <div class="report-buttons">
+                <button class="report-button" onclick="loadTrialBalance()">
+                    📋 Trial Balance
+                </button>
+                <button class="report-button" onclick="loadIncomeStatement()">
+                    💰 Income Statement
+                </button>
+                <button class="report-button" onclick="loadBalanceSheet()">
+                    📊 Balance Sheet
+                </button>
+                <button class="report-button" onclick="loadGLBalances()">
+                    📖 GL Account Balances
+                </button>
+            </div>
+            <div class="spinner" id="spinner"></div>
+            <div class="result" id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://localhost:3008';
+        const HEALTH_URL = BASE_URL + '/health';
+        const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+
+        async function loadTrialBalance() {
+            const spinner = document.getElementById('spinner');
+            const result = document.getElementById('result');
+
+            spinner.style.display = 'block';
+            result.style.display = 'none';
+
+            try {
+                const response = await fetch(`${BASE_URL}/reports/trial-balance?tenant_id=${TENANT_ID}&period_end_date=2025-01-31`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log('Trial Balance Data:', data);
+
+                let totalDebits = 0;
+                let totalCredits = 0;
+
+                let tableRows = '';
+                data.accounts.forEach(account => {
+                    totalDebits += parseFloat(account.debit_balance) || 0;
+                    totalCredits += parseFloat(account.credit_balance) || 0;
+
+                    tableRows += `
+                        <tr>
+                            <td>${account.account_code}</td>
+                            <td>${account.account_name}</td>
+                            <td class="amount">${formatAmount(account.debit_balance)}</td>
+                            <td class="amount">${formatAmount(account.credit_balance)}</td>
+                            <td class="amount">${formatAmount(account.net_balance)}</td>
+                        </tr>
+                    `;
+                });
+
+                const balanced = Math.abs(totalDebits - totalCredits) < 0.01;
+
+                result.innerHTML = `
+                    <div class="report-container">
+                        <div class="report-header">
+                            <div class="report-title">📋 Trial Balance</div>
+                            <div class="report-period">As of: ${data.period_end_date}</div>
+                        </div>
+
+                        <div class="summary-cards">
+                            <div class="summary-card">
+                                <div class="summary-label">Total Debits</div>
+                                <div class="summary-value">AED ${formatAmount(totalDebits)}</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-label">Total Credits</div>
+                                <div class="summary-value">AED ${formatAmount(totalCredits)}</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-label">Status</div>
+                                <div class="summary-value">${balanced ? '✅ Balanced' : '⚠️ Unbalanced'}</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-label">Accounts</div>
+                                <div class="summary-value">${data.accounts.length}</div>
+                            </div>
+                        </div>
+
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Account Code</th>
+                                    <th>Account Name</th>
+                                    <th style="text-align: right;">Debits</th>
+                                    <th style="text-align: right;">Credits</th>
+                                    <th style="text-align: right;">Net Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tableRows}
+                                <tr class="total-row">
+                                    <td colspan="2"><strong>TOTALS</strong></td>
+                                    <td class="amount">${formatAmount(totalDebits)}</td>
+                                    <td class="amount">${formatAmount(totalCredits)}</td>
+                                    <td class="amount">${formatAmount(totalDebits - totalCredits)}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                result.style.display = 'block';
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError(result, error.message);
+            } finally {
+                spinner.style.display = 'none';
+            }
+        }
+
+        async function loadIncomeStatement() {
+            showMessage('Income Statement view coming soon! This would show Revenue and Expense accounts.');
+        }
+
+        async function loadBalanceSheet() {
+            showMessage('Balance Sheet view coming soon! This would show Assets, Liabilities, and Equity.');
+        }
+
+        async function loadGLBalances() {
+            const spinner = document.getElementById('spinner');
+            const result = document.getElementById('result');
+
+            spinner.style.display = 'block';
+            result.style.display = 'none';
+
+            try {
+                const response = await fetch(`${BASE_URL}/reports/trial-balance?tenant_id=${TENANT_ID}&period_end_date=2025-01-31`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                // Group by account type
+                const grouped = {};
+                data.accounts.forEach(account => {
+                    if (!grouped[account.account_type]) {
+                        grouped[account.account_type] = [];
+                    }
+                    grouped[account.account_type].push(account);
+                });
+
+                let tableRows = '';
+                Object.keys(grouped).sort().forEach(accountType => {
+                    tableRows += `<tr class="account-type-header"><td colspan="4">${accountType}</td></tr>`;
+
+                    grouped[accountType].forEach(account => {
+                        tableRows += `
+                            <tr>
+                                <td>${account.account_code}</td>
+                                <td>${account.account_name}</td>
+                                <td>${account.normal_balance}</td>
+                                <td class="amount">${formatAmount(account.net_balance)}</td>
+                            </tr>
+                        `;
+                    });
+                });
+
+                result.innerHTML = `
+                    <div class="report-container">
+                        <div class="report-header">
+                            <div class="report-title">📖 General Ledger Balances</div>
+                            <div class="report-period">As of: ${data.period_end_date}</div>
+                        </div>
+
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Account Name</th>
+                                    <th>Normal Balance</th>
+                                    <th style="text-align: right;">Current Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tableRows}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                result.style.display = 'block';
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError(result, error.message);
+            } finally {
+                spinner.style.display = 'none';
+            }
+        }
+
+        function formatAmount(amount) {
+            const num = parseFloat(amount) || 0;
+            return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function showError(resultDiv, message) {
+            resultDiv.innerHTML = `
+                <div class="error-message">
+                    <h3 style="margin-bottom: 10px;">❌ Error Loading Report</h3>
+                    <p>${message}</p>
+                    <p style="margin-top: 15px; font-size: 14px;">
+                        <strong>Troubleshooting:</strong><br>
+                        1. Make sure Docker containers are running<br>
+                        2. Reporting service should be at: ${BASE_URL}<br>
+                        3. Check browser console (F12) for details
+                    </p>
+                </div>
+            `;
+            resultDiv.style.display = 'block';
+        }
+
+        function showMessage(message) {
+            const result = document.getElementById('result');
+            result.innerHTML = `
+                <div class="report-container">
+                    <div style="text-align: center; padding: 40px; color: #666;">
+                        <h3 style="margin-bottom: 15px; color: #134e5e;">ℹ️ ${message}</h3>
+                    </div>
+                </div>
+            `;
+            result.style.display = 'block';
+        }
+
+        async function checkConnection() {
+            const statusDiv = document.getElementById('status');
+            try {
+                const response = await fetch(HEALTH_URL);
+                const data = await response.json();
+                console.log('✅ Reporting Service Status:', data);
+                statusDiv.className = 'status online';
+                statusDiv.textContent = '✅ Connected to Reporting Service (Port 3008)';
+            } catch (error) {
+                console.error('❌ Connection failed:', error);
+                statusDiv.className = 'status offline';
+                statusDiv.textContent = '❌ Cannot connect to Reporting Service at ' + HEALTH_URL;
+            }
+        }
+
+        window.onload = checkConnection;
+    </script>
+</body>
+</html>

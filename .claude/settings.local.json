@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker compose:*)",
+      "Bash(docker inspect:*)",
+      "Bash(python:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File .scriptstest-all-services.ps1)",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"./scripts/test-all-services.ps1\")",
+      "Bash(curl:*)",
+      "Bash(docker exec:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"C:\\Dev\\AIRP2\\test-ai-classification.ps1\")",
+      "Bash(start C:DevAIRP2ai-classification-tester.html)",
+      "Bash(powershell -Command \"Start-Process ''C:\\Dev\\AIRP2\\ai-classification-tester.html''\")",
+      "Bash(powershell -Command \"Start-Process ''http://localhost:5000/ai-classification-tester.html''\")",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"C:/Dev/AIRP2/test-ai-classification.ps1\")",
+      "Bash(powershell -Command \"Start-Process ''http://localhost:5000/simple-test.html''\")",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"C:/Dev/AIRP2/quick-test.ps1\" -Description \"Office rent payment\")",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"C:/Dev/AIRP2/quick-test.ps1\" -Description \"Google Workspace subscription\")",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"C:/Dev/AIRP2/quick-test.ps1\" -Description \"Facebook advertising campaign\")",
+      "Bash(powershell -Command \"Start-Process ''http://localhost:5000/test.html''\")",
+      "Bash(powershell -Command \"Start-Process ''http://localhost:5000/test-policy-advisor.html''\")",
+      "Bash(powershell -Command \"Start-Process ''http://localhost:5000/classify-demo.html''\")",
+      "Bash(powershell -Command \"Start-Process ''http://localhost:5000/policy-demo.html''\")",
+      "Bash(powershell -Command \"Start-Process ''http://localhost:5000/cashflow-demo.html''\")",
+      "Bash(powershell -Command \"Start-Process ''http://localhost:5000/recon-demo.html''\")",
+      "Bash(powershell -Command \"Start-Process ''http://localhost:5000/narrative-demo.html''\")",
+      "Bash(powershell -Command \"Start-Process ''http://localhost:5000/reports-demo.html''\")",
+      "Bash(powershell -Command \"Start-Process ''http://localhost:5000/ledger-demo.html''\")",
+      "Bash(powershell -Command \"Start-Process ''http://localhost:5000/ledgers-dashboard.html''\")",
+      "Bash(timeout:*)",
+      "Bash(powershell:*)",
+      "Bash(docker logs:*)",
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
