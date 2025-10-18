@@ -23,20 +23,23 @@ export class APInvoiceEntity {
   @Column({ type: 'date' })
   due_date: Date;
 
-  @Column({ type: 'varchar', length: 3, default: 'AED' })
-  currency_code: string;
+  @Column({ type: 'char', length: 3, default: 'AED' })
+  currency: string;
 
-  @Column({ type: 'numeric', precision: 18, scale: 2 })
-  subtotal_amount: number;
+  @Column({ type: 'numeric', precision: 18, scale: 4 })
+  subtotal: number;
 
-  @Column({ type: 'numeric', precision: 18, scale: 2, default: 0 })
+  @Column({ type: 'numeric', precision: 18, scale: 4, default: 0 })
   tax_amount: number;
 
-  @Column({ type: 'numeric', precision: 18, scale: 2 })
+  @Column({ type: 'numeric', precision: 18, scale: 4 })
   total_amount: number;
 
-  @Column({ type: 'numeric', precision: 18, scale: 2, default: 0 })
-  paid_amount: number;
+  @Column({ type: 'numeric', precision: 18, scale: 4, default: 0 })
+  amount_paid: number;
+
+  @Column({ type: 'numeric', precision: 18, scale: 4 })
+  amount_outstanding: number;
 
   @Column({ type: 'varchar', length: 20, default: 'pending' })
   status: string;

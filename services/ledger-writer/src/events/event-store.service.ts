@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
+import { ClientProxy } from '@nestjs/microservices';
 import { EventStoreEntity } from './event-store.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { createHash } from 'crypto';
@@ -19,14 +20,25 @@ export interface CreateEventDto {
 }
 
 @Injectable()
-export class EventStoreService {
+export class EventStoreService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(EventStoreService.name);
 
   constructor(
     @InjectRepository(EventStoreEntity)
     private eventRepository: Repository<EventStoreEntity>,
     private dataSource: DataSource,
+    @Inject('KAFKA_SERVICE')
+    private readonly kafkaClient: ClientProxy,
   ) {}
+
+  async onModuleInit() {
+    this.logger.log('EventStoreService initialized with Kafka client');
+  }
+
+  async onModuleDestroy() {
+    // Kafka client cleanup handled by NestJS
+    this.logger.log('EventStoreService shutting down');
+  }
 
   async appendEvent(dto: CreateEventDto): Promise<EventStoreEntity> {
     const timer = eventWriteDuration.startTimer({ event_type: dto.eventType });
@@ -62,7 +74,28 @@ export class EventStoreService {
         `Event appended: ${dto.eventType} for aggregate ${dto.aggregateId}`,
       );
 
-      // TODO: Publish to Kafka for projection consumers
+      // Publish to Kafka for projection consumers
+      try {
+        const topic = this.getTopicForEvent(dto.eventType);
+        this.logger.log(`About to publish event ${savedEvent.event_id} to Kafka topic: ${topic}`);
+
+        // Emit as Kafka message object with key and value
+        this.kafkaClient.emit(topic, {
+          key: savedEvent.event_id,
+          value: JSON.stringify(savedEvent),
+        });
+
+        this.logger.log(
+          `Event published to Kafka: ${topic} for event ${savedEvent.event_id}`,
+        );
+      } catch (kafkaError) {
+        this.logger.error(
+          `Failed to publish event to Kafka: ${kafkaError.message}`,
+          kafkaError.stack,
+        );
+        // Don't fail the operation if Kafka publishing fails
+        // Event is already persisted in event store
+      }
 
       return savedEvent;
     } catch (error) {
@@ -195,6 +228,18 @@ export class EventStoreService {
   private calculateChecksum(event: Partial<EventStoreEntity>): string {
     const data = `${event.aggregate_id}${event.event_type}${JSON.stringify(event.event_data)}${event.timestamp}`;
     return createHash('sha256').update(data).digest('hex');
+  }
+
+  private getTopicForEvent(eventType: string): string {
+    // Map event types to Kafka topics for projection consumers
+    const topicMap: Record<string, string> = {
+      'JournalEntryPosted': 'airp.events.journal-entry-posted',
+      'InvoiceReceived': 'airp.events.invoice-received',
+      'InvoiceIssued': 'airp.events.invoice-issued',
+      'PaymentExecuted': 'airp.events.payment-executed',
+    };
+
+    return topicMap[eventType] || `airp.events.${eventType.toLowerCase()}`;
   }
 
   async getEventStats(tenantId: string): Promise<any> {

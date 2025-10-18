@@ -1967,41 +1967,63 @@
         async function loadQuickStats() {
             try {
                 // Get trial balance for cash balance
+                console.log('Loading quick stats...');
                 const response = await fetch(`http://localhost:3008/reports/trial-balance?tenant_id=${TENANT_ID}&period_end_date=2025-01-31`);
+                console.log('Trial balance response status:', response.status, response.ok);
+
                 if (response.ok) {
                     const data = await response.json();
+                    console.log('Trial balance data:', data);
+                    console.log('Number of accounts:', data.accounts ? data.accounts.length : 0);
+
                     const cashAccount = data.accounts.find(a => a.account_code === '1000');
+                    console.log('Cash account (1000):', cashAccount);
 
                     if (cashAccount) {
                         const debit = parseFloat(cashAccount.debit_balance || cashAccount.total_debit || 0);
                         const credit = parseFloat(cashAccount.credit_balance || cashAccount.total_credit || 0);
                         const balance = debit - credit;
+                        console.log('Cash balance calculated:', balance, 'AED (debit:', debit, ', credit:', credit, ')');
                         document.getElementById('cashBalance').textContent = balance.toFixed(0) + ' AED';
                     } else {
+                        console.log('Cash account not found, setting to 0 AED');
                         document.getElementById('cashBalance').textContent = '0 AED';
                     }
+                } else {
+                    console.error('Trial balance request failed:', response.status, response.statusText);
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
                 }
 
                 // Count transactions this month
+                console.log('Loading transaction count...');
                 const entriesResponse = await fetch(`http://localhost:3001/journal-entries?tenant_id=${TENANT_ID}`);
+                console.log('Journal entries response status:', entriesResponse.status, entriesResponse.ok);
+
                 if (entriesResponse.ok) {
                     const entries = await entriesResponse.json();
+                    console.log('Journal entries count:', entries ? entries.length : 0);
                     if (entries && entries.length > 0) {
                         const thisMonth = new Date().toISOString().slice(0, 7);
                         const monthCount = entries.filter(e => e.entry_date && e.entry_date.startsWith(thisMonth)).length;
+                        console.log('This month transactions:', monthCount);
                         document.getElementById('monthTransactions').textContent = monthCount;
                     } else {
+                        console.log('No entries found, setting to 0');
                         document.getElementById('monthTransactions').textContent = '0';
                     }
                 } else {
+                    console.log('Journal entries request failed, setting to 0');
                     document.getElementById('monthTransactions').textContent = '0';
                 }
 
                 // Mock AP/AR for now
                 document.getElementById('apOpen').textContent = '12.5k';
                 document.getElementById('arOpen').textContent = '28.3k';
+                console.log('Quick stats loaded successfully');
             } catch (err) {
-                console.error('Failed to load stats:', err);
+                console.error('Failed to load stats - EXCEPTION:', err);
+                console.error('Error stack:', err.stack);
                 document.getElementById('cashBalance').textContent = '---';
                 document.getElementById('monthTransactions').textContent = '---';
             }
