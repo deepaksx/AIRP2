@@ -753,7 +753,7 @@
             spinner.style.display = 'block';
 
             try {
-                const response = await fetch(`${REPORTS_API}/trial-balance?tenant_id=${TENANT_ID}&period_end_date=2025-01-31`);
+                const response = await fetch(`${REPORTS_API}/trial-balance?tenant_id=${TENANT_ID}`);
 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);

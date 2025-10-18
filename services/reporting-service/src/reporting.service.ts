@@ -30,17 +30,12 @@ export class ReportingService {
       `;
       queryParams = [params.tenant_id, params.period_end_date];
     } else {
-      // Query for latest period (most recent period_end_date)
+      // Query for all accounts (includes zero-balance accounts)
       query = `
         SELECT account_code, account_name, account_type,
                debit_balance, credit_balance, net_balance, period_end_date
         FROM trial_balance
         WHERE tenant_id = $1
-          AND period_end_date = (
-            SELECT MAX(period_end_date)
-            FROM trial_balance
-            WHERE tenant_id = $1
-          )
         ORDER BY account_code
       `;
       queryParams = [params.tenant_id];
