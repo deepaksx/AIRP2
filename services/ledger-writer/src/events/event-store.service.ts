@@ -1,11 +1,11 @@
 import { Injectable, Logger, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { ClientProxy } from '@nestjs/microservices';
 import { EventStoreEntity } from './event-store.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { createHash } from 'crypto';
 import { eventWriteCounter, eventWriteDuration } from '../health/metrics.controller';
+import { Kafka, Producer } from 'kafkajs';
 
 export interface CreateEventDto {
   tenantId: string;
@@ -22,22 +22,32 @@ export interface CreateEventDto {
 @Injectable()
 export class EventStoreService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(EventStoreService.name);
+  private kafka: Kafka;
+  private producer: Producer;
 
   constructor(
     @InjectRepository(EventStoreEntity)
     private eventRepository: Repository<EventStoreEntity>,
     private dataSource: DataSource,
-    @Inject('KAFKA_SERVICE')
-    private readonly kafkaClient: ClientProxy,
-  ) {}
+  ) {
+    this.kafka = new Kafka({
+      clientId: 'ledger-writer',
+      brokers: [(process.env.KAFKA_BROKERS || 'kafka:9092')],
+    });
+
+    this.producer = this.kafka.producer({
+      allowAutoTopicCreation: true,
+    });
+  }
 
   async onModuleInit() {
-    this.logger.log('EventStoreService initialized with Kafka client');
+    await this.producer.connect();
+    this.logger.log('EventStoreService initialized with KafkaJS producer');
   }
 
   async onModuleDestroy() {
-    // Kafka client cleanup handled by NestJS
-    this.logger.log('EventStoreService shutting down');
+    await this.producer.disconnect();
+    this.logger.log('EventStoreService Kafka producer disconnected');
   }
 
   async appendEvent(dto: CreateEventDto): Promise<EventStoreEntity> {
@@ -74,15 +84,20 @@ export class EventStoreService implements OnModuleInit, OnModuleDestroy {
         `Event appended: ${dto.eventType} for aggregate ${dto.aggregateId}`,
       );
 
-      // Publish to Kafka for projection consumers
+      // Publish to Kafka for projection consumers using raw KafkaJS
       try {
         const topic = this.getTopicForEvent(dto.eventType);
         this.logger.log(`About to publish event ${savedEvent.event_id} to Kafka topic: ${topic}`);
 
-        // Emit as Kafka message object with key and value
-        this.kafkaClient.emit(topic, {
-          key: savedEvent.event_id,
-          value: JSON.stringify(savedEvent),
+        // Use raw KafkaJS producer with explicit JSON serialization
+        await this.producer.send({
+          topic,
+          messages: [
+            {
+              key: savedEvent.event_id,
+              value: JSON.stringify(savedEvent),
+            },
+          ],
         });
 
         this.logger.log(
