@@ -251,7 +251,7 @@ const JEViewer = {
 
             const je = jeData[0];
 
-            // Fetch JE lines
+            // Fetch JE lines with vendor/customer details
             const linesQuery = `
                 SELECT
                     jel.line_id,
@@ -261,9 +261,17 @@ const JEViewer = {
                     jel.description,
                     jel.debit_amount,
                     jel.credit_amount,
-                    jel.metadata
+                    jel.dimension_1,
+                    jel.dimension_2,
+                    jel.metadata,
+                    v.vendor_code,
+                    v.vendor_name,
+                    c.customer_code,
+                    c.customer_name
                 FROM journal_entry_lines jel
                 JOIN chart_of_accounts coa ON jel.account_id = coa.account_id
+                LEFT JOIN vendors v ON jel.dimension_1::uuid = v.vendor_id
+                LEFT JOIN customers c ON jel.dimension_2::uuid = c.customer_id
                 WHERE jel.entry_id = '${entryId}'
                 ORDER BY jel.line_number
             `;
@@ -340,7 +348,8 @@ const JEViewer = {
                         <tr>
                             <th style="width: 50px;">Line</th>
                             <th style="width: 100px;">Account</th>
-                            <th>Account Name</th>
+                            <th style="width: 200px;">Account Name</th>
+                            <th style="width: 150px;">Vendor/Customer</th>
                             <th>Description</th>
                             <th style="width: 130px;" class="text-right">Debit (AED)</th>
                             <th style="width: 130px;" class="text-right">Credit (AED)</th>
@@ -350,11 +359,27 @@ const JEViewer = {
                         ${lines.map(line => {
                             const debit = parseFloat(line.debit_amount || 0);
                             const credit = parseFloat(line.credit_amount || 0);
+
+                            // Get vendor/customer info
+                            let entityInfo = '-';
+                            if (line.vendor_code && line.vendor_name) {
+                                entityInfo = `<div style="font-size: 11px; color: #666;">Vendor</div><div style="font-weight: 600;">${line.vendor_code}</div><div style="font-size: 12px;">${line.vendor_name}</div>`;
+                            } else if (line.customer_code && line.customer_name) {
+                                entityInfo = `<div style="font-size: 11px; color: #666;">Customer</div><div style="font-weight: 600;">${line.customer_code}</div><div style="font-size: 12px;">${line.customer_name}</div>`;
+                            }
+
+                            // Get invoice number from metadata
+                            let invoiceInfo = '';
+                            if (line.metadata && line.metadata.invoice_number) {
+                                invoiceInfo = `<div style="font-size: 11px; color: #0070F3; margin-top: 4px;">Invoice: ${line.metadata.invoice_number}</div>`;
+                            }
+
                             return `
                                 <tr>
                                     <td>${line.line_number || '-'}</td>
                                     <td class="text-bold">${line.account_code}</td>
                                     <td>${line.account_name}</td>
+                                    <td style="font-size: 13px;">${entityInfo}${invoiceInfo}</td>
                                     <td>${line.description || '-'}</td>
                                     <td class="text-right ${debit > 0 ? 'amount-positive' : ''}">${debit > 0 ? debit.toLocaleString('en-AE', {minimumFractionDigits: 2}) : '-'}</td>
                                     <td class="text-right ${credit > 0 ? 'amount-negative' : ''}">${credit > 0 ? credit.toLocaleString('en-AE', {minimumFractionDigits: 2}) : '-'}</td>
@@ -362,7 +387,7 @@ const JEViewer = {
                             `;
                         }).join('')}
                         <tr class="total-row">
-                            <td colspan="4"><strong>TOTAL</strong></td>
+                            <td colspan="5"><strong>TOTAL</strong></td>
                             <td class="text-right amount-positive"><strong>${parseFloat(je.total_debit || 0).toLocaleString('en-AE', {minimumFractionDigits: 2})}</strong></td>
                             <td class="text-right amount-negative"><strong>${parseFloat(je.total_credit || 0).toLocaleString('en-AE', {minimumFractionDigits: 2})}</strong></td>
                         </tr>
