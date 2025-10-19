@@ -11,12 +11,6 @@
         .compact-header h1 { margin: 0; font-size: 20px; font-weight: 600; }
         .compact-container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
 
-        /* Transaction Type Pills */
-        .type-pills { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
-        .type-pill { padding: 8px 16px; border: 2px solid #E0E0E0; border-radius: 20px; background: white; cursor: pointer; font-size: 13px; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
-        .type-pill:hover { border-color: #0070F3; background: #F0F7FF; }
-        .type-pill.selected { border-color: #0070F3; background: #0070F3; color: white; font-weight: 600; }
-
         /* Compact Form */
         .form-card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
         .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 15px; }
@@ -83,29 +77,24 @@
 
     <!-- Main Container -->
     <div class="compact-container">
-        <!-- Transaction Type Pills -->
-        <div class="type-pills">
-            <div class="type-pill" onclick="selectType('general', event)">
-                <span>📝</span> General
-            </div>
-            <div class="type-pill" onclick="selectType('ap_invoice', event)">
-                <span>📥</span> AP Invoice
-            </div>
-            <div class="type-pill" onclick="selectType('ar_invoice', event)">
-                <span>📤</span> AR Invoice
-            </div>
-            <div class="type-pill" onclick="selectType('payment', event)">
-                <span>💳</span> Payment
-            </div>
-            <div class="type-pill" onclick="selectType('bank', event)">
-                <span>🏦</span> Bank
-            </div>
-        </div>
-
         <!-- Main Form -->
         <div class="form-card">
-            <!-- Basic Info -->
+            <!-- Header Row: Entry Nature + Date + Description -->
             <div class="form-row">
+                <div class="form-group">
+                    <label>Entry Nature <span style="color: #D32F2F;">*</span></label>
+                    <select id="entry-nature" required onchange="handleNatureChange()">
+                        <option value="">Select Entry Nature...</option>
+                        <option value="general">📝 General Entry</option>
+                        <option value="ap_invoice">📥 AP Invoice</option>
+                        <option value="ar_invoice">📤 AR Invoice</option>
+                        <option value="payment">💳 Payment</option>
+                        <option value="bank">🏦 Bank Transaction</option>
+                        <option value="adjustment">🔧 Adjustment</option>
+                        <option value="depreciation">📉 Depreciation</option>
+                        <option value="accrual">📊 Accrual</option>
+                    </select>
+                </div>
                 <div class="form-group">
                     <label>Date <span style="color: #D32F2F;">*</span></label>
                     <input type="date" id="entry-date" required>
@@ -230,7 +219,6 @@
         const API_URL = 'http://localhost:3001/journal-entries';
         const QUERY_URL = 'http://localhost:3008/api/query';
 
-        let selectedType = null;
         let lineCount = 0;
 
         // Initialize
@@ -278,35 +266,27 @@
             });
         }
 
-        function selectType(type, event) {
-            selectedType = type;
-            console.log('Type selected:', type);
+        function handleNatureChange() {
+            const nature = document.getElementById('entry-nature').value;
+            console.log('Entry nature selected:', nature);
 
-            // Update UI
-            document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('selected'));
-            if (event && event.currentTarget) {
-                event.currentTarget.classList.add('selected');
-            }
-
-            // Pre-fill description only
+            // Pre-fill description based on nature (optional convenience)
             const descriptions = {
                 'ap_invoice': 'AP Invoice - ',
                 'ar_invoice': 'AR Invoice - ',
                 'payment': 'Payment - ',
                 'bank': 'Bank Transaction - ',
-                'general': 'General Entry - '
+                'general': 'General Entry - ',
+                'adjustment': 'Adjustment - ',
+                'depreciation': 'Depreciation - ',
+                'accrual': 'Accrual - '
             };
-            document.getElementById('description').value = descriptions[type] || '';
 
-            // Clear existing lines and add 2 blank lines
-            document.getElementById('lines-container').innerHTML = '';
-            addLine();
-            addLine();
-
-            // Hide vendor/customer sections initially
-            // They will show when user selects AR/AP accounts
-            document.getElementById('vendor-section').classList.remove('show');
-            document.getElementById('customer-section').classList.remove('show');
+            const currentDesc = document.getElementById('description').value;
+            // Only pre-fill if description is empty
+            if (!currentDesc) {
+                document.getElementById('description').value = descriptions[nature] || '';
+            }
         }
 
         function addLine() {
@@ -399,16 +379,19 @@
 
             try {
                 // Validation
+                const entryNature = document.getElementById('entry-nature').value;
                 const entryDate = document.getElementById('entry-date').value;
                 const description = document.getElementById('description').value;
+
+                if (!entryNature) {
+                    showError('Please select Entry Nature');
+                    return;
+                }
 
                 if (!entryDate || !description) {
                     showError('Please fill in Date and Description');
                     return;
                 }
-
-                // If no type selected, default to 'general'
-                const entryType = selectedType || 'general';
 
                 // Build lines
                 const lines = [];
@@ -464,7 +447,7 @@
                 const payload = {
                     tenantId: TENANT_ID,
                     entryDate,
-                    entryType: entryType,
+                    entryType: entryNature,
                     sourceType: 'Manual',
                     description,
                     lines
