@@ -210,11 +210,11 @@
 
             const totalAssetsForHeader = data.summary.total_assets || 0;
 
-            html += `<tr class="section-header" onclick="toggleSection('assets')"><td><span class="expand-icon" id="icon-assets">▼</span>ASSETS</td><td></td><td class="text-right" style="font-weight: 700;">${totalAssetsForHeader < 0 ? '(' : ''}${Math.abs(totalAssetsForHeader).toLocaleString('en-AE', {minimumFractionDigits: 2})}${totalAssetsForHeader < 0 ? ')' : ''}</td><td></td></tr>`;
+            html += `<tr class="section-header" onclick="toggleSection('assets')"><td colspan="2"><span class="expand-icon" id="icon-assets">▼</span>ASSETS</td><td class="text-right" style="font-weight: 700;">${totalAssetsForHeader < 0 ? '(' : ''}${Math.abs(totalAssetsForHeader).toLocaleString('en-AE', {minimumFractionDigits: 2})}${totalAssetsForHeader < 0 ? ')' : ''}</td><td></td></tr>`;
 
             // Current Assets
             if (currentAssets.length > 0) {
-                html += `<tr class="subsection-header section-content section-assets" onclick="toggleSection('current-assets')"><td style="padding-left: 16px;"><span class="expand-icon" id="icon-current-assets">▼</span>Current Assets</td><td></td><td class="text-right" style="font-weight: 600;">${currentAssetsTotalForHeader < 0 ? '(' : ''}${Math.abs(currentAssetsTotalForHeader).toLocaleString('en-AE', {minimumFractionDigits: 2})}${currentAssetsTotalForHeader < 0 ? ')' : ''}</td><td></td></tr>`;
+                html += `<tr class="subsection-header section-content section-assets" onclick="toggleSection('current-assets')"><td colspan="2" style="padding-left: 16px;"><span class="expand-icon" id="icon-current-assets">▼</span>Current Assets</td><td class="text-right" style="font-weight: 600;">${currentAssetsTotalForHeader < 0 ? '(' : ''}${Math.abs(currentAssetsTotalForHeader).toLocaleString('en-AE', {minimumFractionDigits: 2})}${currentAssetsTotalForHeader < 0 ? ')' : ''}</td><td></td></tr>`;
                 currentAssetsTotal = 0;
                 currentAssets.forEach(item => {
                     const index = accountIndex++;
@@ -225,7 +225,8 @@
                     currentAssetsTotal += amt;
                     currentAssetsTotalGL += glBalance;
 
-                    const variance = Math.abs(amt - Math.abs(glBalance));
+                    // Compare signed DR-CR values directly (both should have same sign and magnitude)
+                    const variance = Math.abs(amt - glBalance);
                     const hasVariance = variance > 0.01;
 
                     html += `
@@ -250,7 +251,7 @@
 
             // Non-Current Assets
             if (nonCurrentAssets.length > 0) {
-                html += `<tr class="subsection-header section-content section-assets" onclick="toggleSection('non-current-assets')"><td style="padding-left: 16px;"><span class="expand-icon" id="icon-non-current-assets">▼</span>Non-Current Assets</td><td></td><td class="text-right" style="font-weight: 600;">${nonCurrentAssetsTotalForHeader < 0 ? '(' : ''}${Math.abs(nonCurrentAssetsTotalForHeader).toLocaleString('en-AE', {minimumFractionDigits: 2})}${nonCurrentAssetsTotalForHeader < 0 ? ')' : ''}</td><td></td></tr>`;
+                html += `<tr class="subsection-header section-content section-assets" onclick="toggleSection('non-current-assets')"><td colspan="2" style="padding-left: 16px;"><span class="expand-icon" id="icon-non-current-assets">▼</span>Non-Current Assets</td><td class="text-right" style="font-weight: 600;">${nonCurrentAssetsTotalForHeader < 0 ? '(' : ''}${Math.abs(nonCurrentAssetsTotalForHeader).toLocaleString('en-AE', {minimumFractionDigits: 2})}${nonCurrentAssetsTotalForHeader < 0 ? ')' : ''}</td><td></td></tr>`;
                 nonCurrentAssetsTotal = 0;
                 nonCurrentAssets.forEach(item => {
                     const index = accountIndex++;
@@ -261,7 +262,8 @@
                     nonCurrentAssetsTotal += amt;
                     nonCurrentAssetsTotalGL += glBalance;
 
-                    const variance = Math.abs(amt - Math.abs(glBalance));
+                    // Compare signed DR-CR values directly (both should have same sign and magnitude)
+                    const variance = Math.abs(amt - glBalance);
                     const hasVariance = variance > 0.01;
 
                     html += `
@@ -310,11 +312,11 @@
 
             const totalLiabilitiesForHeader = data.summary.total_liabilities || 0;
 
-            html += `<tr class="section-header" onclick="toggleSection('liabilities')"><td><span class="expand-icon" id="icon-liabilities">▼</span>LIABILITIES</td><td></td><td class="text-right" style="font-weight: 700;">${totalLiabilitiesForHeader < 0 ? '(' : ''}${Math.abs(totalLiabilitiesForHeader).toLocaleString('en-AE', {minimumFractionDigits: 2})}${totalLiabilitiesForHeader < 0 ? ')' : ''}</td><td></td></tr>`;
+            html += `<tr class="section-header" onclick="toggleSection('liabilities')"><td colspan="2"><span class="expand-icon" id="icon-liabilities">▼</span>LIABILITIES</td><td class="text-right" style="font-weight: 700;">${totalLiabilitiesForHeader < 0 ? '(' : ''}${Math.abs(totalLiabilitiesForHeader).toLocaleString('en-AE', {minimumFractionDigits: 2})}${totalLiabilitiesForHeader < 0 ? ')' : ''}</td><td></td></tr>`;
 
             // Current Liabilities
             if (currentLiabilities.length > 0) {
-                html += `<tr class="subsection-header section-content section-liabilities" onclick="toggleSection('current-liabilities')"><td style="padding-left: 16px;"><span class="expand-icon" id="icon-current-liabilities">▼</span>Current Liabilities</td><td></td><td class="text-right" style="font-weight: 600;">${currentLiabilitiesTotalForHeader < 0 ? '(' : ''}${Math.abs(currentLiabilitiesTotalForHeader).toLocaleString('en-AE', {minimumFractionDigits: 2})}${currentLiabilitiesTotalForHeader < 0 ? ')' : ''}</td><td></td></tr>`;
+                html += `<tr class="subsection-header section-content section-liabilities" onclick="toggleSection('current-liabilities')"><td colspan="2" style="padding-left: 16px;"><span class="expand-icon" id="icon-current-liabilities">▼</span>Current Liabilities</td><td class="text-right" style="font-weight: 600;">${currentLiabilitiesTotalForHeader < 0 ? '(' : ''}${Math.abs(currentLiabilitiesTotalForHeader).toLocaleString('en-AE', {minimumFractionDigits: 2})}${currentLiabilitiesTotalForHeader < 0 ? ')' : ''}</td><td></td></tr>`;
                 let currentLiabilitiesTotal = 0;
                 currentLiabilities.forEach(item => {
                     const index = accountIndex++;
@@ -325,7 +327,8 @@
                     currentLiabilitiesTotal += amt;
                     currentLiabilitiesTotalGL += glBalance;
 
-                    const variance = Math.abs(amt - Math.abs(glBalance));
+                    // Compare signed DR-CR values directly (both should have same sign and magnitude)
+                    const variance = Math.abs(amt - glBalance);
                     const hasVariance = variance > 0.01;
 
                     html += `
@@ -350,7 +353,7 @@
 
             // Non-Current Liabilities
             if (nonCurrentLiabilities.length > 0) {
-                html += `<tr class="subsection-header section-content section-liabilities" onclick="toggleSection('non-current-liabilities')"><td style="padding-left: 16px;"><span class="expand-icon" id="icon-non-current-liabilities">▼</span>Long-term Liabilities</td><td></td><td class="text-right" style="font-weight: 600;">${nonCurrentLiabilitiesTotalForHeader < 0 ? '(' : ''}${Math.abs(nonCurrentLiabilitiesTotalForHeader).toLocaleString('en-AE', {minimumFractionDigits: 2})}${nonCurrentLiabilitiesTotalForHeader < 0 ? ')' : ''}</td><td></td></tr>`;
+                html += `<tr class="subsection-header section-content section-liabilities" onclick="toggleSection('non-current-liabilities')"><td colspan="2" style="padding-left: 16px;"><span class="expand-icon" id="icon-non-current-liabilities">▼</span>Long-term Liabilities</td><td class="text-right" style="font-weight: 600;">${nonCurrentLiabilitiesTotalForHeader < 0 ? '(' : ''}${Math.abs(nonCurrentLiabilitiesTotalForHeader).toLocaleString('en-AE', {minimumFractionDigits: 2})}${nonCurrentLiabilitiesTotalForHeader < 0 ? ')' : ''}</td><td></td></tr>`;
                 let nonCurrentLiabilitiesTotal = 0;
                 nonCurrentLiabilities.forEach(item => {
                     const index = accountIndex++;
@@ -361,7 +364,8 @@
                     nonCurrentLiabilitiesTotal += amt;
                     nonCurrentLiabilitiesTotalGL += glBalance;
 
-                    const variance = Math.abs(amt - Math.abs(glBalance));
+                    // Compare signed DR-CR values directly (both should have same sign and magnitude)
+                    const variance = Math.abs(amt - glBalance);
                     const hasVariance = variance > 0.01;
 
                     html += `
@@ -390,7 +394,7 @@
 
             // EQUITY SECTION
             const totalEquityForHeader = data.summary.total_equity || 0;
-            html += `<tr class="section-header" onclick="toggleSection('equity')"><td><span class="expand-icon" id="icon-equity">▼</span>EQUITY</td><td></td><td class="text-right" style="font-weight: 700;">${totalEquityForHeader < 0 ? '(' : ''}${Math.abs(totalEquityForHeader).toLocaleString('en-AE', {minimumFractionDigits: 2})}${totalEquityForHeader < 0 ? ')' : ''}</td><td></td></tr>`;
+            html += `<tr class="section-header" onclick="toggleSection('equity')"><td colspan="2"><span class="expand-icon" id="icon-equity">▼</span>EQUITY</td><td class="text-right" style="font-weight: 700;">${totalEquityForHeader < 0 ? '(' : ''}${Math.abs(totalEquityForHeader).toLocaleString('en-AE', {minimumFractionDigits: 2})}${totalEquityForHeader < 0 ? ')' : ''}</td><td></td></tr>`;
             let totalEquityGL = 0;
             if ((data.equity || []).length > 0) {
                 data.equity.forEach(item => {
@@ -401,7 +405,8 @@
                     const glBalance = parseFloat(item.debit_amount || 0) - parseFloat(item.credit_amount || 0);
                     totalEquityGL += glBalance;
 
-                    const variance = Math.abs(amt - Math.abs(glBalance));
+                    // Compare signed DR-CR values directly (both should have same sign and magnitude)
+                    const variance = Math.abs(amt - glBalance);
                     const hasVariance = variance > 0.01;
 
                     html += `
@@ -433,15 +438,22 @@
             const totalLiabilitiesEquityGL = totalLiabilitiesGL + totalEquityGL;
             html += `<tr class="total-row"><td colspan="2"><strong>TOTAL LIABILITIES & EQUITY</strong></td><td class="text-right ${totalLiabilitiesEquity < 0 ? 'amount-negative' : 'amount-positive'}"><strong>${totalLiabilitiesEquity < 0 ? '(' : ''}${Math.abs(totalLiabilitiesEquity).toLocaleString('en-AE', {minimumFractionDigits: 2})}${totalLiabilitiesEquity < 0 ? ')' : ''}</strong></td><td class="text-right ${totalLiabilitiesEquityGL < 0 ? 'amount-negative' : 'amount-positive'}" style="font-size: 12px; color: #666;"><strong>${totalLiabilitiesEquityGL < 0 ? '(' : ''}${Math.abs(totalLiabilitiesEquityGL).toLocaleString('en-AE', {minimumFractionDigits: 2})}${totalLiabilitiesEquityGL < 0 ? ')' : ''}</strong></td></tr>`;
 
-            // ACCOUNTING EQUATION VALIDATION
-            const variance = Math.abs(totalAssets - totalLiabilitiesEquity);
+            // ACCOUNTING EQUATION VALIDATION (DR-CR Signed Values)
+            // With signed values: Assets (DR+) + Liabilities (CR-) + Equity (CR-) = 0
+            const accountingEquationSum = totalAssets + totalLiabilities + totalEquity;
+            const accountingEquationSumGL = totalAssetsGL + totalLiabilitiesGL + totalEquityGL;
+            const variance = Math.abs(accountingEquationSum);
+            const varianceGL = Math.abs(accountingEquationSumGL);
             const isBalanced = variance < 0.01;
+            const isBalancedGL = varianceGL < 0.01;
 
-            if (isBalanced) {
-                html += `<tr class="balance-check-row"><td colspan="4" style="text-align: center; color: #0F5132; padding: 12px;">✅ Balance Sheet is balanced (Assets = Liabilities + Equity)</td></tr>`;
+            if (isBalanced && isBalancedGL) {
+                html += `<tr class="balance-check-row"><td colspan="4" style="text-align: center; color: #0F5132; padding: 12px;">✅ Balance Sheet is balanced (Assets + Liabilities + Equity = 0 under DR-CR convention)</td></tr>`;
+            } else if (isBalanced && !isBalancedGL) {
+                html += `<tr class="balance-check-row" style="background: #FFF3CD !important; color: #856404;"><td colspan="4" style="text-align: center; padding: 12px;">⚠️ Amount column balanced but GL Balance (TB) is OUT OF BALANCE by ${varianceGL.toLocaleString('en-AE', {minimumFractionDigits: 2})} AED</td></tr>`;
             } else {
                 html += `<tr class="balance-check-row" style="background: #FFF3CD !important; color: #856404;"><td colspan="4" style="text-align: center; padding: 12px;">⚠️ Balance Sheet is OUT OF BALANCE by ${variance.toLocaleString('en-AE', {minimumFractionDigits: 2})} AED</td></tr>`;
-                balanceWarning.innerHTML = `<div class="variance-warning"><strong>⚠️ Accounting Equation Error:</strong> Assets (${totalAssets.toLocaleString('en-AE', {minimumFractionDigits: 2})}) ≠ Liabilities + Equity (${totalLiabilitiesEquity.toLocaleString('en-AE', {minimumFractionDigits: 2})}). Variance: ${variance.toLocaleString('en-AE', {minimumFractionDigits: 2})} AED. Please review account balances and normal balance settings.</div>`;
+                balanceWarning.innerHTML = `<div class="variance-warning"><strong>⚠️ Accounting Equation Error:</strong> Assets + Liabilities + Equity should equal 0 under DR-CR convention. Current sum: ${accountingEquationSum.toLocaleString('en-AE', {minimumFractionDigits: 2})} AED. Assets: ${totalAssets.toLocaleString('en-AE', {minimumFractionDigits: 2})}, Liabilities: ${totalLiabilities < 0 ? '(' : ''}${Math.abs(totalLiabilities).toLocaleString('en-AE', {minimumFractionDigits: 2})}${totalLiabilities < 0 ? ')' : ''}, Equity: ${totalEquity < 0 ? '(' : ''}${Math.abs(totalEquity).toLocaleString('en-AE', {minimumFractionDigits: 2})}${totalEquity < 0 ? ')' : ''}. Variance: ${variance.toLocaleString('en-AE', {minimumFractionDigits: 2})} AED.</div>`;
                 balanceWarning.style.display = 'block';
             }
 
