@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post Journal Entry - AIRP v2.5</title>
+    <link rel="stylesheet" href="styles/sap-design-system.css">
+    <style>
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #F5F5F5; }
+        .compact-header { background: linear-gradient(135deg, #0070F3 0%, #0051C9 100%); color: white; padding: 15px 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .compact-header h1 { margin: 0; font-size: 20px; font-weight: 600; }
+        .compact-container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+
+        /* Transaction Type Pills */
+        .type-pills { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+        .type-pill { padding: 8px 16px; border: 2px solid #E0E0E0; border-radius: 20px; background: white; cursor: pointer; font-size: 13px; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+        .type-pill:hover { border-color: #0070F3; background: #F0F7FF; }
+        .type-pill.selected { border-color: #0070F3; background: #0070F3; color: white; font-weight: 600; }
+
+        /* Compact Form */
+        .form-card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { font-size: 12px; font-weight: 600; color: #555; margin-bottom: 5px; }
+        .form-group input, .form-group select { padding: 8px 12px; border: 1px solid #DDD; border-radius: 4px; font-size: 14px; transition: border-color 0.2s; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: #0070F3; }
+
+        /* Lines Table */
+        .lines-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        .lines-table th { background: #F8F9FA; padding: 10px; text-align: left; font-size: 12px; font-weight: 600; color: #555; border-bottom: 2px solid #E0E0E0; }
+        .lines-table td { padding: 8px; border-bottom: 1px solid #F0F0F0; }
+        .lines-table input, .lines-table select { width: 100%; padding: 6px 8px; border: 1px solid #DDD; border-radius: 4px; font-size: 13px; }
+        .lines-table .amount-input { text-align: right; font-family: monospace; }
+        .add-line-btn { background: #F0F0F0; border: 1px dashed #CCC; color: #666; cursor: pointer; padding: 8px; text-align: center; border-radius: 4px; font-size: 13px; transition: all 0.2s; }
+        .add-line-btn:hover { background: #E8F4FF; border-color: #0070F3; color: #0070F3; }
+
+        /* Balance Summary */
+        .balance-summary { display: flex; justify-content: flex-end; gap: 30px; margin: 15px 0; padding: 15px; background: #F8F9FA; border-radius: 6px; }
+        .balance-item { text-align: right; }
+        .balance-label { font-size: 11px; color: #666; text-transform: uppercase; }
+        .balance-value { font-size: 18px; font-weight: 700; font-family: monospace; }
+        .balance-value.balanced { color: #0F5132; }
+        .balance-value.unbalanced { color: #D32F2F; }
+
+        /* Action Buttons */
+        .action-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid #E0E0E0; }
+        .btn { padding: 10px 24px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #0070F3; color: white; }
+        .btn-primary:hover { background: #0051C9; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 112, 243, 0.3); }
+        .btn-primary:disabled { background: #CCC; cursor: not-allowed; transform: none; }
+        .btn-secondary { background: white; color: #666; border: 1px solid #DDD; }
+        .btn-secondary:hover { background: #F5F5F5; }
+
+        /* Modal Overlay */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 9999; align-items: center; justify-content: center; }
+        .modal-overlay.show { display: flex; }
+        .modal-content { background: white; border-radius: 12px; padding: 30px; max-width: 500px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: modalSlideIn 0.3s ease; }
+        @keyframes modalSlideIn { from { opacity: 0; transform: translateY(-50px); } to { opacity: 1; transform: translateY(0); } }
+        .modal-icon { font-size: 48px; text-align: center; margin-bottom: 15px; }
+        .modal-title { font-size: 20px; font-weight: 600; text-align: center; margin-bottom: 10px; }
+        .modal-message { font-size: 14px; color: #666; text-align: center; margin-bottom: 20px; line-height: 1.6; white-space: pre-line; }
+        .modal-actions { display: flex; gap: 10px; justify-content: center; }
+        .error-modal .modal-icon { color: #D32F2F; }
+        .error-modal .modal-title { color: #D32F2F; }
+        .success-modal .modal-icon { color: #0F5132; }
+        .success-modal .modal-title { color: #0F5132; }
+
+        /* Dimension Fields */
+        .dimension-section { display: none; background: #FFF9E6; border-left: 4px solid #FFC107; padding: 12px; margin: 15px 0; border-radius: 4px; }
+        .dimension-section.show { display: block; }
+        .dimension-hint { font-size: 12px; color: #856404; margin-bottom: 10px; }
+
+        /* Compact Spacing */
+        .compact-section { margin-bottom: 20px; }
+        .section-title { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="compact-header">
+        <h1>✍️ Post Journal Entry</h1>
+    </div>
+
+    <!-- Main Container -->
+    <div class="compact-container">
+        <!-- Transaction Type Pills -->
+        <div class="type-pills">
+            <div class="type-pill" onclick="selectType('general', event)">
+                <span>📝</span> General
+            </div>
+            <div class="type-pill" onclick="selectType('ap_invoice', event)">
+                <span>📥</span> AP Invoice
+            </div>
+            <div class="type-pill" onclick="selectType('ar_invoice', event)">
+                <span>📤</span> AR Invoice
+            </div>
+            <div class="type-pill" onclick="selectType('payment', event)">
+                <span>💳</span> Payment
+            </div>
+            <div class="type-pill" onclick="selectType('bank', event)">
+                <span>🏦</span> Bank
+            </div>
+        </div>
+
+        <!-- Main Form -->
+        <div class="form-card">
+            <!-- Basic Info -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Date <span style="color: #D32F2F;">*</span></label>
+                    <input type="date" id="entry-date" required>
+                </div>
+                <div class="form-group">
+                    <label>Description <span style="color: #D32F2F;">*</span></label>
+                    <input type="text" id="description" placeholder="Brief description of transaction" required>
+                </div>
+            </div>
+
+            <!-- Vendor/Customer Fields (shown based on type) -->
+            <div id="vendor-section" class="dimension-section">
+                <div class="dimension-hint">💼 Vendor details required for AP transactions</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Vendor <span style="color: #D32F2F;">*</span></label>
+                        <select id="vendor-select">
+                            <option value="">Select Vendor...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Invoice Number</label>
+                        <input type="text" id="vendor-invoice" placeholder="INV-001">
+                    </div>
+                    <div class="form-group">
+                        <label>Due Date</label>
+                        <input type="date" id="vendor-due-date">
+                    </div>
+                </div>
+            </div>
+
+            <div id="customer-section" class="dimension-section">
+                <div class="dimension-hint">👤 Customer details required for AR transactions</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Customer <span style="color: #D32F2F;">*</span></label>
+                        <select id="customer-select">
+                            <option value="">Select Customer...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Invoice Number</label>
+                        <input type="text" id="customer-invoice" placeholder="SI-001">
+                    </div>
+                    <div class="form-group">
+                        <label>Due Date</label>
+                        <input type="date" id="customer-due-date">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Journal Entry Lines -->
+            <div class="compact-section">
+                <div class="section-title">Journal Entry Lines</div>
+                <table class="lines-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 35%;">Account</th>
+                            <th style="width: 30%;">Description</th>
+                            <th style="width: 15%;">Debit</th>
+                            <th style="width: 15%;">Credit</th>
+                            <th style="width: 5%;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="lines-container">
+                        <!-- Lines added dynamically -->
+                    </tbody>
+                </table>
+                <div class="add-line-btn" onclick="addLine()">+ Add Line</div>
+            </div>
+
+            <!-- Balance Summary -->
+            <div class="balance-summary">
+                <div class="balance-item">
+                    <div class="balance-label">Total Debits</div>
+                    <div class="balance-value" id="total-debits">0.00</div>
+                </div>
+                <div class="balance-item">
+                    <div class="balance-label">Total Credits</div>
+                    <div class="balance-value" id="total-credits">0.00</div>
+                </div>
+                <div class="balance-item">
+                    <div class="balance-label">Difference</div>
+                    <div class="balance-value" id="balance-diff">0.00</div>
+                </div>
+            </div>
+
+            <!-- Action Bar -->
+            <div class="action-bar">
+                <button class="btn btn-secondary" onclick="window.location.href='je-register.html'">Cancel</button>
+                <button class="btn btn-primary" id="post-btn" onclick="postEntry()">Post Journal Entry</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div id="error-modal" class="modal-overlay">
+        <div class="modal-content error-modal">
+            <div class="modal-icon">⚠️</div>
+            <div class="modal-title">Validation Error</div>
+            <div class="modal-message" id="error-message"></div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="closeModal('error-modal')">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="success-modal" class="modal-overlay">
+        <div class="modal-content success-modal">
+            <div class="modal-icon">✅</div>
+            <div class="modal-title">Success!</div>
+            <div class="modal-message" id="success-message"></div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="window.location.href='je-register.html'">View Register</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+        const API_URL = 'http://localhost:3001/journal-entries';
+        const QUERY_URL = 'http://localhost:3008/api/query';
+
+        let selectedType = null;
+        let lineCount = 0;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('entry-date').valueAsDate = new Date();
+            loadVendors();
+            loadCustomers();
+            addLine();
+            addLine();
+        });
+
+        async function loadVendors() {
+            const response = await fetch(QUERY_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: `SELECT vendor_id, vendor_code, vendor_name FROM vendors WHERE tenant_id = '${TENANT_ID}' ORDER BY vendor_code`
+                })
+            });
+            const vendors = await response.json();
+            const select = document.getElementById('vendor-select');
+            vendors.forEach(v => {
+                const option = document.createElement('option');
+                option.value = v.vendor_id;
+                option.textContent = `${v.vendor_code} - ${v.vendor_name}`;
+                select.appendChild(option);
+            });
+        }
+
+        async function loadCustomers() {
+            const response = await fetch(QUERY_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: `SELECT customer_id, customer_code, customer_name FROM customers WHERE tenant_id = '${TENANT_ID}' ORDER BY customer_code`
+                })
+            });
+            const customers = await response.json();
+            const select = document.getElementById('customer-select');
+            customers.forEach(c => {
+                const option = document.createElement('option');
+                option.value = c.customer_id;
+                option.textContent = `${c.customer_code} - ${c.customer_name}`;
+                select.appendChild(option);
+            });
+        }
+
+        function selectType(type, event) {
+            selectedType = type;
+            console.log('Type selected:', type);
+
+            // Update UI
+            document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('selected'));
+            if (event && event.currentTarget) {
+                event.currentTarget.classList.add('selected');
+            }
+
+            // Show/hide sections
+            document.getElementById('vendor-section').classList.remove('show');
+            document.getElementById('customer-section').classList.remove('show');
+
+            if (type === 'ap_invoice' || (type === 'payment' && confirm('Pay vendor? (Cancel for customer receipt)'))) {
+                document.getElementById('vendor-section').classList.add('show');
+            } else if (type === 'ar_invoice' || type === 'payment') {
+                document.getElementById('customer-section').classList.add('show');
+            }
+
+            // Pre-fill description
+            const descriptions = {
+                'ap_invoice': 'AP Invoice - ',
+                'ar_invoice': 'AR Invoice - ',
+                'payment': 'Payment - ',
+                'bank': 'Bank Transaction - ',
+                'general': 'General Entry - '
+            };
+            document.getElementById('description').value = descriptions[type] || '';
+        }
+
+        function addLine() {
+            lineCount++;
+            const container = document.getElementById('lines-container');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>
+                    <select class="account-select" onchange="updateTotals()">
+                        <option value="">Select Account...</option>
+                        <option value="1000">1000 - Cash</option>
+                        <option value="1200">1200 - Accounts Receivable</option>
+                        <option value="2100">2100 - Accounts Payable</option>
+                        <option value="2130">2130 - Tax Payable</option>
+                        <option value="4000">4000 - Revenue</option>
+                        <option value="5100">5100 - Operating Expenses</option>
+                        <option value="5200">5200 - Utilities Expense</option>
+                    </select>
+                </td>
+                <td><input type="text" class="line-desc" placeholder="Line description"></td>
+                <td><input type="number" class="debit-amt amount-input" step="0.01" min="0" value="0" onchange="updateTotals()"></td>
+                <td><input type="number" class="credit-amt amount-input" step="0.01" min="0" value="0" onchange="updateTotals()"></td>
+                <td><button class="btn btn-secondary" onclick="removeLine(this)" style="padding: 4px 8px; font-size: 12px;">×</button></td>
+            `;
+            container.appendChild(row);
+        }
+
+        function removeLine(btn) {
+            if (document.querySelectorAll('#lines-container tr').length > 2) {
+                btn.closest('tr').remove();
+                updateTotals();
+            } else {
+                showError('Must have at least 2 lines');
+            }
+        }
+
+        function updateTotals() {
+            let totalDebits = 0, totalCredits = 0;
+
+            document.querySelectorAll('.debit-amt').forEach(input => {
+                totalDebits += parseFloat(input.value || 0);
+            });
+            document.querySelectorAll('.credit-amt').forEach(input => {
+                totalCredits += parseFloat(input.value || 0);
+            });
+
+            document.getElementById('total-debits').textContent = totalDebits.toFixed(2);
+            document.getElementById('total-credits').textContent = totalCredits.toFixed(2);
+
+            const diff = Math.abs(totalDebits - totalCredits);
+            const diffEl = document.getElementById('balance-diff');
+            diffEl.textContent = diff.toFixed(2);
+            diffEl.className = diff < 0.01 ? 'balance-value balanced' : 'balance-value unbalanced';
+        }
+
+        async function postEntry() {
+            const postBtn = document.getElementById('post-btn');
+            postBtn.disabled = true;
+            postBtn.textContent = 'Posting...';
+
+            try {
+                // Validation
+                if (!selectedType) {
+                    showError('Please select a transaction type');
+                    return;
+                }
+
+                const entryDate = document.getElementById('entry-date').value;
+                const description = document.getElementById('description').value;
+
+                if (!entryDate || !description) {
+                    showError('Please fill in Date and Description');
+                    return;
+                }
+
+                // Build lines
+                const lines = [];
+                document.querySelectorAll('#lines-container tr').forEach(row => {
+                    const accountCode = row.querySelector('.account-select').value;
+                    const lineDesc = row.querySelector('.line-desc').value;
+                    const debitAmount = parseFloat(row.querySelector('.debit-amt').value || 0);
+                    const creditAmount = parseFloat(row.querySelector('.credit-amt').value || 0);
+
+                    if (accountCode && (debitAmount > 0 || creditAmount > 0)) {
+                        const line = { accountCode, debitAmount, creditAmount, description: lineDesc || description };
+
+                        // Add vendor/customer for AR/AP
+                        if (accountCode === '2100') {
+                            const vendorId = document.getElementById('vendor-select').value;
+                            if (!vendorId) {
+                                showError('Vendor is required for AP account 2100');
+                                throw new Error('Vendor required');
+                            }
+                            line.vendorId = vendorId;
+                            line.invoiceNumber = document.getElementById('vendor-invoice').value;
+                            line.dueDate = document.getElementById('vendor-due-date').value;
+                        } else if (accountCode === '1200') {
+                            const customerId = document.getElementById('customer-select').value;
+                            if (!customerId) {
+                                showError('Customer is required for AR account 1200');
+                                throw new Error('Customer required');
+                            }
+                            line.customerId = customerId;
+                            line.invoiceNumber = document.getElementById('customer-invoice').value;
+                            line.dueDate = document.getElementById('customer-due-date').value;
+                        }
+
+                        lines.push(line);
+                    }
+                });
+
+                if (lines.length < 2) {
+                    showError('At least 2 lines required with account and amount');
+                    return;
+                }
+
+                // Check balance
+                const totalDebits = lines.reduce((sum, line) => sum + line.debitAmount, 0);
+                const totalCredits = lines.reduce((sum, line) => sum + line.creditAmount, 0);
+
+                if (Math.abs(totalDebits - totalCredits) > 0.01) {
+                    showError(`Entry is not balanced!\n\nDebits: ${totalDebits.toFixed(2)}\nCredits: ${totalCredits.toFixed(2)}\nDifference: ${Math.abs(totalDebits - totalCredits).toFixed(2)}`);
+                    return;
+                }
+
+                // Post to API
+                const payload = {
+                    tenantId: TENANT_ID,
+                    entryDate,
+                    entryType: selectedType,
+                    sourceType: 'Manual',
+                    description,
+                    lines
+                };
+
+                console.log('Posting:', payload);
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const error = await response.text();
+                    throw new Error(error);
+                }
+
+                const result = await response.json();
+                showSuccess(`Journal Entry posted successfully!\n\nEntry Number: ${result.entryNumber || 'N/A'}\nEntry ID: ${result.entryId}\n\nClick OK to view in register.`);
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError(`Failed to post entry:\n\n${error.message}`);
+            } finally {
+                postBtn.disabled = false;
+                postBtn.textContent = 'Post Journal Entry';
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('error-message').textContent = message;
+            document.getElementById('error-modal').classList.add('show');
+        }
+
+        function showSuccess(message) {
+            document.getElementById('success-message').textContent = message;
+            document.getElementById('success-modal').classList.add('show');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+    </script>
+</body>
+</html>
