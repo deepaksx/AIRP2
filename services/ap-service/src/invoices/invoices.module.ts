@@ -11,6 +11,16 @@ import { InvoicesService } from './invoices.service';
     TypeOrmModule.forFeature([APInvoiceEntity, APInvoiceLineEntity]),
     ClientsModule.register([
       {
+        name: 'KAFKA_SERVICE',
+        transport: Transport.KAFKA,
+        options: {
+          client: {
+            clientId: 'ap-service-invoices',
+            brokers: [(process.env.KAFKA_BROKERS || 'localhost:19092')],
+          },
+        },
+      },
+      {
         name: 'AI_SERVICE',
         transport: Transport.TCP,
         options: {

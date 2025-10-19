@@ -26,26 +26,32 @@ export class ARInvoiceEntity {
   @Column({ type: 'char', length: 3, default: 'AED' })
   currency: string;
 
-  @Column({ type: 'numeric', precision: 18, scale: 4 })
+  @Column({ type: 'numeric', precision: 20, scale: 4 })
   subtotal: number;
 
-  @Column({ type: 'numeric', precision: 18, scale: 4, default: 0 })
+  @Column({ type: 'numeric', precision: 20, scale: 4, default: 0 })
   tax_amount: number;
 
-  @Column({ type: 'numeric', precision: 18, scale: 4 })
+  @Column({ type: 'numeric', precision: 20, scale: 4 })
   total_amount: number;
 
-  @Column({ type: 'numeric', precision: 18, scale: 4, default: 0 })
+  @Column({ type: 'numeric', precision: 20, scale: 4, default: 0 })
   amount_paid: number;
 
-  @Column({ type: 'numeric', precision: 18, scale: 4 })
+  @Column({ type: 'numeric', precision: 20, scale: 4 })
   amount_outstanding: number;
 
-  @Column({ type: 'varchar', length: 20, default: 'issued' })
+  @Column({ type: 'varchar', length: 20, default: 'draft' })
   status: string;
 
-  @Column({ type: 'text', nullable: true })
-  notes: string;
+  @Column({ type: 'varchar', length: 20, default: 'unpaid' })
+  payment_status: string;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  sent_at: Date;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  paid_at: Date;
 
   @Column({ type: 'jsonb', nullable: true })
   metadata: any;

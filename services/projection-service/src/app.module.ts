@@ -10,6 +10,9 @@ import { APAgingEntity } from './projections/ap-aging.entity';
 import { ARAgingEntity } from './projections/ar-aging.entity';
 import { GLBalanceEntity } from './projections/gl-balance.entity';
 import { ChartOfAccountsEntity } from './projections/chart-of-accounts.entity';
+import { JournalEntryEntity } from './projections/journal-entry.entity';
+import { JournalEntryLineEntity } from './projections/journal-entry-line.entity';
+import { APInvoiceEntity } from './projections/ap-invoice.entity';
 
 @Module({
   imports: [
@@ -23,10 +26,10 @@ import { ChartOfAccountsEntity } from './projections/chart-of-accounts.entity';
       username: process.env.POSTGRES_USER || 'airp_admin',
       password: process.env.POSTGRES_PASSWORD || 'airp_secure_2024',
       database: process.env.POSTGRES_DB || 'airp_master',
-      entities: [TrialBalanceEntity, APAgingEntity, ARAgingEntity, GLBalanceEntity, ChartOfAccountsEntity],
+      entities: [TrialBalanceEntity, APAgingEntity, ARAgingEntity, GLBalanceEntity, ChartOfAccountsEntity, JournalEntryEntity, JournalEntryLineEntity, APInvoiceEntity],
       synchronize: false,
     }),
-    TypeOrmModule.forFeature([TrialBalanceEntity, APAgingEntity, ARAgingEntity, GLBalanceEntity, ChartOfAccountsEntity]),
+    TypeOrmModule.forFeature([TrialBalanceEntity, APAgingEntity, ARAgingEntity, GLBalanceEntity, ChartOfAccountsEntity, JournalEntryEntity, JournalEntryLineEntity, APInvoiceEntity]),
     TerminusModule,
   ],
   controllers: [HealthController],

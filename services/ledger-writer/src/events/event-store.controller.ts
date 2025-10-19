@@ -100,4 +100,24 @@ export class EventStoreController {
   async getEventStats(@Query('tenantId') tenantId: string) {
     return this.eventStoreService.getEventStats(tenantId);
   }
+
+  @Get('by-tenant/:tenantId')
+  @ApiOperation({ summary: 'Get all events for a tenant' })
+  @ApiParam({ name: 'tenantId', description: 'Tenant UUID' })
+  @ApiQuery({ name: 'eventType', required: false, description: 'Filter by event type' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Max results', type: Number })
+  @ApiResponse({ status: 200, description: 'Events retrieved successfully' })
+  async getEventsByTenant(
+    @Param('tenantId') tenantId: string,
+    @Query('eventType') eventType?: string,
+    @Query('limit') limitStr?: string,
+  ) {
+    // Convert limit to number (query params come as strings)
+    const limit = limitStr ? parseInt(limitStr, 10) : undefined;
+
+    if (eventType) {
+      return this.eventStoreService.getEventsByType(eventType, tenantId, limit);
+    }
+    return this.eventStoreService.getRecentEvents(tenantId, limit || 100);
+  }
 }

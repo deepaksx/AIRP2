@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Data - AIRP v2.0</title>
+    <link rel="stylesheet" href="styles/sap-design-system.css">
+    <style>
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            border-bottom: 2px solid var(--sap-border);
+            background: var(--sap-surface);
+            padding: 0 20px;
+        }
+
+        .tab-btn {
+            padding: 14px 24px;
+            background: none;
+            border: none;
+            color: var(--sap-text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            color: var(--sap-text-primary);
+            background: #F5F5F5;
+        }
+
+        .tab-btn.active {
+            color: var(--sap-primary);
+            border-bottom-color: var(--sap-primary);
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--sap-surface);
+            border: 1px solid var(--sap-border);
+            border-radius: 4px;
+            padding: 8px 12px;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .search-box input {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--sap-text-primary);
+            font-size: 14px;
+            outline: none;
+        }
+
+        .search-box input::placeholder {
+            color: var(--sap-text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <div class="header-top">
+            <div>
+                <div class="page-title">Master Data Management</div>
+                <div class="page-subtitle">Manage chart of accounts, vendors, customers, and bank accounts</div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="loadActiveTab()">🔄 Refresh</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('coa')">📑 Chart of Accounts</button>
+            <button class="tab-btn" onclick="switchTab('vendors')">🏪 Vendors</button>
+            <button class="tab-btn" onclick="switchTab('customers')">👥 Customers</button>
+            <button class="tab-btn" onclick="switchTab('banks')">🏦 Bank Accounts</button>
+        </div>
+
+        <!-- Chart of Accounts Tab -->
+        <div id="tab-coa" class="tab-content active">
+            <div class="card">
+                <div class="card-body">
+                    <div class="toolbar">
+                        <div class="search-box">
+                            <span>🔍</span>
+                            <input type="text" id="search-coa" placeholder="Search accounts..." oninput="filterTable('coa')">
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-secondary">📤 Export</button>
+                            <button class="btn btn-primary">➕ New Account</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-card">
+                <div class="report-header">
+                    <div class="report-title">Chart of Accounts</div>
+                    <div class="report-date"><span id="count-coa">0</span> accounts</div>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 100px;">Code</th>
+                            <th>Account Name</th>
+                            <th style="width: 120px;">Type</th>
+                            <th style="width: 120px;">Subtype</th>
+                            <th style="width: 100px;">Normal Balance</th>
+                            <th style="width: 80px;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-coa">
+                        <tr><td colspan="6" class="loading"><div class="spinner"></div><div>Loading chart of accounts...</div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Vendors Tab -->
+        <div id="tab-vendors" class="tab-content">
+            <div class="card">
+                <div class="card-body">
+                    <div class="toolbar">
+                        <div class="search-box">
+                            <span>🔍</span>
+                            <input type="text" id="search-vendors" placeholder="Search vendors..." oninput="filterTable('vendors')">
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-secondary">📤 Export</button>
+                            <button class="btn btn-primary">➕ New Vendor</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-card">
+                <div class="report-header">
+                    <div class="report-title">Vendors</div>
+                    <div class="report-date"><span id="count-vendors">0</span> vendors</div>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 100px;">Code</th>
+                            <th>Vendor Name</th>
+                            <th style="width: 200px;">Contact Email</th>
+                            <th style="width: 120px;">Payment Terms</th>
+                            <th style="width: 80px;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-vendors">
+                        <tr><td colspan="5" class="loading"><div class="spinner"></div><div>Loading vendors...</div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Customers Tab -->
+        <div id="tab-customers" class="tab-content">
+            <div class="card">
+                <div class="card-body">
+                    <div class="toolbar">
+                        <div class="search-box">
+                            <span>🔍</span>
+                            <input type="text" id="search-customers" placeholder="Search customers..." oninput="filterTable('customers')">
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-secondary">📤 Export</button>
+                            <button class="btn btn-primary">➕ New Customer</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-card">
+                <div class="report-header">
+                    <div class="report-title">Customers</div>
+                    <div class="report-date"><span id="count-customers">0</span> customers</div>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 100px;">Code</th>
+                            <th>Customer Name</th>
+                            <th style="width: 200px;">Contact Email</th>
+                            <th style="width: 120px;">Payment Terms</th>
+                            <th style="width: 80px;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-customers">
+                        <tr><td colspan="5" class="loading"><div class="spinner"></div><div>Loading customers...</div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Bank Accounts Tab -->
+        <div id="tab-banks" class="tab-content">
+            <div class="card">
+                <div class="card-body">
+                    <div class="toolbar">
+                        <div class="search-box">
+                            <span>🔍</span>
+                            <input type="text" id="search-banks" placeholder="Search bank accounts..." oninput="filterTable('banks')">
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-secondary">📤 Export</button>
+                            <button class="btn btn-primary">➕ New Bank Account</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-card">
+                <div class="report-header">
+                    <div class="report-title">Bank Accounts</div>
+                    <div class="report-date"><span id="count-banks">0</span> accounts</div>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 150px;">Account Number</th>
+                            <th>Bank Name</th>
+                            <th style="width: 120px;">Currency</th>
+                            <th style="width: 150px;" class="text-right">Balance (AED)</th>
+                            <th style="width: 80px;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-banks">
+                        <tr><td colspan="5" class="loading"><div class="spinner"></div><div>Loading bank accounts...</div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+        const LEDGER_WRITER_URL = 'http://localhost:3001';
+        const AP_SERVICE_URL = 'http://localhost:3003';
+        const AR_SERVICE_URL = 'http://localhost:3004';
+        const TREASURY_URL = 'http://localhost:3005';
+
+        let currentTab = 'coa';
+        let allData = {
+            coa: [],
+            vendors: [],
+            customers: [],
+            banks: []
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check for tab parameter in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const tab = urlParams.get('tab');
+            if (tab) {
+                switchTab(tab);
+            } else {
+                loadChartOfAccounts();
+            }
+        });
+
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event?.target?.classList.add('active') || document.querySelector(`.tab-btn:nth-child(${['coa','vendors','customers','banks'].indexOf(tabName)+1})`).classList.add('active');
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+
+            currentTab = tabName;
+
+            // Load data if not already loaded
+            if (allData[tabName].length === 0) {
+                loadActiveTab();
+            }
+        }
+
+        function loadActiveTab() {
+            switch(currentTab) {
+                case 'coa': loadChartOfAccounts(); break;
+                case 'vendors': loadVendors(); break;
+                case 'customers': loadCustomers(); break;
+                case 'banks': loadBankAccounts(); break;
+            }
+        }
+
+        async function loadChartOfAccounts() {
+            const tbody = document.getElementById('tbody-coa');
+            tbody.innerHTML = '<tr><td colspan="6" class="loading"><div class="spinner"></div><div>Loading...</div></td></tr>';
+
+            try {
+                const response = await fetch(`${LEDGER_WRITER_URL}/master-data/chart-of-accounts?tenant_id=${TENANT_ID}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                allData.coa = data;
+                renderChartOfAccounts(data);
+            } catch (error) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><div class="empty-state-icon">⚠️</div><div>Failed to load</div></td></tr>';
+            }
+        }
+
+        function renderChartOfAccounts(data) {
+            const tbody = document.getElementById('tbody-coa');
+            document.getElementById('count-coa').textContent = data.length;
+
+            if (!data.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><div class="empty-state-icon">📑</div><div>No accounts found</div></td></tr>';
+                return;
+            }
+
+            let html = '';
+            data.forEach(account => {
+                html += `
+                    <tr>
+                        <td class="text-bold">${account.account_code}</td>
+                        <td>${account.account_name}</td>
+                        <td>${account.account_type}</td>
+                        <td>${account.account_subtype || '-'}</td>
+                        <td><span class="status-badge ${account.normal_balance === 'DEBIT' ? 'status-paid' : 'status-unpaid'}">${account.normal_balance}</span></td>
+                        <td><span class="status-badge ${account.is_active ? 'status-paid' : 'status-cancelled'}">${account.is_active ? 'Active' : 'Inactive'}</span></td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        async function loadVendors() {
+            const tbody = document.getElementById('tbody-vendors');
+            tbody.innerHTML = '<tr><td colspan="5" class="loading"><div class="spinner"></div><div>Loading...</div></td></tr>';
+
+            try {
+                const response = await fetch(`${AP_SERVICE_URL}/vendors?tenant_id=${TENANT_ID}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                allData.vendors = data;
+                renderVendors(data);
+            } catch (error) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><div class="empty-state-icon">⚠️</div><div>Failed to load</div></td></tr>';
+            }
+        }
+
+        function renderVendors(data) {
+            const tbody = document.getElementById('tbody-vendors');
+            document.getElementById('count-vendors').textContent = data.length;
+
+            if (!data.length) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><div class="empty-state-icon">🏪</div><div>No vendors found</div></td></tr>';
+                return;
+            }
+
+            let html = '';
+            data.forEach(vendor => {
+                html += `
+                    <tr>
+                        <td class="text-bold">${vendor.vendor_code}</td>
+                        <td>${vendor.vendor_name}</td>
+                        <td>${vendor.contact_email || '-'}</td>
+                        <td>${vendor.payment_terms || 'Net 30'}</td>
+                        <td><span class="status-badge status-paid">Active</span></td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        async function loadCustomers() {
+            const tbody = document.getElementById('tbody-customers');
+            tbody.innerHTML = '<tr><td colspan="5" class="loading"><div class="spinner"></div><div>Loading...</div></td></tr>';
+
+            try {
+                const response = await fetch(`${AR_SERVICE_URL}/customers?tenant_id=${TENANT_ID}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                allData.customers = data;
+                renderCustomers(data);
+            } catch (error) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><div class="empty-state-icon">⚠️</div><div>Failed to load</div></td></tr>';
+            }
+        }
+
+        function renderCustomers(data) {
+            const tbody = document.getElementById('tbody-customers');
+            document.getElementById('count-customers').textContent = data.length;
+
+            if (!data.length) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><div class="empty-state-icon">👥</div><div>No customers found</div></td></tr>';
+                return;
+            }
+
+            let html = '';
+            data.forEach(customer => {
+                html += `
+                    <tr>
+                        <td class="text-bold">${customer.customer_code}</td>
+                        <td>${customer.customer_name}</td>
+                        <td>${customer.contact_email || '-'}</td>
+                        <td>${customer.payment_terms || 'Net 30'}</td>
+                        <td><span class="status-badge status-paid">Active</span></td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        async function loadBankAccounts() {
+            const tbody = document.getElementById('tbody-banks');
+            tbody.innerHTML = '<tr><td colspan="5" class="loading"><div class="spinner"></div><div>Loading...</div></td></tr>';
+
+            try {
+                const response = await fetch(`${TREASURY_URL}/bank-accounts?tenant_id=${TENANT_ID}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                allData.banks = data;
+                renderBankAccounts(data);
+            } catch (error) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><div class="empty-state-icon">⚠️</div><div>Failed to load</div></td></tr>';
+            }
+        }
+
+        function renderBankAccounts(data) {
+            const tbody = document.getElementById('tbody-banks');
+            document.getElementById('count-banks').textContent = data.length;
+
+            if (!data.length) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><div class="empty-state-icon">🏦</div><div>No bank accounts found</div></td></tr>';
+                return;
+            }
+
+            let html = '';
+            data.forEach(account => {
+                const balance = parseFloat(account.current_balance || 0);
+                html += `
+                    <tr>
+                        <td class="text-bold">${account.account_number}</td>
+                        <td>${account.bank_name}</td>
+                        <td>${account.currency || 'AED'}</td>
+                        <td class="text-right ${balance >= 0 ? 'amount-positive' : 'amount-negative'}">${balance.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td>
+                        <td><span class="status-badge status-paid">Active</span></td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        function filterTable(type) {
+            // Implement search filtering
+            const searchTerm = document.getElementById(`search-${type}`).value.toLowerCase();
+            // For now, just reload - can implement client-side filtering if needed
+        }
+    </script>
+</body>
+</html>

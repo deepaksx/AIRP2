@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIRP v2.0 - Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        .header h1 {
+            font-size: 48px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #666;
+            font-size: 18px;
+        }
+        .mode-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+        .mode-card {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 40px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        .mode-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            border-color: #667eea;
+        }
+        .mode-card .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        .mode-card h2 {
+            color: #2c3e50;
+            font-size: 28px;
+            margin-bottom: 15px;
+        }
+        .mode-card p {
+            color: #666;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        .mode-card .features {
+            text-align: left;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+        .mode-card .features ul {
+            list-style: none;
+            padding: 0;
+        }
+        .mode-card .features li {
+            padding: 8px 0;
+            color: #495057;
+            font-size: 14px;
+        }
+        .mode-card .features li:before {
+            content: "✓ ";
+            color: #28a745;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            margin-top: 15px;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .quick-links {
+            margin-top: 40px;
+            padding-top: 40px;
+            border-top: 2px solid #e9ecef;
+        }
+        .quick-links h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+        .link-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .quick-link-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        .quick-link-card:hover {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-color: #667eea;
+            transform: translateY(-3px);
+        }
+        .quick-link-card .icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .quick-link-card .title {
+            color: #2c3e50;
+            font-weight: 600;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AIRP v2.0</h1>
+            <p>AI-Native Financial ERP System</p>
+        </div>
+
+        <div class="mode-selector">
+            <!-- Structured Reports Space -->
+            <div class="mode-card" onclick="window.location.href='/reports-dashboard.html'">
+                <div class="icon">📊</div>
+                <h2>Reports & Ledgers</h2>
+                <p>Access structured financial reports, ledgers, and transaction registers</p>
+                <div class="features">
+                    <ul>
+                        <li>General Ledger & Sub-Ledgers</li>
+                        <li>Trial Balance & Financial Reports</li>
+                        <li>Journal Entry Register</li>
+                        <li>AR/AP Aging Reports</li>
+                        <li>Transaction History</li>
+                    </ul>
+                </div>
+                <a href="/reports-dashboard.html" class="btn">Open Reports</a>
+            </div>
+
+            <!-- Ad-hoc Chat Space -->
+            <div class="mode-card" onclick="window.location.href='/chaterp.html'">
+                <div class="icon">🤖</div>
+                <h2>AI Assistant</h2>
+                <p>Conversational interface for ad-hoc queries, transactions, and insights</p>
+                <div class="features">
+                    <ul>
+                        <li>Post transactions via chat</li>
+                        <li>Ask questions in natural language</li>
+                        <li>AI-powered classification</li>
+                        <li>Financial insights & analysis</li>
+                        <li>Policy recommendations</li>
+                    </ul>
+                </div>
+                <a href="/chaterp.html" class="btn">Start Chat</a>
+            </div>
+        </div>
+
+        <div class="quick-links">
+            <h3>Quick Access</h3>
+            <div class="link-grid">
+                <div class="quick-link-card" onclick="window.location.href='/je-register.html'">
+                    <div class="icon">📋</div>
+                    <div class="title">JE Register</div>
+                </div>
+                <div class="quick-link-card" onclick="window.location.href='/ledgers-dashboard.html?tab=trial-balance'">
+                    <div class="icon">⚖️</div>
+                    <div class="title">Trial Balance</div>
+                </div>
+                <div class="quick-link-card" onclick="window.location.href='/ledgers-dashboard.html'">
+                    <div class="icon">📖</div>
+                    <div class="title">General Ledger</div>
+                </div>
+                <div class="quick-link-card" onclick="window.location.href='/post-transactions.html'">
+                    <div class="icon">✍️</div>
+                    <div class="title">Post Entry</div>
+                </div>
+                <div class="quick-link-card" onclick="window.location.href='/classify-demo.html'">
+                    <div class="icon">🤖</div>
+                    <div class="title">AI Classify</div>
+                </div>
+                <div class="quick-link-card" onclick="window.location.href='/recon-demo.html'">
+                    <div class="icon">🔄</div>
+                    <div class="title">Reconciliation</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

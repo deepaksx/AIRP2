@@ -4,12 +4,18 @@ import { Entity, Column, PrimaryGeneratedColumn, Index, CreateDateColumn, Update
 @Index(['tenant_id'])
 export class BankAccountEntity {
   @PrimaryGeneratedColumn('uuid')
-  account_id: string;
+  bank_account_id: string;
 
   @Column({ type: 'uuid' })
   tenant_id: string;
 
-  @Column({ type: 'varchar', length: 100 })
+  @Column({ type: 'varchar', length: 50 })
+  account_code: string;
+
+  @Column({ type: 'varchar', length: 255 })
+  account_name: string;
+
+  @Column({ type: 'varchar', length: 255 })
   bank_name: string;
 
   @Column({ type: 'varchar', length: 50 })
@@ -21,14 +27,29 @@ export class BankAccountEntity {
   @Column({ type: 'varchar', length: 20, nullable: true })
   swift_code: string;
 
-  @Column({ type: 'varchar', length: 3, default: 'AED' })
-  currency_code: string;
+  @Column({ type: 'char', length: 3, default: 'AED' })
+  currency: string;
 
-  @Column({ type: 'numeric', precision: 18, scale: 2, default: 0 })
+  @Column({ type: 'varchar', length: 50, default: 'checking' })
+  account_type: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  gl_account_id: string;
+
+  @Column({ type: 'numeric', precision: 20, scale: 4, default: 0 })
   current_balance: number;
+
+  @Column({ type: 'numeric', precision: 20, scale: 4, default: 0 })
+  available_balance: number;
 
   @Column({ type: 'varchar', length: 20, default: 'active' })
   status: string;
+
+  @Column({ type: 'date', nullable: true })
+  last_reconciled_date: Date;
+
+  @Column({ type: 'numeric', precision: 20, scale: 4, nullable: true })
+  last_reconciled_balance: number;
 
   @Column({ type: 'jsonb', nullable: true })
   metadata: any;

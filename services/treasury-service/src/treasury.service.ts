@@ -21,7 +21,24 @@ export class TreasuryService {
   async getBankAccounts(tenantId: string): Promise<BankAccountEntity[]> {
     return this.bankAccountRepo.find({
       where: { tenant_id: tenantId },
+      order: { bank_name: 'ASC' },
     });
+  }
+
+  async getBankAccount(id: string, tenantId: string): Promise<BankAccountEntity> {
+    return this.bankAccountRepo.findOne({
+      where: { bank_account_id: id, tenant_id: tenantId },
+    });
+  }
+
+  async createBankAccount(accountData: Partial<BankAccountEntity>): Promise<BankAccountEntity> {
+    const account = this.bankAccountRepo.create(accountData);
+    return this.bankAccountRepo.save(account);
+  }
+
+  async updateBankAccount(id: string, accountData: Partial<BankAccountEntity>): Promise<BankAccountEntity> {
+    await this.bankAccountRepo.update(id, accountData);
+    return this.bankAccountRepo.findOne({ where: { bank_account_id: id } });
   }
 
   async getTransactions(tenantId: string, accountId?: string): Promise<BankTransactionEntity[]> {

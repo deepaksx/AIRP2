@@ -1,0 +1,30 @@
+{
+  "tenantId": "00000000-0000-0000-0000-000000000001",
+  "userId": "00000000-0000-0000-0000-USER00000001",
+  "entryDate": "2025-01-20",
+  "entryType": "ap_invoice",
+  "description": "Office rent January 2025 - Dubai Properties LLC",
+  "lines": [
+    {
+      "accountCode": "5300",
+      "debitAmount": 15000,
+      "creditAmount": 0,
+      "description": "Rent Expense - Dubai Office"
+    },
+    {
+      "accountCode": "2100",
+      "debitAmount": 0,
+      "creditAmount": 15000,
+      "description": "Accounts Payable - Dubai Properties",
+      "vendorId": "10000000-0000-0000-0000-000000000001",
+      "invoiceNumber": "INV-2025-001",
+      "dueDate": "2025-02-19",
+      "paymentTerms": "Net 30",
+      "metadata": {
+        "vendor_name": "Dubai Properties LLC",
+        "property": "Dubai Office - Sheikh Zayed Road",
+        "period": "January 2025"
+      }
+    }
+  ]
+}

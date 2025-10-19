@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { TerminusModule } from '@nestjs/terminus';
 import { EventStoreModule } from './events/event-store.module';
 import { JournalEntryModule } from './domain/journal-entry.module';
+import { ChartOfAccountsModule } from './master-data/chart-of-accounts.module';
 import { HealthController } from './health/health.controller';
 import { MetricsController } from './health/metrics.controller';
 
@@ -43,6 +44,7 @@ import { MetricsController } from './health/metrics.controller';
     // Domain modules
     EventStoreModule,
     JournalEntryModule,
+    ChartOfAccountsModule,
   ],
   controllers: [HealthController, MetricsController],
 })

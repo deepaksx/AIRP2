@@ -29,4 +29,9 @@ export class VendorsService {
     const vendor = this.vendorRepo.create(vendorData);
     return this.vendorRepo.save(vendor);
   }
+
+  async update(id: string, vendorData: Partial<VendorEntity>): Promise<VendorEntity> {
+    await this.vendorRepo.update(id, vendorData);
+    return this.vendorRepo.findOne({ where: { vendor_id: id } });
+  }
 }

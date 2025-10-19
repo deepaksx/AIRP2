@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Query, Logger } from '@nestjs/common';
 import { VendorsService } from './vendors.service';
 
 @Controller('vendors')
@@ -23,5 +23,11 @@ export class VendorsController {
   async create(@Body() vendorData: any) {
     this.logger.log(`Creating vendor: ${vendorData.vendor_name}`);
     return this.vendorsService.create(vendorData);
+  }
+
+  @Put(':id')
+  async update(@Param('id') id: string, @Body() vendorData: any) {
+    this.logger.log(`Updating vendor ${id}`);
+    return this.vendorsService.update(id, vendorData);
   }
 }

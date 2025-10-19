@@ -93,8 +93,11 @@ export class InvoicesService {
 
       this.logger.log(`AI classification completed for invoice ${invoiceId}`);
 
-      // Update invoice with AI classifications
-      await this.invoiceRepo.update(invoiceId, { ai_classified: true });
+      // Store AI classification results in metadata
+      await this.invoiceRepo.update(invoiceId, {
+        ai_extracted_data: response.data,
+        ai_confidence_score: response.data.confidence || 0.9,
+      });
 
       return response.data;
     } catch (error) {

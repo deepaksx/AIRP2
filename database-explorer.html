@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Explorer - AIRP v2.0</title>
+    <link rel="stylesheet" href="styles/sap-design-system.css">
+    <style>
+        .layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 20px;
+            height: calc(100vh - 200px);
+        }
+
+        .table-list-panel {
+            background: var(--sap-surface);
+            border: 1px solid var(--sap-border);
+            border-radius: 4px;
+            overflow-y: auto;
+        }
+
+        .table-list-header {
+            padding: 16px;
+            background: #F7F7F7;
+            border-bottom: 1px solid var(--sap-border);
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--sap-text-secondary);
+        }
+
+        .table-item {
+            padding: 12px 16px;
+            color: var(--sap-text-primary);
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .table-item:hover {
+            background: #F5F5F5;
+        }
+
+        .table-item.active {
+            background: #E8F0F8;
+            border-left-color: var(--sap-primary);
+            color: var(--sap-primary);
+            font-weight: 500;
+        }
+
+        .table-icon {
+            font-size: 16px;
+            width: 20px;
+        }
+
+        .table-item-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .open-window-btn {
+            opacity: 0;
+            padding: 4px 8px;
+            font-size: 12px;
+            background: var(--sap-primary);
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .table-item:hover .open-window-btn {
+            opacity: 1;
+        }
+
+        .open-window-btn:hover {
+            background: var(--sap-primary-hover);
+            transform: scale(1.05);
+        }
+
+        .data-panel {
+            background: var(--sap-surface);
+            border: 1px solid var(--sap-border);
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--sap-border);
+            background: var(--sap-surface);
+        }
+
+        .panel-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--sap-text-primary);
+        }
+
+        .panel-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .table-container {
+            overflow: auto;
+            flex: 1;
+            padding: 20px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .data-table th {
+            background: #F7F7F7;
+            padding: 10px 12px;
+            text-align: left;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--sap-text-secondary);
+            font-weight: 600;
+            border-bottom: 2px solid var(--sap-border);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .data-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #F0F0F0;
+            color: var(--sap-text-primary);
+        }
+
+        .data-table tr:hover {
+            background: #FAFAFA;
+        }
+
+        .null-value {
+            color: #999;
+            font-style: italic;
+        }
+
+        .boolean-true {
+            color: var(--sap-success);
+            font-weight: 600;
+        }
+
+        .boolean-false {
+            color: var(--sap-error);
+            font-weight: 600;
+        }
+
+        .row-count {
+            padding: 12px 24px;
+            border-top: 1px solid var(--sap-border);
+            background: #F7F7F7;
+            color: var(--sap-text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .welcome-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--sap-text-secondary);
+        }
+
+        .welcome-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .welcome-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--sap-text-primary);
+            margin-bottom: 8px;
+        }
+
+        .welcome-text {
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <div class="header-top">
+            <div>
+                <div class="page-title">Database Explorer</div>
+                <div class="page-subtitle">View database tables and their contents (Admin/Debug Tool)</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+        <!-- Table Selector Dropdown -->
+        <div class="card" style="margin-bottom: 20px;">
+            <div class="card-body">
+                <div class="form-row" style="align-items: flex-end;">
+                    <div class="form-group" style="flex: 1;">
+                        <label class="form-label">Select Database Table</label>
+                        <select id="table-selector" class="form-select" onchange="handleTableSelect()">
+                            <option value="">-- Select a table --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <button class="btn btn-primary" onclick="openSelectedTableInNewWindow()">🗗 Open in New Window</button>
+                    </div>
+                    <div class="form-group">
+                        <button class="btn btn-secondary" onclick="showSQLQuery()">💻 SQL Query</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="layout">
+            <div class="table-list-panel">
+                <div class="table-list-header">Quick Access Tables</div>
+                <div id="table-list-items">
+                    <div class="loading" style="padding: 40px 20px; text-align: center;">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="data-panel">
+                <div id="welcome-message" class="welcome-state">
+                    <div class="welcome-icon">🗄️</div>
+                    <div class="welcome-title">Database Explorer</div>
+                    <div class="welcome-text">Select a table from the list or run a custom SQL query</div>
+                </div>
+
+                <div id="table-view" style="display: none; flex: 1; display: flex; flex-direction: column;">
+                    <div class="panel-header">
+                        <div class="panel-title" id="current-table-name">Table Name</div>
+                        <div class="panel-actions">
+                            <button class="btn btn-secondary" onclick="exportTableData()">📥 Export CSV</button>
+                            <button class="btn btn-secondary" onclick="refreshTable()">🔄 Refresh</button>
+                        </div>
+                    </div>
+
+                    <div class="table-container" id="table-data-container">
+                        <div class="loading" style="text-align: center; padding: 60px 20px;">
+                            <div class="spinner"></div>
+                            <div style="margin-top: 16px; color: var(--sap-text-secondary);">Loading table data...</div>
+                        </div>
+                    </div>
+
+                    <div class="row-count" id="row-count"></div>
+                </div>
+
+                <div id="sql-query-view" style="display: none; flex: 1; display: flex; flex-direction: column;">
+                    <div class="panel-header">
+                        <div class="panel-title">SQL Query</div>
+                        <div class="panel-actions">
+                            <button class="btn btn-secondary" onclick="exportTableData()">📥 Export CSV</button>
+                            <button class="btn btn-primary" onclick="executeSQL()">▶ Run Query</button>
+                        </div>
+                    </div>
+
+                    <div style="padding: 20px; border-bottom: 1px solid var(--sap-border);">
+                        <textarea id="sql-input" placeholder="SELECT * FROM journal_entries WHERE tenant_id = '00000000-0000-0000-0000-000000000001' LIMIT 100;" style="width: 100%; height: 120px; font-family: 'Courier New', monospace; font-size: 13px; padding: 12px; border: 1px solid var(--sap-border); border-radius: 4px; resize: vertical;"></textarea>
+                        <div style="margin-top: 8px; font-size: 12px; color: var(--sap-text-secondary);">
+                            💡 Tip: Always include WHERE tenant_id = '00000000-0000-0000-0000-000000000001' and LIMIT clauses
+                        </div>
+                    </div>
+
+                    <div class="table-container" id="sql-results-container">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">💻</div>
+                            <div style="margin-top: 16px;"><strong>Ready to Execute</strong></div>
+                            <div style="margin-top: 8px; color: var(--sap-text-secondary);">Enter your SQL query above and click Run Query</div>
+                        </div>
+                    </div>
+
+                    <div class="row-count" id="sql-row-count"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+
+        // Database tables in AIRP v2.0
+        const DATABASE_TABLES = [
+            { name: 'chart_of_accounts', icon: '📑', endpoint: 'http://localhost:3001/chart-of-accounts' },
+            { name: 'event_store', icon: '🎯', endpoint: 'http://localhost:3001/events' },
+            { name: 'trial_balance', icon: '⚖️', endpoint: 'http://localhost:3008/reports/trial-balance' },
+            { name: 'vendors', icon: '🏪', endpoint: 'http://localhost:3003/vendors' },
+            { name: 'customers', icon: '👥', endpoint: 'http://localhost:3004/customers' },
+            { name: 'bank_accounts', icon: '🏦', endpoint: 'http://localhost:3005/bank-accounts' },
+            { name: 'journal_entries', icon: '📝', endpoint: null },
+            { name: 'gl_balances', icon: '💰', endpoint: null },
+            { name: 'journal_entry_lines', icon: '📋', endpoint: null },
+            { name: 'ap_invoices', icon: '📥', endpoint: null },
+            { name: 'ar_invoices', icon: '📤', endpoint: null },
+            { name: 'bank_transactions', icon: '💳', endpoint: null },
+        ];
+
+        let currentTable = null;
+        let currentTableData = [];
+        let allTables = [];
+
+        async function loadAllTables() {
+            try {
+                const response = await fetch('http://localhost:3008/api/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name",
+                        params: []
+                    })
+                });
+
+                if (response.ok) {
+                    const tables = await response.json();
+                    allTables = tables.map(t => t.table_name);
+                    populateTableDropdown();
+                }
+            } catch (error) {
+                console.error('Error loading tables:', error);
+                // Fallback to predefined tables
+                allTables = DATABASE_TABLES.map(t => t.name);
+                populateTableDropdown();
+            }
+        }
+
+        function populateTableDropdown() {
+            const selector = document.getElementById('table-selector');
+            selector.innerHTML = '<option value="">-- Select a table --</option>' +
+                allTables.map(table => `<option value="${table}">${table}</option>`).join('');
+        }
+
+        function handleTableSelect() {
+            const selector = document.getElementById('table-selector');
+            const tableName = selector.value;
+            if (tableName) {
+                loadTableData(tableName);
+            }
+        }
+
+        function openSelectedTableInNewWindow() {
+            const selector = document.getElementById('table-selector');
+            const tableName = selector.value;
+            if (tableName) {
+                openTableInNewWindow(tableName);
+            } else {
+                alert('Please select a table first');
+            }
+        }
+
+        function loadTableList() {
+            const container = document.getElementById('table-list-items');
+            container.innerHTML = DATABASE_TABLES.map(table => `
+                <div class="table-item" data-table="${table.name}">
+                    <div class="table-item-content" onclick="selectAndLoadTable('${table.name}')">
+                        <span class="table-icon">${table.icon}</span>
+                        <span>${table.name}</span>
+                    </div>
+                    <button class="open-window-btn" onclick="event.stopPropagation(); openTableInNewWindow('${table.name}')" title="Open in new window">🗗</button>
+                </div>
+            `).join('');
+        }
+
+        function selectAndLoadTable(tableName) {
+            document.getElementById('table-selector').value = tableName;
+            loadTableData(tableName);
+        }
+
+        function openTableInNewWindow(tableName) {
+            window.open(`table-viewer.html?table=${tableName}`, '_blank', 'width=1200,height=800');
+        }
+
+        async function loadTableData(tableName) {
+            currentTable = tableName;
+
+            // Update UI
+            document.getElementById('welcome-message').style.display = 'none';
+            document.getElementById('table-view').style.display = 'flex';
+            document.getElementById('sql-query-view').style.display = 'none';
+            document.getElementById('current-table-name').textContent = tableName;
+
+            // Update active state
+            document.querySelectorAll('.table-item').forEach(item => {
+                item.classList.toggle('active', item.dataset.table === tableName);
+            });
+
+            // Show loading
+            document.getElementById('table-data-container').innerHTML = `
+                <div class="loading" style="text-align: center; padding: 60px 20px;">
+                    <div class="spinner"></div>
+                    <div style="margin-top: 16px; color: var(--sap-text-secondary);">Loading ${tableName}...</div>
+                </div>
+            `;
+
+            try {
+                const table = DATABASE_TABLES.find(t => t.name === tableName);
+                let data = [];
+
+                // Try API endpoint first, fall back to SQL query
+                if (table.endpoint) {
+                    let response;
+
+                    if (tableName === 'event_store') {
+                        response = await fetch(`${table.endpoint}/by-tenant/${TENANT_ID}`);
+                        data = await response.json();
+                    } else if (tableName === 'trial_balance') {
+                        response = await fetch(`${table.endpoint}?tenant_id=${TENANT_ID}`);
+                        const result = await response.json();
+                        data = result.accounts || [];
+                    } else {
+                        // Default: fetch with tenant_id query parameter
+                        response = await fetch(`${table.endpoint}?tenant_id=${TENANT_ID}`);
+                        data = await response.json();
+                    }
+                } else {
+                    // Use SQL query for tables without API endpoints
+                    const query = `SELECT * FROM ${tableName} WHERE tenant_id = '${TENANT_ID}' LIMIT 100`;
+
+                    const response = await fetch('http://localhost:3008/api/query', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            query: query,
+                            params: []
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                    }
+
+                    data = await response.json();
+                }
+
+                currentTableData = data;
+                renderTableData(data);
+            } catch (error) {
+                console.error('Error loading table data:', error);
+                document.getElementById('table-data-container').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">❌</div>
+                        <div style="margin-top: 16px;"><strong style="color: var(--sap-error);">Error Loading Data</strong></div>
+                        <div style="margin-top: 8px; color: var(--sap-text-secondary);">${error.message}</div>
+                    </div>
+                `;
+                document.getElementById('row-count').textContent = 'Error occurred';
+            }
+        }
+
+        function renderTableData(data) {
+            const container = document.getElementById('table-data-container');
+
+            if (!data || data.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <div style="margin-top: 16px;"><strong>No Data Found</strong></div>
+                        <div style="margin-top: 8px; color: var(--sap-text-secondary);">This table is empty</div>
+                    </div>
+                `;
+                document.getElementById('row-count').textContent = '0 rows';
+                return;
+            }
+
+            // Extract all unique keys from all rows
+            const keys = new Set();
+            data.forEach(row => {
+                Object.keys(row).forEach(key => keys.add(key));
+            });
+            const columns = Array.from(keys);
+
+            // Build table
+            let html = '<table class="data-table"><thead><tr>';
+            columns.forEach(col => {
+                html += `<th>${col}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+
+            data.forEach(row => {
+                html += '<tr>';
+                columns.forEach(col => {
+                    const value = row[col];
+                    let displayValue = '';
+
+                    if (value === null || value === undefined) {
+                        displayValue = '<span class="null-value">NULL</span>';
+                    } else if (typeof value === 'boolean') {
+                        displayValue = `<span class="boolean-${value}">${value}</span>`;
+                    } else if (typeof value === 'object') {
+                        displayValue = JSON.stringify(value, null, 2);
+                    } else {
+                        displayValue = String(value);
+                    }
+
+                    html += `<td>${displayValue}</td>`;
+                });
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+
+            container.innerHTML = html;
+            document.getElementById('row-count').textContent = `${data.length} row${data.length !== 1 ? 's' : ''}`;
+        }
+
+        function refreshTable() {
+            if (currentTable) {
+                loadTableData(currentTable);
+            }
+        }
+
+        function exportTableData() {
+            if (!currentTableData || currentTableData.length === 0) {
+                alert('No data to export');
+                return;
+            }
+
+            // Extract all unique keys
+            const keys = new Set();
+            currentTableData.forEach(row => {
+                Object.keys(row).forEach(key => keys.add(key));
+            });
+            const columns = Array.from(keys);
+
+            // Build CSV
+            const csv = [
+                columns.join(','),
+                ...currentTableData.map(row =>
+                    columns.map(col => {
+                        const value = row[col];
+                        if (value === null || value === undefined) return '';
+                        if (typeof value === 'object') return `"${JSON.stringify(value).replace(/"/g, '""')}"`;
+                        return `"${String(value).replace(/"/g, '""')}"`;
+                    }).join(',')
+                )
+            ].join('\n');
+
+            // Download
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentTable}-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        function showSQLQuery() {
+            // Hide other views
+            document.getElementById('welcome-message').style.display = 'none';
+            document.getElementById('table-view').style.display = 'none';
+            document.getElementById('sql-query-view').style.display = 'flex';
+
+            // Clear active table selection
+            document.querySelectorAll('.table-item').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            currentTable = null;
+        }
+
+        async function executeSQL() {
+            const query = document.getElementById('sql-input').value.trim();
+            const resultsContainer = document.getElementById('sql-results-container');
+
+            if (!query) {
+                alert('Please enter a SQL query');
+                return;
+            }
+
+            // Show loading
+            resultsContainer.innerHTML = `
+                <div class="loading" style="text-align: center; padding: 60px 20px;">
+                    <div class="spinner"></div>
+                    <div style="margin-top: 16px; color: var(--sap-text-secondary);">Executing query...</div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch('http://localhost:3008/api/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        params: []
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const data = await response.json();
+                currentTableData = data;
+                renderSQLResults(data);
+            } catch (error) {
+                console.error('Error executing SQL query:', error);
+                resultsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">❌</div>
+                        <div style="margin-top: 16px;"><strong style="color: var(--sap-error);">Query Error</strong></div>
+                        <div style="margin-top: 8px; color: var(--sap-text-secondary); max-width: 600px;">${error.message}</div>
+                    </div>
+                `;
+                document.getElementById('sql-row-count').textContent = 'Error occurred';
+            }
+        }
+
+        function renderSQLResults(data) {
+            const container = document.getElementById('sql-results-container');
+
+            if (!data || data.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <div style="margin-top: 16px;"><strong>No Results</strong></div>
+                        <div style="margin-top: 8px; color: var(--sap-text-secondary);">The query returned no rows</div>
+                    </div>
+                `;
+                document.getElementById('sql-row-count').textContent = '0 rows';
+                return;
+            }
+
+            // Extract all unique keys from all rows
+            const keys = new Set();
+            data.forEach(row => {
+                Object.keys(row).forEach(key => keys.add(key));
+            });
+            const columns = Array.from(keys);
+
+            // Build table
+            let html = '<table class="data-table"><thead><tr>';
+            columns.forEach(col => {
+                html += `<th>${col}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+
+            data.forEach(row => {
+                html += '<tr>';
+                columns.forEach(col => {
+                    const value = row[col];
+                    let displayValue = '';
+
+                    if (value === null || value === undefined) {
+                        displayValue = '<span class="null-value">NULL</span>';
+                    } else if (typeof value === 'boolean') {
+                        displayValue = `<span class="boolean-${value}">${value}</span>`;
+                    } else if (typeof value === 'object') {
+                        displayValue = JSON.stringify(value, null, 2);
+                    } else {
+                        displayValue = String(value);
+                    }
+
+                    html += `<td>${displayValue}</td>`;
+                });
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+
+            container.innerHTML = html;
+            document.getElementById('sql-row-count').textContent = `${data.length} row${data.length !== 1 ? 's' : ''}`;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAllTables();
+            loadTableList();
+        });
+    </script>
+</body>
+</html>

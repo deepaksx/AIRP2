@@ -240,6 +240,8 @@
             <button class="tab" onclick="switchTab('vendor-ledger')">🏢 Vendor Ledger</button>
             <button class="tab" onclick="switchTab('customer-ledger')">👥 Customer Ledger</button>
             <button class="tab" onclick="switchTab('trial-balance')">⚖️ Trial Balance</button>
+            <button class="tab" onclick="switchTab('ap-aging')">📊 AP Aging</button>
+            <button class="tab" onclick="switchTab('vendor-transactions')">🔍 Vendor Transactions</button>
         </div>
 
         <!-- General Ledger Tab -->
@@ -265,6 +267,18 @@
             <div class="spinner" id="tb-spinner"></div>
             <div id="tb-content"></div>
         </div>
+
+        <!-- AP Aging Tab -->
+        <div id="ap-aging" class="tab-content">
+            <div class="spinner" id="ap-aging-spinner"></div>
+            <div id="ap-aging-content"></div>
+        </div>
+
+        <!-- Vendor Transactions Tab -->
+        <div id="vendor-transactions" class="tab-content">
+            <div class="spinner" id="vendor-tx-spinner"></div>
+            <div id="vendor-tx-content"></div>
+        </div>
     </div>
 
     <script>
@@ -275,6 +289,8 @@
         let vendorData = null;
         let customerData = null;
         let trialBalanceData = null;
+        let apAgingData = null;
+        let vendorTransactionsData = null;
 
         function switchTab(tabName) {
             // Update tab buttons
@@ -294,6 +310,10 @@
                 loadCustomerLedger();
             } else if (tabName === 'trial-balance' && !trialBalanceData) {
                 loadTrialBalance();
+            } else if (tabName === 'ap-aging' && !apAgingData) {
+                loadAPAging();
+            } else if (tabName === 'vendor-transactions') {
+                loadVendorTransactions();
             }
         }
 
@@ -853,6 +873,271 @@
             } catch (error) {
                 console.error('Error loading trial balance:', error);
                 content.innerHTML = `<div class="empty-state"><h3>Error loading trial balance</h3><p>${error.message}</p></div>`;
+            } finally {
+                spinner.style.display = 'none';
+            }
+        }
+
+        async function loadAPAging() {
+            const spinner = document.getElementById('ap-aging-spinner');
+            const content = document.getElementById('ap-aging-content');
+
+            spinner.style.display = 'block';
+
+            try {
+                const response = await fetch(`${REPORTS_API}/aging/ap?tenant_id=${TENANT_ID}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                apAgingData = data;
+
+                let html = '';
+
+                // Summary cards with aging buckets
+                html += `
+                    <div class="summary-cards" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+                        <div class="summary-card">
+                            <div class="summary-label">Total Outstanding</div>
+                            <div class="summary-value">AED ${formatAmount(data.summary.total_outstanding)}</div>
+                        </div>
+                        <div class="summary-card" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                            <div class="summary-label">Current</div>
+                            <div class="summary-value">AED ${formatAmount(data.summary.current)}</div>
+                        </div>
+                        <div class="summary-card" style="background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%);">
+                            <div class="summary-label">1-30 Days</div>
+                            <div class="summary-value">AED ${formatAmount(data.summary.days_1_30)}</div>
+                        </div>
+                        <div class="summary-card" style="background: linear-gradient(135deg, #ff9800 0%, #ff6f00 100%);">
+                            <div class="summary-label">31-60 Days</div>
+                            <div class="summary-value">AED ${formatAmount(data.summary.days_31_60)}</div>
+                        </div>
+                        <div class="summary-card" style="background: linear-gradient(135deg, #ff5722 0%, #e64a19 100%);">
+                            <div class="summary-label">61-90 Days</div>
+                            <div class="summary-value">AED ${formatAmount(data.summary.days_61_90)}</div>
+                        </div>
+                        <div class="summary-card" style="background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);">
+                            <div class="summary-label">90+ Days</div>
+                            <div class="summary-value">AED ${formatAmount(data.summary.days_90_plus)}</div>
+                        </div>
+                    </div>
+                `;
+
+                // Render each vendor
+                if (data.vendors && data.vendors.length > 0) {
+                    data.vendors.forEach(vendor => {
+                        html += `
+                            <div class="entity-card">
+                                <div class="entity-header">
+                                    <div>
+                                        <div class="entity-name">${vendor.vendor_name}</div>
+                                        <div class="entity-code">${vendor.vendor_code} | Payment Terms: ${vendor.payment_terms} days</div>
+                                    </div>
+                                    <div class="balance-badge">
+                                        Outstanding: AED ${formatAmount(vendor.total_outstanding)}
+                                    </div>
+                                </div>
+
+                                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 15px;">
+                                    <div style="background: #d4edda; padding: 10px; border-radius: 8px; text-align: center;">
+                                        <div style="font-size: 11px; color: #155724; font-weight: 600;">Current</div>
+                                        <div style="font-size: 16px; font-weight: 700; color: #155724;">AED ${formatAmount(vendor.current)}</div>
+                                    </div>
+                                    <div style="background: #fff3cd; padding: 10px; border-radius: 8px; text-align: center;">
+                                        <div style="font-size: 11px; color: #856404; font-weight: 600;">1-30</div>
+                                        <div style="font-size: 16px; font-weight: 700; color: #856404;">AED ${formatAmount(vendor.days_1_30)}</div>
+                                    </div>
+                                    <div style="background: #ffe0b2; padding: 10px; border-radius: 8px; text-align: center;">
+                                        <div style="font-size: 11px; color: #e65100; font-weight: 600;">31-60</div>
+                                        <div style="font-size: 16px; font-weight: 700; color: #e65100;">AED ${formatAmount(vendor.days_31_60)}</div>
+                                    </div>
+                                    <div style="background: #ffccbc; padding: 10px; border-radius: 8px; text-align: center;">
+                                        <div style="font-size: 11px; color: #bf360c; font-weight: 600;">61-90</div>
+                                        <div style="font-size: 16px; font-weight: 700; color: #bf360c;">AED ${formatAmount(vendor.days_61_90)}</div>
+                                    </div>
+                                    <div style="background: #f8d7da; padding: 10px; border-radius: 8px; text-align: center;">
+                                        <div style="font-size: 11px; color: #721c24; font-weight: 600;">90+</div>
+                                        <div style="font-size: 16px; font-weight: 700; color: #721c24;">AED ${formatAmount(vendor.days_90_plus)}</div>
+                                    </div>
+                                </div>
+
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 150px;">Invoice #</th>
+                                            <th style="width: 100px;">Date</th>
+                                            <th style="width: 100px;">Due Date</th>
+                                            <th style="width: 100px; text-align: center;">Days O/S</th>
+                                            <th style="width: 120px;">Aging Bucket</th>
+                                            <th style="width: 150px; text-align: right;">Outstanding</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                        `;
+
+                        vendor.invoices.forEach(inv => {
+                            let bucketColor = '#28a745'; // Current (green)
+                            if (inv.aging_bucket === '1-30 days') bucketColor = '#ffc107'; // Yellow
+                            else if (inv.aging_bucket === '31-60 days') bucketColor = '#ff9800'; // Orange
+                            else if (inv.aging_bucket === '61-90 days') bucketColor = '#ff5722'; // Deep orange
+                            else if (inv.aging_bucket === '90+ days') bucketColor = '#f44336'; // Red
+
+                            html += `
+                                <tr>
+                                    <td>${inv.invoice_number}</td>
+                                    <td>${formatDate(inv.invoice_date)}</td>
+                                    <td>${formatDate(inv.due_date)}</td>
+                                    <td style="text-align: center; font-weight: 700;">${inv.days_outstanding}</td>
+                                    <td>
+                                        <span style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; background: ${bucketColor}; color: white;">
+                                            ${inv.aging_bucket}
+                                        </span>
+                                    </td>
+                                    <td class="amount">${formatAmount(inv.amount_outstanding)}</td>
+                                </tr>
+                            `;
+                        });
+
+                        html += `
+                                    <tr class="total-row">
+                                        <td colspan="5" style="text-align: right;"><strong>VENDOR TOTAL:</strong></td>
+                                        <td class="amount">${formatAmount(vendor.total_outstanding)}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        `;
+                    });
+                } else {
+                    html += '<div class="empty-state"><h3>No outstanding vendor invoices</h3></div>';
+                }
+
+                content.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error loading AP aging:', error);
+                content.innerHTML = `<div class="empty-state"><h3>Error loading AP aging</h3><p>${error.message}</p></div>`;
+            } finally {
+                spinner.style.display = 'none';
+            }
+        }
+
+        async function loadVendorTransactions() {
+            const spinner = document.getElementById('vendor-tx-spinner');
+            const content = document.getElementById('vendor-tx-content');
+
+            spinner.style.display = 'block';
+
+            try {
+                const response = await fetch(`${REPORTS_API}/vendor-transactions?tenant_id=${TENANT_ID}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                vendorTransactionsData = data;
+
+                let html = '';
+
+                // Summary cards
+                html += `
+                    <div class="summary-cards">
+                        <div class="summary-card">
+                            <div class="summary-label">Total Vendors</div>
+                            <div class="summary-value">${data.summary.total_vendors}</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Total Transactions</div>
+                            <div class="summary-value">${data.summary.total_transactions}</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Total Debits</div>
+                            <div class="summary-value">AED ${formatAmount(data.summary.total_debits)}</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Total Credits</div>
+                            <div class="summary-value">AED ${formatAmount(data.summary.total_credits)}</div>
+                        </div>
+                    </div>
+                `;
+
+                // Render each vendor's transactions
+                if (data.vendors && data.vendors.length > 0) {
+                    data.vendors.forEach(vendor => {
+                        html += `
+                            <div class="entity-card">
+                                <div class="entity-header">
+                                    <div>
+                                        <div class="entity-name">${vendor.vendor_name}</div>
+                                        <div class="entity-code">${vendor.vendor_code} | ${vendor.vendor_email || 'No email'} | Payment Terms: ${vendor.payment_terms} days</div>
+                                    </div>
+                                    <div class="balance-badge">
+                                        Net Amount: AED ${formatAmount(vendor.total_credits - vendor.total_debits)}
+                                    </div>
+                                </div>
+                        `;
+
+                        if (vendor.transactions && vendor.transactions.length > 0) {
+                            html += `
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 130px;">Entry #</th>
+                                            <th style="width: 100px;">Date</th>
+                                            <th style="width: 100px;">Type</th>
+                                            <th style="width: 120px;">Account</th>
+                                            <th>Description</th>
+                                            <th style="width: 130px;">Invoice #</th>
+                                            <th style="width: 120px; text-align: right;">Debit</th>
+                                            <th style="width: 120px; text-align: right;">Credit</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                            `;
+
+                            vendor.transactions.forEach(tx => {
+                                html += `
+                                    <tr>
+                                        <td>${tx.entry_number}</td>
+                                        <td>${formatDate(tx.entry_date)}</td>
+                                        <td><span style="font-size: 10px; text-transform: uppercase; background: #e9ecef; padding: 4px 8px; border-radius: 4px;">${tx.entry_type}</span></td>
+                                        <td>${tx.account_code}</td>
+                                        <td>${tx.description}</td>
+                                        <td>${tx.invoice_number || '-'}</td>
+                                        <td class="amount debit">${tx.debit_amount > 0 ? formatAmount(tx.debit_amount) : '-'}</td>
+                                        <td class="amount credit">${tx.credit_amount > 0 ? formatAmount(tx.credit_amount) : '-'}</td>
+                                    </tr>
+                                `;
+                            });
+
+                            html += `
+                                        <tr class="total-row">
+                                            <td colspan="6" style="text-align: right;"><strong>VENDOR TOTAL:</strong></td>
+                                            <td class="amount debit">${formatAmount(vendor.total_debits)}</td>
+                                            <td class="amount credit">${formatAmount(vendor.total_credits)}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            `;
+                        } else {
+                            html += '<p style="color: #999; text-align: center; padding: 20px;">No transactions for this vendor</p>';
+                        }
+
+                        html += '</div>';
+                    });
+                } else {
+                    html += '<div class="empty-state"><h3>No vendor transactions found</h3></div>';
+                }
+
+                content.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error loading vendor transactions:', error);
+                content.innerHTML = `<div class="empty-state"><h3>Error loading vendor transactions</h3><p>${error.message}</p></div>`;
             } finally {
                 spinner.style.display = 'none';
             }

@@ -29,4 +29,9 @@ export class CustomersService {
     const customer = this.customerRepo.create(customerData);
     return this.customerRepo.save(customer);
   }
+
+  async update(id: string, customerData: Partial<CustomerEntity>): Promise<CustomerEntity> {
+    await this.customerRepo.update(id, customerData);
+    return this.customerRepo.findOne({ where: { customer_id: id } });
+  }
 }

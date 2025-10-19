@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Accounts - AIRP v2.0</title>
+    <link rel="stylesheet" href="styles/sap-design-system.css">
+</head>
+<body>
+    <div class="page-header">
+        <div class="header-top">
+            <div>
+                <div class="page-title">Bank Accounts</div>
+                <div class="page-subtitle">Manage bank accounts and cash positions</div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="loadData()">🔄 Refresh</button>
+                <button class="btn btn-primary">➕ New Bank Account</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+        <div id="error-alert" class="alert error" style="display: none;"></div>
+
+        <div class="card">
+            <div class="card-body">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div style="display: flex; align-items: center; gap: 8px; background: var(--sap-surface); border: 1px solid var(--sap-border); border-radius: 4px; padding: 8px 12px; flex: 1; max-width: 400px;">
+                        <span>🔍</span>
+                        <input type="text" id="search-input" placeholder="Search bank accounts..." style="flex: 1; background: none; border: none; color: var(--sap-text-primary); font-size: 14px; outline: none;" oninput="filterData()">
+                    </div>
+                    <button class="btn btn-secondary">📤 Export to Excel</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="report-card">
+            <div class="report-header">
+                <div class="report-title">Bank Accounts</div>
+                <div class="report-date"><span id="record-count">0</span> accounts</div>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 150px;">Account Number</th>
+                        <th>Bank Name</th>
+                        <th style="width: 150px;">Branch</th>
+                        <th style="width: 100px;">Currency</th>
+                        <th style="width: 150px;" class="text-right">Balance (AED)</th>
+                        <th style="width: 80px;">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="data-tbody">
+                    <tr><td colspan="6" class="loading"><div class="spinner"></div><div>Loading bank accounts...</div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+        const API_URL = 'http://localhost:3005';
+        let allData = [];
+        let filteredData = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+        });
+
+        async function loadData() {
+            const tbody = document.getElementById('data-tbody');
+            const errorAlert = document.getElementById('error-alert');
+
+            tbody.innerHTML = '<tr><td colspan="6" class="loading"><div class="spinner"></div><div>Loading...</div></td></tr>';
+            errorAlert.style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_URL}/bank-accounts?tenant_id=${TENANT_ID}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const data = await response.json();
+                allData = data;
+                filteredData = data;
+                renderData(data);
+            } catch (error) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><div class="empty-state-icon">⚠️</div><div><strong>Failed to load</strong></div></td></tr>';
+                errorAlert.textContent = `Error: ${error.message}`;
+                errorAlert.style.display = 'block';
+            }
+        }
+
+        function renderData(data) {
+            const tbody = document.getElementById('data-tbody');
+            document.getElementById('record-count').textContent = data.length;
+
+            if (!data.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><div class="empty-state-icon">🏦</div><div>No bank accounts found</div></td></tr>';
+                return;
+            }
+
+            let html = '';
+            data.forEach(account => {
+                const balance = parseFloat(account.current_balance || 0);
+                html += `
+                    <tr>
+                        <td class="text-bold">${account.account_number}</td>
+                        <td>${account.bank_name}</td>
+                        <td>${account.branch || '-'}</td>
+                        <td>${account.currency || 'AED'}</td>
+                        <td class="text-right ${balance >= 0 ? 'amount-positive' : 'amount-negative'}">${balance.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td>
+                        <td><span class="status-badge status-paid">Active</span></td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        function filterData() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+
+            if (!searchTerm) {
+                filteredData = allData;
+            } else {
+                filteredData = allData.filter(item =>
+                    item.account_number.toLowerCase().includes(searchTerm) ||
+                    item.bank_name.toLowerCase().includes(searchTerm) ||
+                    (item.branch && item.branch.toLowerCase().includes(searchTerm))
+                );
+            }
+
+            renderData(filteredData);
+        }
+    </script>
+</body>
+</html>

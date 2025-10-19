@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Table Viewer - AIRP v2.0</title>
+    <link rel="stylesheet" href="styles/sap-design-system.css">
+</head>
+<body>
+    <div class="page-header">
+        <div class="header-top">
+            <div>
+                <div class="page-title" id="table-title">Table Viewer</div>
+                <div class="page-subtitle">Database table viewer with filters and export</div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="loadData()">🔄 Refresh</button>
+                <button class="btn btn-secondary" onclick="exportToCSV()">📥 Export CSV</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+        <div id="error-alert" class="alert error" style="display: none;"></div>
+
+        <!-- Filters Card -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Filters</div>
+            </div>
+            <div class="card-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Search</label>
+                        <input type="text" id="filter-search" class="form-input" placeholder="Search all columns...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Limit</label>
+                        <select id="filter-limit" class="form-select">
+                            <option value="100">100 rows</option>
+                            <option value="500">500 rows</option>
+                            <option value="1000">1000 rows</option>
+                            <option value="5000">5000 rows</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: flex-end;">
+                        <button class="btn btn-primary" onclick="loadData()">Apply Filters</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="report-card">
+            <div class="report-header">
+                <div class="report-title" id="data-table-title">Data</div>
+                <div class="report-date"><span id="record-count">0</span> records</div>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="data-table">
+                    <thead id="table-header">
+                        <tr><th>Loading...</th></tr>
+                    </thead>
+                    <tbody id="data-tbody">
+                        <tr><td class="loading"><div class="spinner"></div><div>Loading data...</div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+        const API_URL = 'http://localhost:3008/api/query';
+
+        let tableName = '';
+        let allData = [];
+
+        // Get table name from URL parameter
+        function init() {
+            const urlParams = new URLSearchParams(window.location.search);
+            tableName = urlParams.get('table');
+
+            if (!tableName) {
+                showError('No table specified. Please provide ?table=table_name in the URL.');
+                return;
+            }
+
+            document.getElementById('table-title').textContent = tableName;
+            document.getElementById('data-table-title').textContent = tableName;
+            document.title = `${tableName} - AIRP v2.0`;
+
+            loadData();
+        }
+
+        async function loadData() {
+            const tbody = document.getElementById('data-tbody');
+            const thead = document.getElementById('table-header');
+            const errorAlert = document.getElementById('error-alert');
+
+            tbody.innerHTML = '<tr><td colspan="100" class="loading"><div class="spinner"></div><div>Loading...</div></td></tr>';
+            errorAlert.style.display = 'none';
+
+            // Build query
+            const limit = document.getElementById('filter-limit').value;
+            const searchTerm = document.getElementById('filter-search').value.trim();
+
+            let query = `SELECT * FROM ${tableName} WHERE tenant_id = '${TENANT_ID}'`;
+
+            // Add search filter if provided
+            if (searchTerm) {
+                // This is a simple search - in production you'd want to search specific columns
+                query += ` AND (CAST(${tableName} AS TEXT) ILIKE '%${searchTerm}%')`;
+            }
+
+            query += ` LIMIT ${limit}`;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        params: []
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const data = await response.json();
+                allData = data;
+                renderData(data);
+            } catch (error) {
+                console.error('Error loading data:', error);
+                tbody.innerHTML = '<tr><td colspan="100" class="empty-state"><div class="empty-state-icon">⚠️</div><div><strong>Failed to load</strong></div></td></tr>';
+                errorAlert.textContent = `Error: ${error.message}`;
+                errorAlert.style.display = 'block';
+            }
+        }
+
+        function renderData(data) {
+            const tbody = document.getElementById('data-tbody');
+            const thead = document.getElementById('table-header');
+            document.getElementById('record-count').textContent = data.length;
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="100" class="empty-state"><div class="empty-state-icon">📭</div><div>No data found</div></td></tr>';
+                thead.innerHTML = '<tr><th>No data</th></tr>';
+                return;
+            }
+
+            // Extract all unique keys from all rows
+            const keys = new Set();
+            data.forEach(row => {
+                Object.keys(row).forEach(key => keys.add(key));
+            });
+            const columns = Array.from(keys);
+
+            // Build table header
+            let headerHtml = '<tr>';
+            columns.forEach(col => {
+                headerHtml += `<th>${col}</th>`;
+            });
+            headerHtml += '</tr>';
+            thead.innerHTML = headerHtml;
+
+            // Build table body
+            let bodyHtml = '';
+            data.forEach(row => {
+                bodyHtml += '<tr>';
+                columns.forEach(col => {
+                    const value = row[col];
+                    let displayValue = '';
+
+                    if (value === null || value === undefined) {
+                        displayValue = '<span style="color: #999; font-style: italic;">NULL</span>';
+                    } else if (typeof value === 'boolean') {
+                        displayValue = `<span style="color: ${value ? '#107E3E' : '#BB0000'}; font-weight: 600;">${value}</span>`;
+                    } else if (typeof value === 'object') {
+                        displayValue = `<pre style="margin: 0; font-size: 11px; max-width: 300px; overflow: auto;">${JSON.stringify(value, null, 2)}</pre>`;
+                    } else {
+                        // Format dates nicely
+                        if (col.includes('date') || col.includes('_at')) {
+                            try {
+                                const date = new Date(value);
+                                if (!isNaN(date.getTime())) {
+                                    displayValue = date.toLocaleString('en-US', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    });
+                                } else {
+                                    displayValue = String(value);
+                                }
+                            } catch (e) {
+                                displayValue = String(value);
+                            }
+                        } else {
+                            displayValue = String(value);
+                        }
+                    }
+
+                    bodyHtml += `<td>${displayValue}</td>`;
+                });
+                bodyHtml += '</tr>';
+            });
+
+            tbody.innerHTML = bodyHtml;
+        }
+
+        function exportToCSV() {
+            if (!allData || allData.length === 0) {
+                alert('No data to export');
+                return;
+            }
+
+            // Extract all unique keys
+            const keys = new Set();
+            allData.forEach(row => {
+                Object.keys(row).forEach(key => keys.add(key));
+            });
+            const columns = Array.from(keys);
+
+            // Build CSV
+            const csv = [
+                columns.join(','),
+                ...allData.map(row =>
+                    columns.map(col => {
+                        const value = row[col];
+                        if (value === null || value === undefined) return '';
+                        if (typeof value === 'object') return `"${JSON.stringify(value).replace(/"/g, '""')}"`;
+                        return `"${String(value).replace(/"/g, '""')}"`;
+                    }).join(',')
+                )
+            ].join('\n');
+
+            // Download
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${tableName}-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        function showError(message) {
+            const errorAlert = document.getElementById('error-alert');
+            errorAlert.textContent = message;
+            errorAlert.style.display = 'block';
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            init();
+        });
+    </script>
+</body>
+</html>

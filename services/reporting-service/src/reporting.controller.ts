@@ -44,6 +44,36 @@ export class ReportingController {
     return this.reportingService.getARAging(params);
   }
 
+  @Get('vendor-ledger')
+  async getVendorLedger(@Query() params: any) {
+    this.logger.log(`Generating vendor ledger for tenant: ${params.tenant_id}, vendor: ${params.vendor_id}`);
+    return this.reportingService.getVendorLedger(params);
+  }
+
+  @Get('vendor-transactions')
+  async getVendorTransactions(@Query() params: any) {
+    this.logger.log(`Generating vendor transaction history for tenant: ${params.tenant_id}, vendor: ${params.vendor_id || 'all'}`);
+    return this.reportingService.getVendorTransactions(params);
+  }
+
+  @Get('customer-ledger')
+  async getCustomerLedger(@Query() params: any) {
+    this.logger.log(`Generating customer ledger for tenant: ${params.tenant_id}, customer: ${params.customer_id}`);
+    return this.reportingService.getCustomerLedger(params);
+  }
+
+  @Get('account-balances')
+  async getAccountBalances(@Query() params: any) {
+    this.logger.log(`Generating account balances for tenant: ${params.tenant_id}`);
+    return this.reportingService.getAccountBalances(params);
+  }
+
+  @Get('income-statement')
+  async getIncomeStatement(@Query() params: any) {
+    this.logger.log(`Generating income statement for tenant: ${params.tenant_id}`);
+    return this.reportingService.getIncomeStatement(params);
+  }
+
   @Get('export/excel')
   async exportToExcel(@Query() params: any, @Res() res: Response) {
     this.logger.log(`Exporting report to Excel: ${params.report_type}`);

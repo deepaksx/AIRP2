@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendors - AIRP v2.0</title>
+    <link rel="stylesheet" href="styles/sap-design-system.css">
+</head>
+<body>
+    <div class="page-header">
+        <div class="header-top">
+            <div>
+                <div class="page-title">Vendors</div>
+                <div class="page-subtitle">Manage vendor master data and payment terms</div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="loadData()">🔄 Refresh</button>
+                <button class="btn btn-primary">➕ New Vendor</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+        <div id="error-alert" class="alert error" style="display: none;"></div>
+
+        <div class="card">
+            <div class="card-body">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div style="display: flex; align-items: center; gap: 8px; background: var(--sap-surface); border: 1px solid var(--sap-border); border-radius: 4px; padding: 8px 12px; flex: 1; max-width: 400px;">
+                        <span>🔍</span>
+                        <input type="text" id="search-input" placeholder="Search vendors..." style="flex: 1; background: none; border: none; color: var(--sap-text-primary); font-size: 14px; outline: none;" oninput="filterData()">
+                    </div>
+                    <button class="btn btn-secondary">📤 Export to Excel</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="report-card">
+            <div class="report-header">
+                <div class="report-title">Vendor List</div>
+                <div class="report-date"><span id="record-count">0</span> vendors</div>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 100px;">Code</th>
+                        <th>Vendor Name</th>
+                        <th style="width: 200px;">Contact Email</th>
+                        <th style="width: 150px;">Phone</th>
+                        <th style="width: 120px;">Payment Terms</th>
+                        <th style="width: 80px;">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="data-tbody">
+                    <tr><td colspan="6" class="loading"><div class="spinner"></div><div>Loading vendors...</div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+        const API_URL = 'http://localhost:3003';
+        let allData = [];
+        let filteredData = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+        });
+
+        async function loadData() {
+            const tbody = document.getElementById('data-tbody');
+            const errorAlert = document.getElementById('error-alert');
+
+            tbody.innerHTML = '<tr><td colspan="6" class="loading"><div class="spinner"></div><div>Loading...</div></td></tr>';
+            errorAlert.style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_URL}/vendors?tenant_id=${TENANT_ID}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const data = await response.json();
+                allData = data;
+                filteredData = data;
+                renderData(data);
+            } catch (error) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><div class="empty-state-icon">⚠️</div><div><strong>Failed to load</strong></div></td></tr>';
+                errorAlert.textContent = `Error: ${error.message}`;
+                errorAlert.style.display = 'block';
+            }
+        }
+
+        function renderData(data) {
+            const tbody = document.getElementById('data-tbody');
+            document.getElementById('record-count').textContent = data.length;
+
+            if (!data.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><div class="empty-state-icon">🏪</div><div>No vendors found</div></td></tr>';
+                return;
+            }
+
+            let html = '';
+            data.forEach(vendor => {
+                html += `
+                    <tr>
+                        <td class="text-bold">${vendor.vendor_code}</td>
+                        <td>${vendor.vendor_name}</td>
+                        <td>${vendor.contact_email || '-'}</td>
+                        <td>${vendor.contact_phone || '-'}</td>
+                        <td>${vendor.payment_terms || 'Net 30'}</td>
+                        <td><span class="status-badge status-paid">Active</span></td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        function filterData() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+
+            if (!searchTerm) {
+                filteredData = allData;
+            } else {
+                filteredData = allData.filter(item =>
+                    item.vendor_code.toLowerCase().includes(searchTerm) ||
+                    item.vendor_name.toLowerCase().includes(searchTerm) ||
+                    (item.contact_email && item.contact_email.toLowerCase().includes(searchTerm))
+                );
+            }
+
+            renderData(filteredData);
+        }
+    </script>
+</body>
+</html>

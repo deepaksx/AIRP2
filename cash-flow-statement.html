@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cash Flow Statement - AIRP v2.0</title>
+    <link rel="stylesheet" href="styles/sap-design-system.css">
+</head>
+<body>
+    <div class="page-header">
+        <div class="header-top">
+            <div>
+                <div class="page-title">Cash Flow Statement</div>
+                <div class="page-subtitle">Statement of cash flows from operating, investing, and financing activities</div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="window.print()">📄 Print</button>
+                <button class="btn btn-secondary" onclick="loadReport()">🔄 Refresh</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+        <div id="error-alert" class="alert error" style="display: none;"></div>
+
+        <div class="report-card">
+            <div class="report-header">
+                <div class="report-title">ACME Corporation</div>
+                <div class="report-date">For Period Ending <span id="report-date">...</span></div>
+            </div>
+
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Activity</th>
+                        <th style="width: 200px;" class="text-right">Amount (AED)</th>
+                    </tr>
+                </thead>
+                <tbody id="report-tbody">
+                    <tr><td colspan="2" class="loading"><div class="spinner"></div><div>Loading cash flow statement...</div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const REPORTING_SERVICE_URL = 'http://localhost:3008';
+        const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+
+        document.addEventListener('DOMContentLoaded', () => { loadReport(); });
+
+        async function loadReport() {
+            const tbody = document.getElementById('report-tbody');
+            const errorAlert = document.getElementById('error-alert');
+            tbody.innerHTML = '<tr><td colspan="2" class="loading"><div class="spinner"></div><div>Loading cash flow statement...</div></td></tr>';
+            errorAlert.style.display = 'none';
+
+            try {
+                const response = await fetch(`${REPORTING_SERVICE_URL}/reports/cash-flow?tenant_id=${TENANT_ID}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                document.getElementById('report-date').textContent = new Date(data.period_end_date || new Date()).toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric'});
+                renderReport(data);
+            } catch (error) {
+                tbody.innerHTML = '<tr><td colspan="2" class="empty-state"><div class="empty-state-icon">⚠️</div><div><strong>Failed to load report</strong></div><div>Ensure Reporting Service is running on port 3008</div></td></tr>';
+                errorAlert.textContent = `Error: ${error.message}`;
+                errorAlert.style.display = 'block';
+            }
+        }
+
+        function renderReport(data) {
+            const tbody = document.getElementById('report-tbody');
+            let html = '';
+
+            // Operating Activities
+            html += '<tr class="section-header"><td colspan="2">CASH FLOWS FROM OPERATING ACTIVITIES</td></tr>';
+            const operating = data.operating_activities || [];
+            let totalOperating = 0;
+            operating.forEach(item => {
+                const amt = parseFloat(item.amount || 0);
+                totalOperating += amt;
+                html += `<tr><td style="padding-left: 32px;">${item.description}</td><td class="text-right ${amt >= 0 ? 'amount-positive' : 'amount-negative'}">${amt.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+            });
+            html += `<tr style="background: #FAFAFA; font-weight: 600;"><td>Net Cash from Operating Activities</td><td class="text-right ${totalOperating >= 0 ? 'amount-positive' : 'amount-negative'}">${totalOperating.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+
+            // Investing Activities
+            html += '<tr class="section-header"><td colspan="2">CASH FLOWS FROM INVESTING ACTIVITIES</td></tr>';
+            const investing = data.investing_activities || [];
+            let totalInvesting = 0;
+            investing.forEach(item => {
+                const amt = parseFloat(item.amount || 0);
+                totalInvesting += amt;
+                html += `<tr><td style="padding-left: 32px;">${item.description}</td><td class="text-right ${amt >= 0 ? 'amount-positive' : 'amount-negative'}">${amt.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+            });
+            html += `<tr style="background: #FAFAFA; font-weight: 600;"><td>Net Cash from Investing Activities</td><td class="text-right ${totalInvesting >= 0 ? 'amount-positive' : 'amount-negative'}">${totalInvesting.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+
+            // Financing Activities
+            html += '<tr class="section-header"><td colspan="2">CASH FLOWS FROM FINANCING ACTIVITIES</td></tr>';
+            const financing = data.financing_activities || [];
+            let totalFinancing = 0;
+            financing.forEach(item => {
+                const amt = parseFloat(item.amount || 0);
+                totalFinancing += amt;
+                html += `<tr><td style="padding-left: 32px;">${item.description}</td><td class="text-right ${amt >= 0 ? 'amount-positive' : 'amount-negative'}">${amt.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+            });
+            html += `<tr style="background: #FAFAFA; font-weight: 600;"><td>Net Cash from Financing Activities</td><td class="text-right ${totalFinancing >= 0 ? 'amount-positive' : 'amount-negative'}">${totalFinancing.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+
+            // Net Change
+            const netChange = totalOperating + totalInvesting + totalFinancing;
+            html += `<tr class="total-row"><td><strong>NET CHANGE IN CASH</strong></td><td class="text-right ${netChange >= 0 ? 'amount-positive' : 'amount-negative'}"><strong>${netChange.toLocaleString('en-AE', {minimumFractionDigits: 2})}</strong></td></tr>`;
+
+            tbody.innerHTML = html || '<tr><td colspan="2" class="empty-state"><div class="empty-state-icon">💸</div><div>No data available</div></td></tr>';
+        }
+    </script>
+</body>
+</html>

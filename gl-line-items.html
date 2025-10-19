@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GL Line Items - AIRP v2.0</title>
+    <link rel="stylesheet" href="styles/sap-design-system.css">
+    <script src="scripts/je-viewer.js"></script>
+    <style>
+        .account-row {
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .account-row:hover {
+            background: #F5F5F5;
+        }
+        .account-row.expanded {
+            background: #E8F4FF;
+        }
+        .expand-icon {
+            display: inline-block;
+            transition: transform 0.3s;
+            margin-right: 8px;
+            font-size: 12px;
+        }
+        .expand-icon.expanded {
+            transform: rotate(90deg);
+        }
+        .detail-row {
+            display: none;
+            background: #FAFAFA;
+        }
+        .detail-row.visible {
+            display: table-row;
+        }
+        .detail-table {
+            width: 100%;
+            margin: 0;
+            border-collapse: collapse;
+        }
+        .detail-table th {
+            background: #F0F0F0;
+            padding: 8px;
+            text-align: left;
+            font-size: 12px;
+            border-bottom: 2px solid #D9D9D9;
+        }
+        .detail-table td {
+            padding: 8px;
+            font-size: 12px;
+            border-bottom: 1px solid #E5E5E5;
+        }
+        .loading-details {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <div class="header-top">
+            <div>
+                <div class="page-title">General Ledger Line Items</div>
+                <div class="page-subtitle">Click on any account to view detailed transactions</div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="loadData()">🔄 Refresh</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+        <div id="error-alert" class="alert error" style="display: none;"></div>
+
+        <div class="card" style="margin-bottom: 24px;">
+            <div class="card-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Entry Type</label>
+                        <select id="type-filter" class="form-select" onchange="loadData()">
+                            <option value="">All Types</option>
+                            <option value="ap_invoice">AP Invoice</option>
+                            <option value="ar_invoice">AR Invoice</option>
+                            <option value="bank_transaction">Bank Transaction</option>
+                            <option value="payment">Payment</option>
+                            <option value="manual">Manual Entry</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Date From</label>
+                        <input type="date" id="date-from" class="form-input" onchange="loadData()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Date To</label>
+                        <input type="date" id="date-to" class="form-input" onchange="loadData()">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="report-card">
+            <div class="report-header">
+                <div class="report-title">GL Line Items</div>
+                <div class="report-date"><span id="record-count">0</span> accounts</div>
+            </div>
+
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 30px;"></th>
+                        <th style="width: 100px;">Account Code</th>
+                        <th>Account Name</th>
+                        <th style="width: 150px;" class="text-right">Debit (AED)</th>
+                        <th style="width: 150px;" class="text-right">Credit (AED)</th>
+                        <th style="width: 150px;" class="text-right">Balance (AED)</th>
+                    </tr>
+                </thead>
+                <tbody id="data-tbody">
+                    <tr><td colspan="6" class="loading"><div class="spinner"></div><div>Loading GL accounts...</div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const URL = 'http://localhost:3008';
+        const TID = '00000000-0000-0000-0000-000000000001';
+
+        let accountsData = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+        });
+
+        async function loadData() {
+            const tbody = document.getElementById('data-tbody');
+            const errorAlert = document.getElementById('error-alert');
+
+            tbody.innerHTML = '<tr><td colspan="6" class="loading"><div class="spinner"></div><div>Loading GL accounts...</div></td></tr>';
+            errorAlert.style.display = 'none';
+
+            try {
+                // Build WHERE clause for filters
+                let whereClause = `WHERE je.tenant_id = '${TID}' AND je.status = 'posted'`;
+
+                const typeFilter = document.getElementById('type-filter').value;
+                const dateFrom = document.getElementById('date-from').value;
+                const dateTo = document.getElementById('date-to').value;
+
+                if (typeFilter) {
+                    whereClause += ` AND je.entry_type = '${typeFilter}'`;
+                }
+                if (dateFrom) {
+                    whereClause += ` AND je.entry_date >= '${dateFrom}'`;
+                }
+                if (dateTo) {
+                    whereClause += ` AND je.entry_date <= '${dateTo}'`;
+                }
+
+                const query = `
+                    SELECT
+                        coa.account_id,
+                        coa.account_code,
+                        coa.account_name,
+                        coa.account_type,
+                        COALESCE(SUM(jel.debit_amount), 0) as total_debit,
+                        COALESCE(SUM(jel.credit_amount), 0) as total_credit,
+                        COALESCE(SUM(jel.debit_amount - jel.credit_amount), 0) as balance
+                    FROM chart_of_accounts coa
+                    LEFT JOIN journal_entry_lines jel ON coa.account_id = jel.account_id
+                    LEFT JOIN journal_entries je ON jel.entry_id = je.entry_id
+                    ${whereClause}
+                    GROUP BY coa.account_id, coa.account_code, coa.account_name, coa.account_type
+                    HAVING COALESCE(SUM(jel.debit_amount), 0) != 0 OR COALESCE(SUM(jel.credit_amount), 0) != 0
+                    ORDER BY coa.account_code
+                `;
+
+                const response = await fetch(`${URL}/api/query`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                accountsData = data || [];
+                renderData(accountsData);
+            } catch (err) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><div class="empty-state-icon">⚠️</div><div><strong>Failed to load GL accounts</strong></div></td></tr>';
+                errorAlert.textContent = `Error: ${err.message}`;
+                errorAlert.style.display = 'block';
+            }
+        }
+
+        function renderData(accounts) {
+            const tbody = document.getElementById('data-tbody');
+            document.getElementById('record-count').textContent = accounts.length;
+
+            if (!accounts.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><div class="empty-state-icon">📖</div><div>No GL accounts found</div></td></tr>';
+                return;
+            }
+
+            let html = '';
+            accounts.forEach((account, index) => {
+                const debit = parseFloat(account.total_debit || 0);
+                const credit = parseFloat(account.total_credit || 0);
+                const balance = parseFloat(account.balance || 0);
+
+                // Main account row
+                html += `
+                    <tr class="account-row" id="account-${index}" onclick="toggleAccountDetails('${index}', '${account.account_id}')">
+                        <td><span class="expand-icon" id="icon-${index}">▶</span></td>
+                        <td class="text-bold">${account.account_code}</td>
+                        <td>${account.account_name}</td>
+                        <td class="text-right ${debit > 0 ? 'amount-positive' : ''}">${debit.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td>
+                        <td class="text-right ${credit > 0 ? 'amount-negative' : ''}">${credit.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td>
+                        <td class="text-right ${balance > 0 ? 'amount-positive' : balance < 0 ? 'amount-negative' : ''}">${balance.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td>
+                    </tr>
+                `;
+
+                // Detail row (hidden by default)
+                html += `
+                    <tr class="detail-row" id="detail-${index}">
+                        <td colspan="6" style="padding: 0;">
+                            <div id="detail-content-${index}" class="loading-details">
+                                <div class="spinner"></div>
+                                <div>Loading transactions...</div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        async function toggleAccountDetails(index, accountId) {
+            const detailRow = document.getElementById(`detail-${index}`);
+            const accountRow = document.getElementById(`account-${index}`);
+            const icon = document.getElementById(`icon-${index}`);
+            const detailContent = document.getElementById(`detail-content-${index}`);
+
+            // Toggle visibility
+            if (detailRow.classList.contains('visible')) {
+                // Collapse
+                detailRow.classList.remove('visible');
+                accountRow.classList.remove('expanded');
+                icon.classList.remove('expanded');
+            } else {
+                // Expand
+                detailRow.classList.add('visible');
+                accountRow.classList.add('expanded');
+                icon.classList.add('expanded');
+
+                // Load transactions if not already loaded
+                if (detailContent.classList.contains('loading-details')) {
+                    await loadAccountTransactions(index, accountId, detailContent);
+                }
+            }
+        }
+
+        async function loadAccountTransactions(index, accountId, detailContent) {
+            try {
+                // Build WHERE clause with filters
+                let whereClause = `WHERE jel.account_id = '${accountId}' AND je.tenant_id = '${TID}' AND je.status = 'posted'`;
+
+                const typeFilter = document.getElementById('type-filter').value;
+                const dateFrom = document.getElementById('date-from').value;
+                const dateTo = document.getElementById('date-to').value;
+
+                if (typeFilter) {
+                    whereClause += ` AND je.entry_type = '${typeFilter}'`;
+                }
+                if (dateFrom) {
+                    whereClause += ` AND je.entry_date >= '${dateFrom}'`;
+                }
+                if (dateTo) {
+                    whereClause += ` AND je.entry_date <= '${dateTo}'`;
+                }
+
+                const query = `
+                    SELECT
+                        je.entry_id,
+                        je.entry_date,
+                        je.entry_number,
+                        je.entry_type,
+                        jel.description,
+                        jel.debit_amount,
+                        jel.credit_amount,
+                        SUM(jel.debit_amount - jel.credit_amount) OVER (ORDER BY je.entry_date, je.entry_number, jel.line_id) as running_balance
+                    FROM journal_entry_lines jel
+                    JOIN journal_entries je ON jel.entry_id = je.entry_id
+                    ${whereClause}
+                    ORDER BY je.entry_date ASC, je.entry_number, jel.line_id
+                `;
+
+                const response = await fetch(`${URL}/api/query`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const transactions = await response.json();
+
+                if (!transactions || transactions.length === 0) {
+                    detailContent.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">No transactions found for this account</div>';
+                    detailContent.classList.remove('loading-details');
+                    return;
+                }
+
+                // Build detailed transaction table
+                let tableHtml = `
+                    <table class="detail-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Entry #</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th class="text-right">Debit</th>
+                                <th class="text-right">Credit</th>
+                                <th class="text-right">Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                transactions.forEach(txn => {
+                    const debit = parseFloat(txn.debit_amount || 0);
+                    const credit = parseFloat(txn.credit_amount || 0);
+                    const balance = parseFloat(txn.running_balance || 0);
+                    const entryDate = new Date(txn.entry_date).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    });
+
+                    const entryNumberLink = txn.entry_number
+                        ? `<a href="#" class="je-clickable" onclick="event.preventDefault(); JEViewer.open('${txn.entry_id}', '${txn.entry_number}'); return false;">${txn.entry_number}</a>`
+                        : '-';
+
+                    tableHtml += `
+                        <tr>
+                            <td>${entryDate}</td>
+                            <td>${entryNumberLink}</td>
+                            <td>${txn.entry_type || '-'}</td>
+                            <td>${txn.description || '-'}</td>
+                            <td class="text-right ${debit > 0 ? 'amount-positive' : ''}">${debit > 0 ? debit.toLocaleString('en-AE', {minimumFractionDigits: 2}) : '-'}</td>
+                            <td class="text-right ${credit > 0 ? 'amount-negative' : ''}">${credit > 0 ? credit.toLocaleString('en-AE', {minimumFractionDigits: 2}) : '-'}</td>
+                            <td class="text-right text-bold ${balance > 0 ? 'amount-positive' : balance < 0 ? 'amount-negative' : ''}"><strong>${balance.toLocaleString('en-AE', {minimumFractionDigits: 2})}</strong></td>
+                        </tr>
+                    `;
+                });
+
+                tableHtml += `
+                        </tbody>
+                    </table>
+                `;
+
+                detailContent.innerHTML = tableHtml;
+                detailContent.classList.remove('loading-details');
+            } catch (error) {
+                detailContent.innerHTML = `<div style="padding: 20px; text-align: center; color: #BB0000;">Error loading transactions: ${error.message}</div>`;
+                detailContent.classList.remove('loading-details');
+            }
+        }
+    </script>
+</body>
+</html>
