@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balance Sheet - AIRP v2.0</title>
+    <link rel="stylesheet" href="styles/sap-design-system.css">
+    <script src="scripts/je-viewer.js"></script>
+    <style>
+        .account-row {
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .account-row:hover {
+            background: #F5F5F5;
+        }
+        .account-row.expanded {
+            background: #E8F4FF;
+        }
+        .expand-icon {
+            display: inline-block;
+            transition: transform 0.3s;
+            margin-right: 8px;
+            font-size: 12px;
+        }
+        .expand-icon.expanded {
+            transform: rotate(90deg);
+        }
+        .detail-row {
+            display: none;
+            background: #FAFAFA;
+        }
+        .detail-row.visible {
+            display: table-row;
+        }
+        .detail-table {
+            width: 100%;
+            margin: 0;
+            border-collapse: collapse;
+        }
+        .detail-table th {
+            background: #F0F0F0;
+            padding: 8px;
+            text-align: left;
+            font-size: 12px;
+            border-bottom: 2px solid #D9D9D9;
+        }
+        .detail-table td {
+            padding: 8px;
+            font-size: 12px;
+            border-bottom: 1px solid #E5E5E5;
+        }
+        .loading-details {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .section-header {
+            background: #E8F4FF !important;
+            font-weight: 700;
+            font-size: 14px;
+            color: #0A0A0A;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .section-header:hover {
+            background: #D1E8FF !important;
+        }
+        .section-header .expand-icon {
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .subsection-header {
+            background: #F0F4F7 !important;
+            font-weight: 600;
+            font-size: 13px;
+            color: #0A0A0A;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .subsection-header:hover {
+            background: #E5EBF0 !important;
+        }
+        .section-content {
+            /* Rows within a collapsible section */
+        }
+        .section-content.collapsed {
+            display: none;
+        }
+        .subtotal-row {
+            background: #FAFAFA;
+            font-weight: 600;
+            border-top: 2px solid #D9D9D9;
+        }
+        .balance-check-row {
+            background: #E8F4FF !important;
+            font-weight: 700;
+            border-top: 3px double #0070F3;
+            border-bottom: 3px double #0070F3;
+        }
+        .variance-warning {
+            background: #FFF3CD !important;
+            color: #856404;
+            padding: 12px;
+            margin: 12px 0;
+            border-radius: 4px;
+            border: 1px solid #FFD700;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <div class="header-top">
+            <div>
+                <div class="page-title">Balance Sheet</div>
+                <div class="page-subtitle">Click section headers to collapse/expand - Click accounts for transaction details - Click entry numbers to view journal entries</div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="window.print()">📄 Print</button>
+                <button class="btn btn-secondary" onclick="loadReport()">🔄 Refresh</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+        <div id="error-alert" class="alert error" style="display: none;"></div>
+        <div id="balance-warning" style="display: none;"></div>
+
+        <div class="report-card">
+            <div class="report-header">
+                <div class="report-title">ACME Corporation</div>
+                <div class="report-date">As of <span id="report-date">...</span></div>
+            </div>
+
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th style="width: 30px;"></th>
+                        <th>Account</th>
+                        <th style="width: 200px;" class="text-right">Amount (AED)</th>
+                        <th style="width: 200px;" class="text-right">GL Balance (TB)</th>
+                    </tr>
+                </thead>
+                <tbody id="report-tbody">
+                    <tr><td colspan="4" class="loading"><div class="spinner"></div><div>Loading balance sheet...</div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const REPORTING_SERVICE_URL = 'http://localhost:3008';
+        const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+        let accountsData = [];
+
+        document.addEventListener('DOMContentLoaded', () => { loadReport(); });
+
+        async function loadReport() {
+            const tbody = document.getElementById('report-tbody');
+            const errorAlert = document.getElementById('error-alert');
+            tbody.innerHTML = '<tr><td colspan="4" class="loading"><div class="spinner"></div><div>Loading balance sheet...</div></td></tr>';
+            errorAlert.style.display = 'none';
+
+            try {
+                const response = await fetch(`${REPORTING_SERVICE_URL}/reports/balance-sheet?tenant_id=${TENANT_ID}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                document.getElementById('report-date').textContent = new Date(data.as_of_date || new Date()).toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric'});
+                renderReport(data);
+            } catch (error) {
+                tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><div class="empty-state-icon">⚠️</div><div><strong>Failed to load report</strong></div><div>Ensure Reporting Service is running on port 3008</div></td></tr>';
+                errorAlert.textContent = `Error: ${error.message}`;
+                errorAlert.style.display = 'block';
+            }
+        }
+
+        function renderReport(data) {
+            const tbody = document.getElementById('report-tbody');
+            const balanceWarning = document.getElementById('balance-warning');
+            let html = '';
+            let accountIndex = 0;
+
+            // Initialize GL totals
+            let currentAssetsTotalGL = 0;
+            let nonCurrentAssetsTotalGL = 0;
+            let currentLiabilitiesTotalGL = 0;
+            let nonCurrentLiabilitiesTotalGL = 0;
+
+            // Group assets by subtype
+            const currentAssets = (data.assets || []).filter(a =>
+                !a.account_subtype ||
+                a.account_subtype === 'current_asset' ||
+                (a.account_subtype && a.account_subtype.startsWith('current_'))
+            );
+            const nonCurrentAssets = (data.assets || []).filter(a =>
+                a.account_subtype && (
+                    a.account_subtype === 'non_current_asset' ||
+                    a.account_subtype.startsWith('non_current_')
+                )
+            );
+
+            // ASSETS SECTION (calculate total first for header display)
+            let currentAssetsTotal = 0;
+            let currentAssetsTotalForHeader = 0;
+            currentAssets.forEach(a => { currentAssetsTotalForHeader += parseFloat(a.balance || 0); });
+
+            let nonCurrentAssetsTotal = 0;
+            let nonCurrentAssetsTotalForHeader = 0;
+            nonCurrentAssets.forEach(a => { nonCurrentAssetsTotalForHeader += parseFloat(a.balance || 0); });
+
+            const totalAssetsForHeader = data.summary.total_assets || 0;
+
+            html += `<tr class="section-header" onclick="toggleSection('assets')"><td><span class="expand-icon" id="icon-assets">▼</span>ASSETS</td><td></td><td class="text-right" style="font-weight: 700;">${totalAssetsForHeader < 0 ? '(' : ''}${Math.abs(totalAssetsForHeader).toLocaleString('en-AE', {minimumFractionDigits: 2})}${totalAssetsForHeader < 0 ? ')' : ''}</td><td></td></tr>`;
+
+            // Current Assets
+            if (currentAssets.length > 0) {
+                html += `<tr class="subsection-header section-content section-assets" onclick="toggleSection('current-assets')"><td style="padding-left: 16px;"><span class="expand-icon" id="icon-current-assets">▼</span>Current Assets</td><td></td><td class="text-right" style="font-weight: 600;">${currentAssetsTotalForHeader < 0 ? '(' : ''}${Math.abs(currentAssetsTotalForHeader).toLocaleString('en-AE', {minimumFractionDigits: 2})}${currentAssetsTotalForHeader < 0 ? ')' : ''}</td><td></td></tr>`;
+                currentAssetsTotal = 0;
+                currentAssets.forEach(item => {
+                    const index = accountIndex++;
+                    accountsData[index] = item;
+                    const amt = parseFloat(item.balance || 0);
+                    // GL Balance is always DR - CR (universal accounting convention)
+                    const glBalance = parseFloat(item.debit_amount || 0) - parseFloat(item.credit_amount || 0);
+                    currentAssetsTotal += amt;
+                    currentAssetsTotalGL += glBalance;
+
+                    const variance = Math.abs(amt - Math.abs(glBalance));
+                    const hasVariance = variance > 0.01;
+
+                    html += `
+                        <tr class="account-row section-content section-assets section-current-assets" id="account-${index}" onclick="toggleAccountDetails('${index}', '${item.account_id}')">
+                            <td><span class="expand-icon" id="icon-${index}">▶</span></td>
+                            <td style="padding-left: 32px;">${item.account_code} - ${item.account_name}</td>
+                            <td class="text-right ${amt < 0 ? 'amount-negative' : 'amount-positive'}">${amt < 0 ? '(' : ''}${Math.abs(amt).toLocaleString('en-AE', {minimumFractionDigits: 2})}${amt < 0 ? ')' : ''}</td>
+                            <td class="text-right ${glBalance < 0 ? 'amount-negative' : 'amount-positive'}" style="font-size: 12px; color: #666;">${glBalance < 0 ? '(' : ''}${Math.abs(glBalance).toLocaleString('en-AE', {minimumFractionDigits: 2})}${glBalance < 0 ? ')' : ''}${hasVariance ? ' ⚠️' : ''}</td>
+                        </tr>
+                        <tr class="detail-row section-content section-assets section-current-assets" id="detail-${index}">
+                            <td colspan="4" style="padding: 0;">
+                                <div id="detail-content-${index}" class="loading-details">
+                                    <div class="spinner"></div>
+                                    <div>Loading transactions...</div>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+                html += `<tr class="subtotal-row section-content section-assets section-current-assets"><td></td><td style="padding-left: 32px;">Total Current Assets</td><td class="text-right ${currentAssetsTotal < 0 ? 'amount-negative' : 'amount-positive'}">${currentAssetsTotal < 0 ? '(' : ''}${Math.abs(currentAssetsTotal).toLocaleString('en-AE', {minimumFractionDigits: 2})}${currentAssetsTotal < 0 ? ')' : ''}</td><td class="text-right ${currentAssetsTotalGL < 0 ? 'amount-negative' : 'amount-positive'}" style="font-size: 12px; color: #666;">${currentAssetsTotalGL < 0 ? '(' : ''}${Math.abs(currentAssetsTotalGL).toLocaleString('en-AE', {minimumFractionDigits: 2})}${currentAssetsTotalGL < 0 ? ')' : ''}</td></tr>`;
+            }
+
+            // Non-Current Assets
+            if (nonCurrentAssets.length > 0) {
+                html += `<tr class="subsection-header section-content section-assets" onclick="toggleSection('non-current-assets')"><td style="padding-left: 16px;"><span class="expand-icon" id="icon-non-current-assets">▼</span>Non-Current Assets</td><td></td><td class="text-right" style="font-weight: 600;">${nonCurrentAssetsTotalForHeader < 0 ? '(' : ''}${Math.abs(nonCurrentAssetsTotalForHeader).toLocaleString('en-AE', {minimumFractionDigits: 2})}${nonCurrentAssetsTotalForHeader < 0 ? ')' : ''}</td><td></td></tr>`;
+                nonCurrentAssetsTotal = 0;
+                nonCurrentAssets.forEach(item => {
+                    const index = accountIndex++;
+                    accountsData[index] = item;
+                    const amt = parseFloat(item.balance || 0);
+                    // GL Balance is always DR - CR (universal accounting convention)
+                    const glBalance = parseFloat(item.debit_amount || 0) - parseFloat(item.credit_amount || 0);
+                    nonCurrentAssetsTotal += amt;
+                    nonCurrentAssetsTotalGL += glBalance;
+
+                    const variance = Math.abs(amt - Math.abs(glBalance));
+                    const hasVariance = variance > 0.01;
+
+                    html += `
+                        <tr class="account-row section-content section-assets section-non-current-assets" id="account-${index}" onclick="toggleAccountDetails('${index}', '${item.account_id}')">
+                            <td><span class="expand-icon" id="icon-${index}">▶</span></td>
+                            <td style="padding-left: 32px;">${item.account_code} - ${item.account_name}</td>
+                            <td class="text-right ${amt < 0 ? 'amount-negative' : 'amount-positive'}">${amt < 0 ? '(' : ''}${Math.abs(amt).toLocaleString('en-AE', {minimumFractionDigits: 2})}${amt < 0 ? ')' : ''}</td>
+                            <td class="text-right ${glBalance < 0 ? 'amount-negative' : 'amount-positive'}" style="font-size: 12px; color: #666;">${glBalance < 0 ? '(' : ''}${Math.abs(glBalance).toLocaleString('en-AE', {minimumFractionDigits: 2})}${glBalance < 0 ? ')' : ''}${hasVariance ? ' ⚠️' : ''}</td>
+                        </tr>
+                        <tr class="detail-row section-content section-assets section-non-current-assets" id="detail-${index}">
+                            <td colspan="4" style="padding: 0;">
+                                <div id="detail-content-${index}" class="loading-details">
+                                    <div class="spinner"></div>
+                                    <div>Loading transactions...</div>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+                html += `<tr class="subtotal-row section-content section-assets section-non-current-assets"><td></td><td style="padding-left: 32px;">Total Non-Current Assets</td><td class="text-right ${nonCurrentAssetsTotal < 0 ? 'amount-negative' : 'amount-positive'}">${nonCurrentAssetsTotal < 0 ? '(' : ''}${Math.abs(nonCurrentAssetsTotal).toLocaleString('en-AE', {minimumFractionDigits: 2})}${nonCurrentAssetsTotal < 0 ? ')' : ''}</td><td class="text-right ${nonCurrentAssetsTotalGL < 0 ? 'amount-negative' : 'amount-positive'}" style="font-size: 12px; color: #666;">${nonCurrentAssetsTotalGL < 0 ? '(' : ''}${Math.abs(nonCurrentAssetsTotalGL).toLocaleString('en-AE', {minimumFractionDigits: 2})}${nonCurrentAssetsTotalGL < 0 ? ')' : ''}</td></tr>`;
+            }
+
+            const totalAssets = data.summary.total_assets || 0;
+            const totalAssetsGL = currentAssetsTotalGL + nonCurrentAssetsTotalGL;
+            html += `<tr class="total-row section-content section-assets"><td colspan="2"><strong>TOTAL ASSETS</strong></td><td class="text-right ${totalAssets < 0 ? 'amount-negative' : 'amount-positive'}"><strong>${totalAssets < 0 ? '(' : ''}${Math.abs(totalAssets).toLocaleString('en-AE', {minimumFractionDigits: 2})}${totalAssets < 0 ? ')' : ''}</strong></td><td class="text-right ${totalAssetsGL < 0 ? 'amount-negative' : 'amount-positive'}" style="font-size: 12px; color: #666;"><strong>${totalAssetsGL < 0 ? '(' : ''}${Math.abs(totalAssetsGL).toLocaleString('en-AE', {minimumFractionDigits: 2})}${totalAssetsGL < 0 ? ')' : ''}</strong></td></tr>`;
+
+            // LIABILITIES SECTION
+            const currentLiabilities = (data.liabilities || []).filter(l =>
+                !l.account_subtype ||
+                l.account_subtype === 'current_liability' ||
+                (l.account_subtype && l.account_subtype.startsWith('current_'))
+            );
+            const nonCurrentLiabilities = (data.liabilities || []).filter(l =>
+                l.account_subtype && (
+                    l.account_subtype === 'non_current_liability' ||
+                    l.account_subtype.startsWith('non_current_')
+                )
+            );
+
+            // Calculate totals for header display
+            let currentLiabilitiesTotalForHeader = 0;
+            currentLiabilities.forEach(l => { currentLiabilitiesTotalForHeader += parseFloat(l.balance || 0); });
+
+            let nonCurrentLiabilitiesTotalForHeader = 0;
+            nonCurrentLiabilities.forEach(l => { nonCurrentLiabilitiesTotalForHeader += parseFloat(l.balance || 0); });
+
+            const totalLiabilitiesForHeader = data.summary.total_liabilities || 0;
+
+            html += `<tr class="section-header" onclick="toggleSection('liabilities')"><td><span class="expand-icon" id="icon-liabilities">▼</span>LIABILITIES</td><td></td><td class="text-right" style="font-weight: 700;">${totalLiabilitiesForHeader < 0 ? '(' : ''}${Math.abs(totalLiabilitiesForHeader).toLocaleString('en-AE', {minimumFractionDigits: 2})}${totalLiabilitiesForHeader < 0 ? ')' : ''}</td><td></td></tr>`;
+
+            // Current Liabilities
+            if (currentLiabilities.length > 0) {
+                html += `<tr class="subsection-header section-content section-liabilities" onclick="toggleSection('current-liabilities')"><td style="padding-left: 16px;"><span class="expand-icon" id="icon-current-liabilities">▼</span>Current Liabilities</td><td></td><td class="text-right" style="font-weight: 600;">${currentLiabilitiesTotalForHeader < 0 ? '(' : ''}${Math.abs(currentLiabilitiesTotalForHeader).toLocaleString('en-AE', {minimumFractionDigits: 2})}${currentLiabilitiesTotalForHeader < 0 ? ')' : ''}</td><td></td></tr>`;
+                let currentLiabilitiesTotal = 0;
+                currentLiabilities.forEach(item => {
+                    const index = accountIndex++;
+                    accountsData[index] = item;
+                    const amt = parseFloat(item.balance || 0);
+                    // GL Balance is always DR - CR (universal accounting convention)
+                    const glBalance = parseFloat(item.debit_amount || 0) - parseFloat(item.credit_amount || 0);
+                    currentLiabilitiesTotal += amt;
+                    currentLiabilitiesTotalGL += glBalance;
+
+                    const variance = Math.abs(amt - Math.abs(glBalance));
+                    const hasVariance = variance > 0.01;
+
+                    html += `
+                        <tr class="account-row section-content section-liabilities section-current-liabilities" id="account-${index}" onclick="toggleAccountDetails('${index}', '${item.account_id}')">
+                            <td><span class="expand-icon" id="icon-${index}">▶</span></td>
+                            <td style="padding-left: 32px;">${item.account_code} - ${item.account_name}</td>
+                            <td class="text-right ${amt < 0 ? 'amount-negative' : 'amount-positive'}">${amt < 0 ? '(' : ''}${Math.abs(amt).toLocaleString('en-AE', {minimumFractionDigits: 2})}${amt < 0 ? ')' : ''}</td>
+                            <td class="text-right ${glBalance < 0 ? 'amount-negative' : 'amount-positive'}" style="font-size: 12px; color: #666;">${glBalance < 0 ? '(' : ''}${Math.abs(glBalance).toLocaleString('en-AE', {minimumFractionDigits: 2})}${glBalance < 0 ? ')' : ''}${hasVariance ? ' ⚠️' : ''}</td>
+                        </tr>
+                        <tr class="detail-row section-content section-liabilities section-current-liabilities" id="detail-${index}">
+                            <td colspan="4" style="padding: 0;">
+                                <div id="detail-content-${index}" class="loading-details">
+                                    <div class="spinner"></div>
+                                    <div>Loading transactions...</div>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+                html += `<tr class="subtotal-row section-content section-liabilities section-current-liabilities"><td></td><td style="padding-left: 32px;">Total Current Liabilities</td><td class="text-right ${currentLiabilitiesTotal < 0 ? 'amount-negative' : 'amount-positive'}">${currentLiabilitiesTotal < 0 ? '(' : ''}${Math.abs(currentLiabilitiesTotal).toLocaleString('en-AE', {minimumFractionDigits: 2})}${currentLiabilitiesTotal < 0 ? ')' : ''}</td><td class="text-right ${currentLiabilitiesTotalGL < 0 ? 'amount-negative' : 'amount-positive'}" style="font-size: 12px; color: #666;">${currentLiabilitiesTotalGL < 0 ? '(' : ''}${Math.abs(currentLiabilitiesTotalGL).toLocaleString('en-AE', {minimumFractionDigits: 2})}${currentLiabilitiesTotalGL < 0 ? ')' : ''}</td></tr>`;
+            }
+
+            // Non-Current Liabilities
+            if (nonCurrentLiabilities.length > 0) {
+                html += `<tr class="subsection-header section-content section-liabilities" onclick="toggleSection('non-current-liabilities')"><td style="padding-left: 16px;"><span class="expand-icon" id="icon-non-current-liabilities">▼</span>Long-term Liabilities</td><td></td><td class="text-right" style="font-weight: 600;">${nonCurrentLiabilitiesTotalForHeader < 0 ? '(' : ''}${Math.abs(nonCurrentLiabilitiesTotalForHeader).toLocaleString('en-AE', {minimumFractionDigits: 2})}${nonCurrentLiabilitiesTotalForHeader < 0 ? ')' : ''}</td><td></td></tr>`;
+                let nonCurrentLiabilitiesTotal = 0;
+                nonCurrentLiabilities.forEach(item => {
+                    const index = accountIndex++;
+                    accountsData[index] = item;
+                    const amt = parseFloat(item.balance || 0);
+                    // GL Balance is always DR - CR (universal accounting convention)
+                    const glBalance = parseFloat(item.debit_amount || 0) - parseFloat(item.credit_amount || 0);
+                    nonCurrentLiabilitiesTotal += amt;
+                    nonCurrentLiabilitiesTotalGL += glBalance;
+
+                    const variance = Math.abs(amt - Math.abs(glBalance));
+                    const hasVariance = variance > 0.01;
+
+                    html += `
+                        <tr class="account-row section-content section-liabilities section-non-current-liabilities" id="account-${index}" onclick="toggleAccountDetails('${index}', '${item.account_id}')">
+                            <td><span class="expand-icon" id="icon-${index}">▶</span></td>
+                            <td style="padding-left: 32px;">${item.account_code} - ${item.account_name}</td>
+                            <td class="text-right ${amt < 0 ? 'amount-negative' : 'amount-positive'}">${amt < 0 ? '(' : ''}${Math.abs(amt).toLocaleString('en-AE', {minimumFractionDigits: 2})}${amt < 0 ? ')' : ''}</td>
+                            <td class="text-right ${glBalance < 0 ? 'amount-negative' : 'amount-positive'}" style="font-size: 12px; color: #666;">${glBalance < 0 ? '(' : ''}${Math.abs(glBalance).toLocaleString('en-AE', {minimumFractionDigits: 2})}${glBalance < 0 ? ')' : ''}${hasVariance ? ' ⚠️' : ''}</td>
+                        </tr>
+                        <tr class="detail-row section-content section-liabilities section-non-current-liabilities" id="detail-${index}">
+                            <td colspan="4" style="padding: 0;">
+                                <div id="detail-content-${index}" class="loading-details">
+                                    <div class="spinner"></div>
+                                    <div>Loading transactions...</div>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+                html += `<tr class="subtotal-row section-content section-liabilities section-non-current-liabilities"><td></td><td style="padding-left: 32px;">Total Long-term Liabilities</td><td class="text-right ${nonCurrentLiabilitiesTotal < 0 ? 'amount-negative' : 'amount-positive'}">${nonCurrentLiabilitiesTotal < 0 ? '(' : ''}${Math.abs(nonCurrentLiabilitiesTotal).toLocaleString('en-AE', {minimumFractionDigits: 2})}${nonCurrentLiabilitiesTotal < 0 ? ')' : ''}</td><td class="text-right ${nonCurrentLiabilitiesTotalGL < 0 ? 'amount-negative' : 'amount-positive'}" style="font-size: 12px; color: #666;">${nonCurrentLiabilitiesTotalGL < 0 ? '(' : ''}${Math.abs(nonCurrentLiabilitiesTotalGL).toLocaleString('en-AE', {minimumFractionDigits: 2})}${nonCurrentLiabilitiesTotalGL < 0 ? ')' : ''}</td></tr>`;
+            }
+
+            const totalLiabilities = data.summary.total_liabilities || 0;
+            const totalLiabilitiesGL = currentLiabilitiesTotalGL + nonCurrentLiabilitiesTotalGL;
+            html += `<tr class="total-row section-content section-liabilities"><td colspan="2"><strong>TOTAL LIABILITIES</strong></td><td class="text-right ${totalLiabilities < 0 ? 'amount-negative' : 'amount-positive'}"><strong>${totalLiabilities < 0 ? '(' : ''}${Math.abs(totalLiabilities).toLocaleString('en-AE', {minimumFractionDigits: 2})}${totalLiabilities < 0 ? ')' : ''}</strong></td><td class="text-right ${totalLiabilitiesGL < 0 ? 'amount-negative' : 'amount-positive'}" style="font-size: 12px; color: #666;"><strong>${totalLiabilitiesGL < 0 ? '(' : ''}${Math.abs(totalLiabilitiesGL).toLocaleString('en-AE', {minimumFractionDigits: 2})}${totalLiabilitiesGL < 0 ? ')' : ''}</strong></td></tr>`;
+
+            // EQUITY SECTION
+            const totalEquityForHeader = data.summary.total_equity || 0;
+            html += `<tr class="section-header" onclick="toggleSection('equity')"><td><span class="expand-icon" id="icon-equity">▼</span>EQUITY</td><td></td><td class="text-right" style="font-weight: 700;">${totalEquityForHeader < 0 ? '(' : ''}${Math.abs(totalEquityForHeader).toLocaleString('en-AE', {minimumFractionDigits: 2})}${totalEquityForHeader < 0 ? ')' : ''}</td><td></td></tr>`;
+            let totalEquityGL = 0;
+            if ((data.equity || []).length > 0) {
+                data.equity.forEach(item => {
+                    const index = accountIndex++;
+                    accountsData[index] = item;
+                    const amt = parseFloat(item.balance || 0);
+                    // GL Balance is always DR - CR (universal accounting convention)
+                    const glBalance = parseFloat(item.debit_amount || 0) - parseFloat(item.credit_amount || 0);
+                    totalEquityGL += glBalance;
+
+                    const variance = Math.abs(amt - Math.abs(glBalance));
+                    const hasVariance = variance > 0.01;
+
+                    html += `
+                        <tr class="account-row section-content section-equity" id="account-${index}" onclick="toggleAccountDetails('${index}', '${item.account_id}')">
+                            <td><span class="expand-icon" id="icon-${index}">▶</span></td>
+                            <td style="padding-left: 32px;">${item.account_code} - ${item.account_name}</td>
+                            <td class="text-right ${amt < 0 ? 'amount-negative' : 'amount-positive'}">${amt < 0 ? '(' : ''}${Math.abs(amt).toLocaleString('en-AE', {minimumFractionDigits: 2})}${amt < 0 ? ')' : ''}</td>
+                            <td class="text-right ${glBalance < 0 ? 'amount-negative' : 'amount-positive'}" style="font-size: 12px; color: #666;">${glBalance < 0 ? '(' : ''}${Math.abs(glBalance).toLocaleString('en-AE', {minimumFractionDigits: 2})}${glBalance < 0 ? ')' : ''}${hasVariance ? ' ⚠️' : ''}</td>
+                        </tr>
+                        <tr class="detail-row section-content section-equity" id="detail-${index}">
+                            <td colspan="4" style="padding: 0;">
+                                <div id="detail-content-${index}" class="loading-details">
+                                    <div class="spinner"></div>
+                                    <div>Loading transactions...</div>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } else {
+                html += '<tr class="section-content section-equity"><td colspan="4" style="padding-left: 32px; color: #666; font-style: italic;">No equity accounts</td></tr>';
+            }
+
+            const totalEquity = data.summary.total_equity || 0;
+            html += `<tr class="total-row section-content section-equity"><td colspan="2"><strong>TOTAL EQUITY</strong></td><td class="text-right ${totalEquity < 0 ? 'amount-negative' : 'amount-positive'}"><strong>${totalEquity < 0 ? '(' : ''}${Math.abs(totalEquity).toLocaleString('en-AE', {minimumFractionDigits: 2})}${totalEquity < 0 ? ')' : ''}</strong></td><td class="text-right ${totalEquityGL < 0 ? 'amount-negative' : 'amount-positive'}" style="font-size: 12px; color: #666;"><strong>${totalEquityGL < 0 ? '(' : ''}${Math.abs(totalEquityGL).toLocaleString('en-AE', {minimumFractionDigits: 2})}${totalEquityGL < 0 ? ')' : ''}</strong></td></tr>`;
+
+            // TOTAL LIABILITIES & EQUITY
+            const totalLiabilitiesEquity = totalLiabilities + totalEquity;
+            const totalLiabilitiesEquityGL = totalLiabilitiesGL + totalEquityGL;
+            html += `<tr class="total-row"><td colspan="2"><strong>TOTAL LIABILITIES & EQUITY</strong></td><td class="text-right ${totalLiabilitiesEquity < 0 ? 'amount-negative' : 'amount-positive'}"><strong>${totalLiabilitiesEquity < 0 ? '(' : ''}${Math.abs(totalLiabilitiesEquity).toLocaleString('en-AE', {minimumFractionDigits: 2})}${totalLiabilitiesEquity < 0 ? ')' : ''}</strong></td><td class="text-right ${totalLiabilitiesEquityGL < 0 ? 'amount-negative' : 'amount-positive'}" style="font-size: 12px; color: #666;"><strong>${totalLiabilitiesEquityGL < 0 ? '(' : ''}${Math.abs(totalLiabilitiesEquityGL).toLocaleString('en-AE', {minimumFractionDigits: 2})}${totalLiabilitiesEquityGL < 0 ? ')' : ''}</strong></td></tr>`;
+
+            // ACCOUNTING EQUATION VALIDATION
+            const variance = Math.abs(totalAssets - totalLiabilitiesEquity);
+            const isBalanced = variance < 0.01;
+
+            if (isBalanced) {
+                html += `<tr class="balance-check-row"><td colspan="4" style="text-align: center; color: #0F5132; padding: 12px;">✅ Balance Sheet is balanced (Assets = Liabilities + Equity)</td></tr>`;
+            } else {
+                html += `<tr class="balance-check-row" style="background: #FFF3CD !important; color: #856404;"><td colspan="4" style="text-align: center; padding: 12px;">⚠️ Balance Sheet is OUT OF BALANCE by ${variance.toLocaleString('en-AE', {minimumFractionDigits: 2})} AED</td></tr>`;
+                balanceWarning.innerHTML = `<div class="variance-warning"><strong>⚠️ Accounting Equation Error:</strong> Assets (${totalAssets.toLocaleString('en-AE', {minimumFractionDigits: 2})}) ≠ Liabilities + Equity (${totalLiabilitiesEquity.toLocaleString('en-AE', {minimumFractionDigits: 2})}). Variance: ${variance.toLocaleString('en-AE', {minimumFractionDigits: 2})} AED. Please review account balances and normal balance settings.</div>`;
+                balanceWarning.style.display = 'block';
+            }
+
+            tbody.innerHTML = html || '<tr><td colspan="4" class="empty-state"><div class="empty-state-icon">📈</div><div>No data available</div></td></tr>';
+        }
+
+        function toggleSection(sectionId) {
+            // Prevent event propagation to parent rows
+            event.stopPropagation();
+
+            const icon = document.getElementById(`icon-${sectionId}`);
+            const rows = document.getElementsByClassName(`section-${sectionId}`);
+
+            // Toggle icon
+            if (icon) {
+                if (icon.textContent === '▼') {
+                    icon.textContent = '▶';
+                    icon.classList.remove('expanded');
+                } else {
+                    icon.textContent = '▼';
+                    icon.classList.add('expanded');
+                }
+            }
+
+            // Toggle all rows in this section
+            for (let row of rows) {
+                row.classList.toggle('collapsed');
+            }
+        }
+
+        async function toggleAccountDetails(index, accountId) {
+            const detailRow = document.getElementById(`detail-${index}`);
+            const accountRow = document.getElementById(`account-${index}`);
+            const icon = document.getElementById(`icon-${index}`);
+            const detailContent = document.getElementById(`detail-content-${index}`);
+
+            // Check if this is a calculated account (like Retained Earnings)
+            const accountData = accountsData[index];
+            const isCalculated = accountData && accountData.is_calculated === true;
+
+            // Toggle visibility
+            if (detailRow.classList.contains('visible')) {
+                // Collapse
+                detailRow.classList.remove('visible');
+                accountRow.classList.remove('expanded');
+                icon.classList.remove('expanded');
+            } else {
+                // Expand
+                detailRow.classList.add('visible');
+                accountRow.classList.add('expanded');
+                icon.classList.add('expanded');
+
+                // Load transactions if not already loaded
+                if (detailContent.classList.contains('loading-details')) {
+                    if (isCalculated) {
+                        // Show breakdown for calculated accounts
+                        detailContent.innerHTML = `
+                            <div style="padding: 20px; background: #F0F4F7;">
+                                <strong>Calculated Account - Retained Earnings</strong>
+                                <div style="margin-top: 12px; font-size: 13px;">
+                                    <div style="margin-bottom: 8px;">
+                                        <span style="color: #666;">Total Revenue:</span>
+                                        <span style="float: right; font-weight: 600;">${accountData.revenue_total ? accountData.revenue_total.toLocaleString('en-AE', {minimumFractionDigits: 2}) : '0.00'}</span>
+                                    </div>
+                                    <div style="margin-bottom: 8px;">
+                                        <span style="color: #666;">Total Expenses:</span>
+                                        <span style="float: right; font-weight: 600;">${accountData.expense_total ? accountData.expense_total.toLocaleString('en-AE', {minimumFractionDigits: 2}) : '0.00'}</span>
+                                    </div>
+                                    <div style="border-top: 2px solid #D9D9D9; padding-top: 8px; margin-top: 8px;">
+                                        <span style="color: #0A0A0A; font-weight: 600;">Net Income (Current Period):</span>
+                                        <span style="float: right; font-weight: 700; color: ${parseFloat(accountData.balance || 0) < 0 ? '#0F5132' : '#BB0000'};">${Math.abs(parseFloat(accountData.balance || 0)).toLocaleString('en-AE', {minimumFractionDigits: 2})}</span>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 12px; font-size: 12px; color: #666; font-style: italic;">
+                                    This is a calculated field based on Income Statement (Revenue - Expenses)
+                                </div>
+                            </div>
+                        `;
+                        detailContent.classList.remove('loading-details');
+                    } else {
+                        await loadAccountTransactions(index, accountId, detailContent);
+                    }
+                }
+            }
+        }
+
+        async function loadAccountTransactions(index, accountId, detailContent) {
+            try {
+                const accountInfo = accountsData[index];
+
+                const query = `
+                    SELECT
+                        je.entry_id,
+                        je.entry_date,
+                        je.entry_number,
+                        je.description as entry_description,
+                        jel.line_id,
+                        jel.description,
+                        jel.debit_amount,
+                        jel.credit_amount,
+                        jel.metadata,
+                        SUM(jel.debit_amount - jel.credit_amount) OVER (
+                            ORDER BY je.entry_date ASC, je.entry_number, jel.line_id
+                        ) as running_balance
+                    FROM journal_entry_lines jel
+                    JOIN journal_entries je ON jel.entry_id = je.entry_id
+                    WHERE jel.account_id = '${accountId}'
+                    AND je.tenant_id = '${TENANT_ID}'
+                    AND je.status = 'posted'
+                    ORDER BY je.entry_date ASC, je.entry_number, jel.line_id
+                    LIMIT 100
+                `;
+
+                const response = await fetch(`${REPORTING_SERVICE_URL}/api/query`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const transactions = await response.json();
+
+                if (!transactions || transactions.length === 0) {
+                    detailContent.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">No transactions found for this account</div>';
+                    detailContent.classList.remove('loading-details');
+                    return;
+                }
+
+                // Build detailed transaction table
+                let tableHtml = `
+                    <table class="detail-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Entry #</th>
+                                <th>Description</th>
+                                <th class="text-right">Debit</th>
+                                <th class="text-right">Credit</th>
+                                <th class="text-right">Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                let totalDebit = 0;
+                let totalCredit = 0;
+                const isDebitNormal = (accountInfo.normal_balance || '').toUpperCase() === 'DEBIT';
+
+                transactions.forEach(txn => {
+                    const debit = parseFloat(txn.debit_amount || 0);
+                    const credit = parseFloat(txn.credit_amount || 0);
+                    const balance = parseFloat(txn.running_balance || 0);
+                    totalDebit += debit;
+                    totalCredit += credit;
+
+                    const entryDate = new Date(txn.entry_date).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    });
+
+                    const entryNumberLink = txn.entry_number && txn.entry_id
+                        ? `<a href="#" class="je-clickable" onclick="event.preventDefault(); JEViewer.open('${txn.entry_id}', '${txn.entry_number}'); return false;">${txn.entry_number}</a>`
+                        : (txn.entry_number || '-');
+
+                    const description = txn.description || txn.entry_description || '-';
+
+                    // Balance color based on normal balance
+                    const balanceClass = balance > 0 ? 'amount-positive' : (balance < 0 ? 'amount-negative' : '');
+
+                    tableHtml += `
+                        <tr>
+                            <td>${entryDate}</td>
+                            <td>${entryNumberLink}</td>
+                            <td>${description}</td>
+                            <td class="text-right ${debit > 0 ? 'amount-positive' : ''}">${debit > 0 ? debit.toLocaleString('en-AE', {minimumFractionDigits: 2}) : '-'}</td>
+                            <td class="text-right ${credit > 0 ? 'amount-negative' : ''}">${credit > 0 ? credit.toLocaleString('en-AE', {minimumFractionDigits: 2}) : '-'}</td>
+                            <td class="text-right text-bold ${balanceClass}">${Math.abs(balance).toLocaleString('en-AE', {minimumFractionDigits: 2})}</td>
+                        </tr>
+                    `;
+                });
+
+                // Get final balance from last transaction
+                const finalBalance = transactions.length > 0 ? parseFloat(transactions[transactions.length - 1].running_balance || 0) : 0;
+                const finalBalanceClass = finalBalance > 0 ? 'amount-positive' : (finalBalance < 0 ? 'amount-negative' : '');
+
+                // Total row
+                tableHtml += `
+                        <tr style="background: #F5F5F5; font-weight: 600;">
+                            <td colspan="3" style="text-align: right;"><strong>TOTAL</strong></td>
+                            <td class="text-right amount-positive"><strong>${totalDebit.toLocaleString('en-AE', {minimumFractionDigits: 2})}</strong></td>
+                            <td class="text-right amount-negative"><strong>${totalCredit.toLocaleString('en-AE', {minimumFractionDigits: 2})}</strong></td>
+                            <td class="text-right text-bold ${finalBalanceClass}"><strong>${Math.abs(finalBalance).toLocaleString('en-AE', {minimumFractionDigits: 2})}</strong></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                `;
+
+                detailContent.innerHTML = tableHtml;
+                detailContent.classList.remove('loading-details');
+            } catch (error) {
+                detailContent.innerHTML = `<div style="padding: 20px; text-align: center; color: #BB0000;">Error loading transactions: ${error.message}</div>`;
+                detailContent.classList.remove('loading-details');
+            }
+        }
+    </script>
+</body>
+</html>
