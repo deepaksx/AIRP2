@@ -399,11 +399,6 @@
 
             try {
                 // Validation
-                if (!selectedType) {
-                    showError('Please select a transaction type');
-                    return;
-                }
-
                 const entryDate = document.getElementById('entry-date').value;
                 const description = document.getElementById('description').value;
 
@@ -411,6 +406,9 @@
                     showError('Please fill in Date and Description');
                     return;
                 }
+
+                // If no type selected, default to 'general'
+                const entryType = selectedType || 'general';
 
                 // Build lines
                 const lines = [];
@@ -466,7 +464,7 @@
                 const payload = {
                     tenantId: TENANT_ID,
                     entryDate,
-                    entryType: selectedType,
+                    entryType: entryType,
                     sourceType: 'Manual',
                     description,
                     lines
