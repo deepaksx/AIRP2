@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Ledger - AIRP v2.0</title>
+    <link rel="stylesheet" href="styles/sap-design-system.css">
+    <script src="scripts/je-viewer.js"></script>
+    <style>
+        .vendor-row {
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .vendor-row:hover {
+            background: #F5F5F5;
+        }
+        .vendor-row.expanded {
+            background: #E8F4FF;
+        }
+        .expand-icon {
+            display: inline-block;
+            transition: transform 0.3s;
+            margin-right: 8px;
+            font-size: 12px;
+        }
+        .expand-icon.expanded {
+            transform: rotate(90deg);
+        }
+        .detail-row {
+            display: none;
+            background: #FAFAFA;
+        }
+        .detail-row.visible {
+            display: table-row;
+        }
+        .detail-table {
+            width: 100%;
+            margin: 0;
+            border-collapse: collapse;
+        }
+        .detail-table th {
+            background: #F0F0F0;
+            padding: 8px;
+            text-align: left;
+            font-size: 12px;
+            border-bottom: 2px solid #D9D9D9;
+        }
+        .detail-table td {
+            padding: 8px;
+            font-size: 12px;
+            border-bottom: 1px solid #E5E5E5;
+        }
+        .loading-details {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <div class="header-top">
+            <div>
+                <div class="page-title">Vendor Ledger</div>
+                <div class="page-subtitle">Click on any vendor to view detailed transactions</div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="loadData()">🔄 Refresh</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+        <div id="error-alert" class="alert error" style="display: none;"></div>
+
+        <div class="report-card">
+            <div class="report-header">
+                <div class="report-title">Vendor Ledger</div>
+                <div class="report-date"><span id="record-count">0</span> vendors</div>
+            </div>
+
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 30px;"></th>
+                        <th>Vendor Code</th>
+                        <th>Vendor Name</th>
+                        <th style="width: 150px;" class="text-right">Balance (AED)</th>
+                        <th style="width: 100px;">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="data-tbody">
+                    <tr><td colspan="5" class="loading"><div class="spinner"></div><div>Loading vendor ledger...</div></td></tr>
+                </tbody>
+                <tfoot id="data-tfoot" style="display: none;">
+                    <tr style="border-top: 2px solid #333; background: #F5F5F5;">
+                        <td colspan="3" style="text-align: right; padding: 12px; font-weight: 700;">Total AP (Sub-Ledger):</td>
+                        <td id="total-ap" class="text-right" style="font-weight: 700; font-size: 14px;">0.00</td>
+                        <td></td>
+                    </tr>
+                    <tr style="background: #FFF3CD;">
+                        <td colspan="3" style="text-align: right; padding: 12px; font-weight: 700;">Trial Balance (GL Account 2100):</td>
+                        <td id="tb-balance" class="text-right" style="font-weight: 700; font-size: 14px;">0.00</td>
+                        <td></td>
+                    </tr>
+                    <tr id="variance-row" style="background: #D5F5E3; display: none;">
+                        <td colspan="3" style="text-align: right; padding: 12px; font-weight: 700;">✅ Reconciliation Variance:</td>
+                        <td id="variance" class="text-right" style="font-weight: 700; font-size: 14px; color: #0F5132;">0.00</td>
+                        <td><span class="status-badge status-posted">Balanced</span></td>
+                    </tr>
+                    <tr id="variance-error-row" style="background: #F8D7DA; display: none;">
+                        <td colspan="3" style="text-align: right; padding: 12px; font-weight: 700;">⚠️ Reconciliation Variance:</td>
+                        <td id="variance-error" class="text-right" style="font-weight: 700; font-size: 14px; color: #721C24;">0.00</td>
+                        <td><span class="status-badge status-reversed">Out of Balance</span></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const URL = 'http://localhost:3008';
+        const TID = '00000000-0000-0000-0000-000000000001';
+
+        let vendorsData = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+        });
+
+        async function loadData() {
+            const tbody = document.getElementById('data-tbody');
+            const tfoot = document.getElementById('data-tfoot');
+            const errorAlert = document.getElementById('error-alert');
+
+            tbody.innerHTML = '<tr><td colspan="5" class="loading"><div class="spinner"></div><div>Loading vendor ledger...</div></td></tr>';
+            tfoot.style.display = 'none';
+            errorAlert.style.display = 'none';
+
+            try {
+                // Fetch AP aging data
+                const response = await fetch(`${URL}/reports/aging/ap?tenant_id=${TID}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                vendorsData = data.vendors || [];
+
+                // Fetch Trial Balance for account 2100 (AP control account)
+                const tbResponse = await fetch(`${URL}/api/query`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: `SELECT account_code, account_name, net_balance FROM trial_balance WHERE account_code = '2100'`
+                    })
+                });
+
+                let tbBalance = 0;
+                if (tbResponse.ok) {
+                    const tbData = await tbResponse.json();
+                    if (tbData && tbData.length > 0) {
+                        // Trial balance shows AP as negative (credit balance)
+                        tbBalance = Math.abs(parseFloat(tbData[0].net_balance || 0));
+                    }
+                }
+
+                renderData(vendorsData, tbBalance);
+            } catch (err) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><div class="empty-state-icon">⚠️</div><div><strong>Failed to load vendor ledger</strong></div></td></tr>';
+                errorAlert.textContent = `Error: ${err.message}`;
+                errorAlert.style.display = 'block';
+            }
+        }
+
+        function renderData(vendors, tbBalance) {
+            const tbody = document.getElementById('data-tbody');
+            const tfoot = document.getElementById('data-tfoot');
+            document.getElementById('record-count').textContent = vendors.length;
+
+            if (!vendors.length) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><div class="empty-state-icon">🏢</div><div>No vendors found</div></td></tr>';
+                tfoot.style.display = 'none';
+                return;
+            }
+
+            // Calculate total AP from sub-ledger
+            let totalAP = 0;
+            let html = '';
+            vendors.forEach((vendor, index) => {
+                const balance = parseFloat(vendor.total_outstanding || 0);
+                totalAP += balance;
+                const vendorId = vendor.vendor_id;
+
+                // Main vendor row
+                html += `
+                    <tr class="vendor-row" id="vendor-${index}" onclick="toggleVendorDetails('${index}', '${vendorId}')">
+                        <td><span class="expand-icon" id="icon-${index}">▶</span></td>
+                        <td class="text-bold">${vendor.vendor_code}</td>
+                        <td>${vendor.vendor_name}</td>
+                        <td class="text-right ${balance > 0 ? 'amount-negative' : ''}">${balance.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td>
+                        <td><span class="status-badge ${balance == 0 ? 'status-paid' : 'status-unpaid'}">${balance == 0 ? 'Paid' : 'Outstanding'}</span></td>
+                    </tr>
+                `;
+
+                // Detail row (hidden by default)
+                html += `
+                    <tr class="detail-row" id="detail-${index}">
+                        <td colspan="5" style="padding: 0;">
+                            <div id="detail-content-${index}" class="loading-details">
+                                <div class="spinner"></div>
+                                <div>Loading transactions...</div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+
+            // Update footer with totals and reconciliation
+            document.getElementById('total-ap').textContent = totalAP.toLocaleString('en-AE', {minimumFractionDigits: 2});
+            document.getElementById('tb-balance').textContent = tbBalance.toLocaleString('en-AE', {minimumFractionDigits: 2});
+
+            // Calculate variance (TB should match sub-ledger total)
+            const variance = Math.abs(totalAP - tbBalance);
+            const isBalanced = variance < 0.01;
+
+            if (isBalanced) {
+                document.getElementById('variance-row').style.display = 'table-row';
+                document.getElementById('variance-error-row').style.display = 'none';
+                document.getElementById('variance').textContent = variance.toLocaleString('en-AE', {minimumFractionDigits: 2});
+            } else {
+                document.getElementById('variance-row').style.display = 'none';
+                document.getElementById('variance-error-row').style.display = 'table-row';
+                document.getElementById('variance-error').textContent = variance.toLocaleString('en-AE', {minimumFractionDigits: 2});
+            }
+
+            tfoot.style.display = 'table-footer-group';
+        }
+
+        async function toggleVendorDetails(index, vendorId) {
+            const detailRow = document.getElementById(`detail-${index}`);
+            const vendorRow = document.getElementById(`vendor-${index}`);
+            const icon = document.getElementById(`icon-${index}`);
+            const detailContent = document.getElementById(`detail-content-${index}`);
+
+            // Toggle visibility
+            if (detailRow.classList.contains('visible')) {
+                // Collapse
+                detailRow.classList.remove('visible');
+                vendorRow.classList.remove('expanded');
+                icon.classList.remove('expanded');
+            } else {
+                // Expand
+                detailRow.classList.add('visible');
+                vendorRow.classList.add('expanded');
+                icon.classList.add('expanded');
+
+                // Load transactions if not already loaded
+                if (detailContent.classList.contains('loading-details')) {
+                    await loadVendorTransactions(index, vendorId, detailContent);
+                }
+            }
+        }
+
+        async function loadVendorTransactions(index, vendorId, detailContent) {
+            try {
+                const response = await fetch(`${URL}/reports/vendor-ledger?tenant_id=${TID}&vendor_id=${vendorId}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                const transactions = data.transactions || [];
+
+                if (transactions.length === 0) {
+                    detailContent.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">No transactions found for this vendor</div>';
+                    detailContent.classList.remove('loading-details');
+                    return;
+                }
+
+                // Build detailed transaction table
+                let tableHtml = `
+                    <table class="detail-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Entry #</th>
+                                <th>Invoice #</th>
+                                <th>Description</th>
+                                <th>Account</th>
+                                <th class="text-right">Debit</th>
+                                <th class="text-right">Credit</th>
+                                <th class="text-right">Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                transactions.forEach(txn => {
+                    const debit = parseFloat(txn.debit_amount || 0);
+                    const credit = parseFloat(txn.credit_amount || 0);
+                    const balance = parseFloat(txn.running_balance || 0);
+                    const entryDate = new Date(txn.entry_date).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    });
+
+                    const entryNumberLink = txn.entry_number && txn.entry_id
+                        ? `<a href="#" class="je-clickable" onclick="event.preventDefault(); JEViewer.open('${txn.entry_id}', '${txn.entry_number}'); return false;">${txn.entry_number}</a>`
+                        : (txn.entry_number || '-');
+
+                    tableHtml += `
+                        <tr>
+                            <td>${entryDate}</td>
+                            <td>${entryNumberLink}</td>
+                            <td>${txn.invoice_number || '-'}</td>
+                            <td>${txn.description || '-'}</td>
+                            <td>${txn.account_code} - ${txn.account_name}</td>
+                            <td class="text-right ${debit > 0 ? 'amount-positive' : ''}">${debit > 0 ? debit.toLocaleString('en-AE', {minimumFractionDigits: 2}) : '-'}</td>
+                            <td class="text-right ${credit > 0 ? 'amount-negative' : ''}">${credit > 0 ? credit.toLocaleString('en-AE', {minimumFractionDigits: 2}) : '-'}</td>
+                            <td class="text-right text-bold ${balance > 0 ? 'amount-negative' : ''}">${balance.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td>
+                        </tr>
+                    `;
+                });
+
+                tableHtml += `
+                        </tbody>
+                    </table>
+                `;
+
+                detailContent.innerHTML = tableHtml;
+                detailContent.classList.remove('loading-details');
+            } catch (error) {
+                detailContent.innerHTML = `<div style="padding: 20px; text-align: center; color: #BB0000;">Error loading transactions: ${error.message}</div>`;
+                detailContent.classList.remove('loading-details');
+            }
+        }
+    </script>
+</body>
+</html>
