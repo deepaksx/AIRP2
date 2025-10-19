@@ -138,15 +138,32 @@
             errorAlert.style.display = 'none';
 
             try {
-                // Fetch AP aging data
-                const response = await fetch(`${URL}/reports/aging/ap?tenant_id=${TID}`);
+                // Fetch vendor balances from journal entry lines (dimension_1)
+                const query = `
+                    SELECT
+                        v.vendor_id,
+                        v.vendor_code,
+                        v.vendor_name,
+                        COALESCE(SUM(jel.credit_amount - jel.debit_amount), 0) as total_outstanding
+                    FROM vendors v
+                    LEFT JOIN journal_entry_lines jel ON v.vendor_id = jel.dimension_1::uuid
+                    LEFT JOIN journal_entries je ON jel.entry_id = je.entry_id AND je.status = 'posted'
+                    WHERE v.tenant_id = '${TID}'
+                    GROUP BY v.vendor_id, v.vendor_code, v.vendor_name
+                    ORDER BY v.vendor_code
+                `;
+
+                const response = await fetch(`${URL}/api/query`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
                 }
 
-                const data = await response.json();
-                vendorsData = data.vendors || [];
+                vendorsData = await response.json() || [];
 
                 // Fetch Trial Balance for account 2100 (AP control account)
                 const tbResponse = await fetch(`${URL}/api/query`, {

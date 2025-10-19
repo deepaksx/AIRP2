@@ -102,10 +102,15 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
     this.logger.log(`Processing journal-entry-posted event: ${event.event_id}`);
 
     try {
+      // First, materialize the journal entry with vendor/customer dimensions
+      await this.projectionService.materializeJournalEntry(event);
+      this.logger.log(`Journal entry materialized for event: ${event.event_id}`);
+
+      // Then update GL balances and trial balance
       await this.projectionService.updateTrialBalance(event);
       this.logger.log(`Trial balance updated for event: ${event.event_id}`);
     } catch (error) {
-      this.logger.error(`Failed to update trial balance: ${error.message}`, error.stack);
+      this.logger.error(`Failed to process journal entry: ${error.message}`, error.stack);
     }
   }
 
@@ -127,27 +132,32 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
 
   private async postAPInvoiceToGL(invoiceEvent: any): Promise<void> {
     try {
-      const ledgerWriterUrl = process.env.LEDGER_WRITER_URL || 'http://localhost:3001';
+      const ledgerWriterUrl = process.env.LEDGER_WRITER_URL || 'http://ledger-writer:3001';
 
       // Create GL entry: Debit Expense, Credit AP
       const journalEntry = {
         tenantId: invoiceEvent.tenant_id,
         entryDate: invoiceEvent.invoice_date,
-        entryType: 'AP Invoice',
-        description: `AP Invoice ${invoiceEvent.invoice_number}`,
-        referenceId: invoiceEvent.invoice_id,
+        entryType: 'ap_invoice',
+        sourceType: 'AP System',
+        sourceRefId: invoiceEvent.invoice_id,
+        description: `AP Invoice ${invoiceEvent.invoice_number} - Vendor Invoice`,
         lines: [
           {
-            accountCode: '5000', // Expense account (should be classified via AI or default)
-            debitAmount: invoiceEvent.total_amount,
+            accountCode: '5100', // Operating Expenses (default - should be classified)
+            debitAmount: parseFloat(invoiceEvent.total_amount),
             creditAmount: 0,
-            description: `AP Invoice ${invoiceEvent.invoice_number}`,
+            description: `Expense - ${invoiceEvent.invoice_number}`,
           },
           {
-            accountCode: '2000', // Accounts Payable
+            accountCode: '2100', // Accounts Payable
             debitAmount: 0,
-            creditAmount: invoiceEvent.total_amount,
-            description: `AP Invoice ${invoiceEvent.invoice_number}`,
+            creditAmount: parseFloat(invoiceEvent.total_amount),
+            description: `AP - ${invoiceEvent.invoice_number}`,
+            vendorId: invoiceEvent.vendor_id,
+            invoiceNumber: invoiceEvent.invoice_number,
+            dueDate: invoiceEvent.due_date,
+            paymentTerms: 'Net 30',
           },
         ],
       };
@@ -155,7 +165,7 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
       await axios.post(`${ledgerWriterUrl}/journal-entries`, journalEntry);
       this.logger.log(`Posted AP invoice ${invoiceEvent.invoice_id} to GL`);
     } catch (error) {
-      this.logger.error(`Failed to post AP invoice to GL: ${error.message}`);
+      this.logger.error(`Failed to post AP invoice to GL: ${error.message}`, error.stack);
       throw error;
     }
   }
@@ -178,27 +188,31 @@ export class EventConsumerService implements OnModuleInit, OnModuleDestroy {
 
   private async postARInvoiceToGL(invoiceEvent: any): Promise<void> {
     try {
-      const ledgerWriterUrl = process.env.LEDGER_WRITER_URL || 'http://localhost:3001';
+      const ledgerWriterUrl = process.env.LEDGER_WRITER_URL || 'http://ledger-writer:3001';
 
       // Create GL entry: Debit AR, Credit Revenue
       const journalEntry = {
         tenantId: invoiceEvent.tenant_id,
         entryDate: invoiceEvent.invoice_date,
-        entryType: 'AR Invoice',
+        entryType: 'ar_invoice',
+        sourceType: 'AR System',
+        sourceRefId: invoiceEvent.invoice_id,
         description: `AR Invoice ${invoiceEvent.invoice_number}`,
-        referenceId: invoiceEvent.invoice_id,
         lines: [
           {
             accountCode: '1200', // Accounts Receivable
             debitAmount: invoiceEvent.total_amount,
             creditAmount: 0,
-            description: `AR Invoice ${invoiceEvent.invoice_number}`,
+            description: `AR - ${invoiceEvent.invoice_number}`,
+            customerId: invoiceEvent.customer_id,
+            invoiceNumber: invoiceEvent.invoice_number,
+            dueDate: invoiceEvent.due_date,
           },
           {
             accountCode: '4000', // Revenue
             debitAmount: 0,
             creditAmount: invoiceEvent.total_amount,
-            description: `AR Invoice ${invoiceEvent.invoice_number}`,
+            description: `Revenue - ${invoiceEvent.invoice_number}`,
           },
         ],
       };

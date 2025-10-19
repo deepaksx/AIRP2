@@ -138,14 +138,16 @@
             errorAlert.style.display = 'none';
 
             try {
+                // Fetch customer balances from journal entry lines (dimension_2)
                 const query = `
                     SELECT
                         c.customer_id,
                         c.customer_code,
                         c.customer_name,
-                        COALESCE(SUM(ar.amount_outstanding), 0) as total_outstanding
+                        COALESCE(SUM(jel.debit_amount - jel.credit_amount), 0) as total_outstanding
                     FROM customers c
-                    LEFT JOIN ar_invoices ar ON c.customer_id = ar.customer_id
+                    LEFT JOIN journal_entry_lines jel ON c.customer_id = jel.dimension_2::uuid
+                    LEFT JOIN journal_entries je ON jel.entry_id = je.entry_id AND je.status = 'posted'
                     WHERE c.tenant_id = '${TID}'
                     GROUP BY c.customer_id, c.customer_code, c.customer_name
                     ORDER BY c.customer_code

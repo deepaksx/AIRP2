@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post Journal Entry - AIRP v2.5</title>
+    <link rel="stylesheet" href="styles/sap-design-system.css">
+    <style>
+        .transaction-type-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .transaction-type-card {
+            border: 2px solid #E0E0E0;
+            border-radius: 8px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        .transaction-type-card:hover {
+            border-color: #0070F3;
+            background: #F0F7FF;
+            transform: translateY(-2px);
+        }
+        .transaction-type-card.selected {
+            border-color: #0070F3;
+            background: #E8F4FF;
+            box-shadow: 0 4px 12px rgba(0, 112, 243, 0.2);
+        }
+        .transaction-type-icon {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+        .transaction-type-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .transaction-type-desc {
+            font-size: 12px;
+            color: #666;
+        }
+        .form-section {
+            background: white;
+            border: 1px solid #E0E0E0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .form-section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #0070F3;
+        }
+        .dimension-fields {
+            display: none;
+            background: #F8F9FA;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+        .dimension-fields.show {
+            display: block;
+        }
+        .helper-text {
+            font-size: 12px;
+            color: #666;
+            font-style: italic;
+            margin-top: 5px;
+        }
+        .required-indicator {
+            color: #D32F2F;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <div class="header-top">
+            <div>
+                <div class="page-title">Post Journal Entry</div>
+                <div class="page-subtitle">Single source of truth for all financial transactions</div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="window.location.href='je-register.html'">View Register</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+        <div id="error-alert" class="alert error" style="display: none;"></div>
+        <div id="success-alert" class="alert success" style="display: none;"></div>
+
+        <!-- Transaction Type Selector -->
+        <div class="form-section">
+            <div class="form-section-title">1. Select Transaction Type</div>
+            <div class="transaction-type-selector">
+                <div class="transaction-type-card" onclick="selectTransactionType('ap_invoice')">
+                    <div class="transaction-type-icon">📥</div>
+                    <div class="transaction-type-name">AP Invoice</div>
+                    <div class="transaction-type-desc">Vendor bill received</div>
+                </div>
+                <div class="transaction-type-card" onclick="selectTransactionType('ar_invoice')">
+                    <div class="transaction-type-icon">📤</div>
+                    <div class="transaction-type-name">AR Invoice</div>
+                    <div class="transaction-type-desc">Customer invoice issued</div>
+                </div>
+                <div class="transaction-type-card" onclick="selectTransactionType('payment')">
+                    <div class="transaction-type-icon">💳</div>
+                    <div class="transaction-type-name">Payment</div>
+                    <div class="transaction-type-desc">Vendor/Customer payment</div>
+                </div>
+                <div class="transaction-type-card" onclick="selectTransactionType('bank_transaction')">
+                    <div class="transaction-type-icon">🏦</div>
+                    <div class="transaction-type-name">Bank Transaction</div>
+                    <div class="transaction-type-desc">Deposits & withdrawals</div>
+                </div>
+                <div class="transaction-type-card" onclick="selectTransactionType('general')">
+                    <div class="transaction-type-icon">📝</div>
+                    <div class="transaction-type-name">General Entry</div>
+                    <div class="transaction-type-desc">Adjustments & accruals</div>
+                </div>
+                <div class="transaction-type-card" onclick="selectTransactionType('depreciation')">
+                    <div class="transaction-type-icon">📉</div>
+                    <div class="transaction-type-name">Depreciation</div>
+                    <div class="transaction-type-desc">Fixed asset depreciation</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Entry Header -->
+        <div class="form-section">
+            <div class="form-section-title">2. Entry Details</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Entry Date <span class="required-indicator">*</span></label>
+                    <input type="date" id="entry-date" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Reference Number</label>
+                    <input type="text" id="reference-number" class="form-input" placeholder="Auto-generated">
+                </div>
+                <div class="form-group" style="grid-column: 1 / -1;">
+                    <label>Description <span class="required-indicator">*</span></label>
+                    <textarea id="description" class="form-input" rows="2" required></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dimension Fields (shown based on transaction type) -->
+        <div id="dimension-section" class="form-section" style="display: none;">
+            <div class="form-section-title">3. Sub-Ledger Details</div>
+
+            <!-- Vendor Selection (for AP transactions) -->
+            <div id="vendor-fields" class="dimension-fields">
+                <div class="form-group">
+                    <label>Vendor <span class="required-indicator">*</span></label>
+                    <select id="vendor-select" class="form-input">
+                        <option value="">Select Vendor...</option>
+                    </select>
+                    <div class="helper-text">Required for AP transactions - links to vendor sub-ledger</div>
+                </div>
+                <div class="form-group">
+                    <label>Invoice Number</label>
+                    <input type="text" id="vendor-invoice-number" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Due Date</label>
+                    <input type="date" id="vendor-due-date" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Payment Terms</label>
+                    <select id="payment-terms" class="form-input">
+                        <option value="Net 30">Net 30</option>
+                        <option value="Net 60">Net 60</option>
+                        <option value="Net 90">Net 90</option>
+                        <option value="Due on Receipt">Due on Receipt</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Customer Selection (for AR transactions) -->
+            <div id="customer-fields" class="dimension-fields">
+                <div class="form-group">
+                    <label>Customer <span class="required-indicator">*</span></label>
+                    <select id="customer-select" class="form-input">
+                        <option value="">Select Customer...</option>
+                    </select>
+                    <div class="helper-text">Required for AR transactions - links to customer sub-ledger</div>
+                </div>
+                <div class="form-group">
+                    <label>Invoice Number</label>
+                    <input type="text" id="customer-invoice-number" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Due Date</label>
+                    <input type="date" id="customer-due-date" class="form-input">
+                </div>
+            </div>
+
+            <!-- Project/Cost Center (optional for all) -->
+            <div id="project-fields" class="dimension-fields">
+                <div class="form-group">
+                    <label>Project (Optional)</label>
+                    <select id="project-select" class="form-input">
+                        <option value="">None</option>
+                        <option value="proj-001">Project Alpha</option>
+                        <option value="proj-002">Project Beta</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Cost Center (Optional)</label>
+                    <select id="cost-center-select" class="form-input">
+                        <option value="">None</option>
+                        <option value="cc-admin">Administration</option>
+                        <option value="cc-sales">Sales & Marketing</option>
+                        <option value="cc-it">IT Department</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Journal Entry Lines -->
+        <div class="form-section">
+            <div class="form-section-title">4. Journal Entry Lines</div>
+            <div id="je-lines-container"></div>
+            <button class="btn btn-secondary" onclick="addLine()">+ Add Line</button>
+
+            <div style="margin-top: 20px; padding: 15px; background: #F0F7FF; border-radius: 6px;">
+                <div style="display: flex; justify-content: space-between; font-weight: 600;">
+                    <span>Total Debits:</span>
+                    <span id="total-debits">0.00</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-weight: 600;">
+                    <span>Total Credits:</span>
+                    <span id="total-credits">0.00</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 16px; margin-top: 10px; padding-top: 10px; border-top: 2px solid #0070F3;">
+                    <span>Difference:</span>
+                    <span id="balance-check" style="color: #D32F2F;">0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button class="btn btn-primary" onclick="postJournalEntry()">Post Journal Entry</button>
+            <button class="btn btn-secondary" onclick="resetForm()">Reset</button>
+        </div>
+    </div>
+
+    <script>
+        const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+        const API_URL = 'http://localhost:3001/journal-entries';
+        const QUERY_URL = 'http://localhost:3008/api/query';
+
+        let selectedTransactionType = null;
+        let lineCount = 0;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('entry-date').valueAsDate = new Date();
+            loadVendors();
+            loadCustomers();
+            addLine(); // Add first line
+            addLine(); // Add second line
+        });
+
+        async function loadVendors() {
+            const response = await fetch(QUERY_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: `SELECT vendor_id, vendor_code, vendor_name FROM vendors WHERE tenant_id = '${TENANT_ID}' ORDER BY vendor_code`
+                })
+            });
+            const vendors = await response.json();
+            const select = document.getElementById('vendor-select');
+            vendors.forEach(v => {
+                const option = document.createElement('option');
+                option.value = v.vendor_id;
+                option.textContent = `${v.vendor_code} - ${v.vendor_name}`;
+                select.appendChild(option);
+            });
+        }
+
+        async function loadCustomers() {
+            const response = await fetch(QUERY_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: `SELECT customer_id, customer_code, customer_name FROM customers WHERE tenant_id = '${TENANT_ID}' ORDER BY customer_code`
+                })
+            });
+            const customers = await response.json();
+            const select = document.getElementById('customer-select');
+            customers.forEach(c => {
+                const option = document.createElement('option');
+                option.value = c.customer_id;
+                option.textContent = `${c.customer_code} - ${c.customer_name}`;
+                select.appendChild(option);
+            });
+        }
+
+        function selectTransactionType(type) {
+            selectedTransactionType = type;
+
+            // Update UI
+            document.querySelectorAll('.transaction-type-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+
+            // Show/hide dimension fields
+            document.getElementById('dimension-section').style.display = 'block';
+            document.getElementById('vendor-fields').classList.remove('show');
+            document.getElementById('customer-fields').classList.remove('show');
+            document.getElementById('project-fields').classList.remove('show');
+
+            if (type === 'ap_invoice' || type === 'payment' && confirm('Vendor payment?')) {
+                document.getElementById('vendor-fields').classList.add('show');
+            } else if (type === 'ar_invoice' || type === 'payment' && !confirm('Vendor payment?')) {
+                document.getElementById('customer-fields').classList.add('show');
+            }
+
+            // Always show project/cost center fields
+            document.getElementById('project-fields').classList.add('show');
+
+            // Pre-populate based on type
+            if (type === 'ap_invoice') {
+                document.getElementById('description').value = 'AP Invoice - ';
+            } else if (type === 'ar_invoice') {
+                document.getElementById('description').value = 'AR Invoice - ';
+            }
+        }
+
+        function addLine() {
+            lineCount++;
+            const container = document.getElementById('je-lines-container');
+            const lineDiv = document.createElement('div');
+            lineDiv.className = 'form-grid';
+            lineDiv.style.marginBottom = '15px';
+            lineDiv.style.padding = '15px';
+            lineDiv.style.background = '#FAFAFA';
+            lineDiv.style.borderRadius = '6px';
+            lineDiv.innerHTML = `
+                <div class="form-group">
+                    <label>Account</label>
+                    <select class="form-input account-select" onchange="updateTotals()">
+                        <option value="">Select Account...</option>
+                        <option value="1000">1000 - Cash</option>
+                        <option value="1200">1200 - Accounts Receivable</option>
+                        <option value="2100">2100 - Accounts Payable</option>
+                        <option value="2130">2130 - Tax Payable</option>
+                        <option value="4000">4000 - Revenue</option>
+                        <option value="4100">4100 - Other Income</option>
+                        <option value="5100">5100 - Operating Expenses</option>
+                        <option value="5200">5200 - Utilities Expense</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" class="form-input line-description">
+                </div>
+                <div class="form-group">
+                    <label>Debit</label>
+                    <input type="number" class="form-input debit-amount" step="0.01" min="0" value="0" onchange="updateTotals()">
+                </div>
+                <div class="form-group">
+                    <label>Credit</label>
+                    <input type="number" class="form-input credit-amount" step="0.01" min="0" value="0" onchange="updateTotals()">
+                </div>
+                <div class="form-group" style="display: flex; align-items: flex-end;">
+                    <button class="btn btn-secondary" onclick="removeLine(this)" style="width: 100%;">Remove</button>
+                </div>
+            `;
+            container.appendChild(lineDiv);
+        }
+
+        function removeLine(button) {
+            button.closest('.form-grid').remove();
+            updateTotals();
+        }
+
+        function updateTotals() {
+            let totalDebits = 0;
+            let totalCredits = 0;
+
+            document.querySelectorAll('.debit-amount').forEach(input => {
+                totalDebits += parseFloat(input.value || 0);
+            });
+
+            document.querySelectorAll('.credit-amount').forEach(input => {
+                totalCredits += parseFloat(input.value || 0);
+            });
+
+            document.getElementById('total-debits').textContent = totalDebits.toFixed(2);
+            document.getElementById('total-credits').textContent = totalCredits.toFixed(2);
+
+            const difference = Math.abs(totalDebits - totalCredits);
+            const balanceCheck = document.getElementById('balance-check');
+            balanceCheck.textContent = difference.toFixed(2);
+            balanceCheck.style.color = difference < 0.01 ? '#0F5132' : '#D32F2F';
+        }
+
+        async function postJournalEntry() {
+            // Validation
+            if (!selectedTransactionType) {
+                showError('Please select a transaction type');
+                return;
+            }
+
+            const entryDate = document.getElementById('entry-date').value;
+            const description = document.getElementById('description').value;
+
+            if (!entryDate || !description) {
+                showError('Please fill in all required fields');
+                return;
+            }
+
+            // Build lines
+            const lines = [];
+            const lineContainers = document.querySelectorAll('#je-lines-container .form-grid');
+
+            lineContainers.forEach((container, index) => {
+                const accountCode = container.querySelector('.account-select').value;
+                const lineDesc = container.querySelector('.line-description').value;
+                const debitAmount = parseFloat(container.querySelector('.debit-amount').value || 0);
+                const creditAmount = parseFloat(container.querySelector('.credit-amount').value || 0);
+
+                if (accountCode && (debitAmount > 0 || creditAmount > 0)) {
+                    const line = {
+                        accountCode,
+                        debitAmount,
+                        creditAmount,
+                        description: lineDesc || description
+                    };
+
+                    // Add vendor/customer for AR/AP accounts
+                    if (accountCode === '2100') {
+                        const vendorId = document.getElementById('vendor-select').value;
+                        if (!vendorId) {
+                            showError('Vendor is required for AP account 2100');
+                            throw new Error('Vendor required');
+                        }
+                        line.vendorId = vendorId;
+                        line.invoiceNumber = document.getElementById('vendor-invoice-number').value;
+                        line.dueDate = document.getElementById('vendor-due-date').value;
+                    } else if (accountCode === '1200') {
+                        const customerId = document.getElementById('customer-select').value;
+                        if (!customerId) {
+                            showError('Customer is required for AR account 1200');
+                            throw new Error('Customer required');
+                        }
+                        line.customerId = customerId;
+                        line.invoiceNumber = document.getElementById('customer-invoice-number').value;
+                        line.dueDate = document.getElementById('customer-due-date').value;
+                    }
+
+                    lines.push(line);
+                }
+            });
+
+            if (lines.length < 2) {
+                showError('At least 2 lines required');
+                return;
+            }
+
+            // Check balance
+            const totalDebits = lines.reduce((sum, line) => sum + line.debitAmount, 0);
+            const totalCredits = lines.reduce((sum, line) => sum + line.creditAmount, 0);
+            if (Math.abs(totalDebits - totalCredits) > 0.01) {
+                showError(`Entry is not balanced. Debits: ${totalDebits}, Credits: ${totalCredits}`);
+                return;
+            }
+
+            // Post to API
+            const payload = {
+                tenantId: TENANT_ID,
+                entryDate,
+                entryType: selectedTransactionType,
+                sourceType: 'Manual',
+                description,
+                lines
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const error = await response.text();
+                    throw new Error(error);
+                }
+
+                const result = await response.json();
+                showSuccess(`Journal Entry posted successfully! Entry ID: ${result.entryId}`);
+                setTimeout(() => window.location.href = 'je-register.html', 2000);
+            } catch (error) {
+                showError(`Failed to post: ${error.message}`);
+            }
+        }
+
+        function showError(message) {
+            const alert = document.getElementById('error-alert');
+            alert.textContent = message;
+            alert.style.display = 'block';
+            setTimeout(() => alert.style.display = 'none', 5000);
+        }
+
+        function showSuccess(message) {
+            const alert = document.getElementById('success-alert');
+            alert.textContent = message;
+            alert.style.display = 'block';
+        }
+
+        function resetForm() {
+            window.location.reload();
+        }
+    </script>
+</body>
+</html>
