@@ -3,746 +3,672 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AIRP v2.0 - AI-Native Financial ERP</title>
-    <script>
-        // Redirect to new ChatERP interface
-        window.location.href = '/chaterp.html';
-    </script>
+    <title>AIRP v2.0 - AI-Powered Financial ERP</title>
     <style>
+        /* ==================== SAP-like Design System ==================== */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #0f0f23;
-            color: #e0e0e0;
-            height: 100vh;
-            display: flex;
-            overflow: hidden;
+        :root {
+            /* SAP Color Palette */
+            --sap-primary: #0854A0;
+            --sap-primary-hover: #0066B3;
+            --sap-secondary: #32363A;
+            --sap-background: #F7F7F7;
+            --sap-surface: #FFFFFF;
+            --sap-border: #D9D9D9;
+            --sap-text-primary: #32363A;
+            --sap-text-secondary: #6A6D70;
+            --sap-text-disabled: #B3B3B3;
+            --sap-success: #107E3E;
+            --sap-warning: #E9730C;
+            --sap-error: #BB0000;
+            --sap-info: #0854A0;
+            --sap-shadow: rgba(0, 0, 0, 0.15);
         }
 
-        /* Sidebar */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: var(--sap-background);
+            color: var(--sap-text-primary);
+            line-height: 1.5;
+        }
+
+        /* Top Navigation Bar */
+        .top-nav {
+            background: var(--sap-surface);
+            border-bottom: 1px solid var(--sap-border);
+            padding: 0;
+            display: flex;
+            align-items: stretch;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 4px var(--sap-shadow);
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 24px;
+            background: var(--sap-primary);
+            color: white;
+            min-width: 280px;
+        }
+
+        .logo-icon {
+            font-size: 24px;
+        }
+
+        .logo-text {
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-center {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--sap-text-secondary);
+            font-size: 14px;
+        }
+
+        .breadcrumb-separator {
+            color: var(--sap-border);
+        }
+
+        .breadcrumb-current {
+            color: var(--sap-text-primary);
+            font-weight: 500;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 0 24px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--sap-text-secondary);
+        }
+
+        /* Main Layout */
+        .main-container {
+            display: flex;
+            height: calc(100vh - 49px);
+        }
+
+        /* Sidebar Navigation */
         .sidebar {
             width: 280px;
-            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .logo {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .logo h1 {
-            font-size: 2em;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .logo p {
-            font-size: 0.9em;
-            color: #888;
-            margin-top: 5px;
-        }
-
-        .quick-actions {
-            flex: 1;
+            background: var(--sap-surface);
+            border-right: 1px solid var(--sap-border);
             overflow-y: auto;
-        }
-
-        .quick-actions h3 {
-            color: #667eea;
-            font-size: 0.9em;
-            margin-bottom: 15px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .action-card {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-            border: 1px solid transparent;
-        }
-
-        .action-card:hover {
-            background: rgba(102, 126, 234, 0.1);
-            border-color: #667eea;
-            transform: translateX(5px);
-        }
-
-        .action-card h4 {
-            color: #fff;
-            font-size: 0.95em;
-            margin-bottom: 5px;
-        }
-
-        .action-card p {
-            color: #888;
-            font-size: 0.85em;
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
             display: flex;
             flex-direction: column;
-            max-width: 1400px;
-            margin: 0 auto;
-            width: 100%;
         }
 
-        .header {
-            padding: 20px 30px;
-            background: rgba(255, 255, 255, 0.02);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        .sidebar-section {
+            border-bottom: 1px solid var(--sap-border);
         }
 
-        .header h2 {
-            color: #fff;
-            font-size: 1.8em;
-            margin-bottom: 5px;
-        }
-
-        .header p {
-            color: #888;
-        }
-
-        /* Chat Container */
-        .chat-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .content-frame {
-            display: none;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #0f0f23;
-            z-index: 10;
-        }
-
-        .content-frame.active {
-            display: block;
-        }
-
-        .content-frame iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-
-        .close-frame {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 1.2em;
-            z-index: 11;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-        }
-
-        .close-frame:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: scale(1.1);
-        }
-
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .message {
-            margin-bottom: 20px;
-            display: flex;
-            gap: 15px;
-            animation: fadeIn 0.3s;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .message.user {
-            flex-direction: row-reverse;
-        }
-
-        .message-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.3em;
-            flex-shrink: 0;
-        }
-
-        .message.ai .message-avatar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .message.user .message-avatar {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-
-        .message-content {
-            max-width: 70%;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 15px 20px;
-            border-radius: 15px;
-            line-height: 1.6;
-        }
-
-        .message.user .message-content {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .message-content pre {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 10px;
-            border-radius: 5px;
-            overflow-x: auto;
-            margin: 10px 0;
-        }
-
-        .message-content code {
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-        }
-
-        /* Dynamic Result Card */
-        .result-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(102, 126, 234, 0.3);
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 15px;
-        }
-
-        .result-card h4 {
-            color: #667eea;
-            margin-bottom: 15px;
-        }
-
-        .result-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        .result-table th,
-        .result-table td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .result-table th {
-            color: #667eea;
+        .sidebar-header {
+            padding: 12px 16px;
+            background: #FAFAFA;
+            font-size: 12px;
             font-weight: 600;
-        }
-
-        /* Chat Input */
-        .chat-input-container {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            padding: 10px;
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            border: 2px solid transparent;
-            transition: border-color 0.3s;
-        }
-
-        .chat-input-container:focus-within {
-            border-color: #667eea;
-        }
-
-        .chat-input {
-            flex: 1;
-            background: transparent;
-            border: none;
-            outline: none;
-            color: #fff;
-            font-size: 1em;
-            padding: 10px;
-        }
-
-        .chat-input::placeholder {
-            color: #666;
-        }
-
-        .send-button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            color: white;
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--sap-text-secondary);
             cursor: pointer;
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
-            font-size: 1.2em;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .sidebar-header:hover {
+            background: #F0F0F0;
+        }
+
+        .sidebar-header-icon {
+            font-size: 14px;
             transition: transform 0.3s;
         }
 
-        .send-button:hover {
-            transform: scale(1.1);
+        .sidebar-header-icon.collapsed {
+            transform: rotate(-90deg);
         }
 
-        .send-button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .sidebar-section-content {
+            max-height: 1000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
         }
 
-        .typing-indicator {
-            display: none;
-            padding: 10px 20px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            width: fit-content;
+        .sidebar-section-content.collapsed {
+            max-height: 0;
         }
 
-        .typing-indicator.active {
-            display: block;
-        }
-
-        .typing-indicator span {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #667eea;
-            margin: 0 3px;
-            animation: typing 1.4s infinite;
-        }
-
-        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
-
-        @keyframes typing {
-            0%, 60%, 100% { transform: translateY(0); }
-            30% { transform: translateY(-10px); }
-        }
-
-        .suggestions {
+        .nav-item {
             display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-
-        .suggestion-chip {
-            background: rgba(102, 126, 234, 0.1);
-            border: 1px solid #667eea;
-            color: #667eea;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 0.9em;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            color: var(--sap-text-primary);
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s;
             cursor: pointer;
-            transition: all 0.3s;
+            border-left: 3px solid transparent;
         }
 
-        .suggestion-chip:hover {
-            background: #667eea;
-            color: white;
+        .nav-item:hover {
+            background: #F5F5F5;
         }
 
-        .stats-grid {
+        .nav-item.active {
+            background: #E8F0F8;
+            border-left-color: var(--sap-primary);
+            color: var(--sap-primary);
+            font-weight: 500;
+        }
+
+        .nav-icon {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Content Area */
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--sap-background);
+            overflow: hidden;
+        }
+
+        .content-header {
+            background: var(--sap-surface);
+            padding: 20px 32px;
+            border-bottom: 1px solid var(--sap-border);
+        }
+
+        .content-title {
+            font-size: 24px;
+            font-weight: 400;
+            color: var(--sap-text-primary);
+            margin-bottom: 4px;
+        }
+
+        .content-subtitle {
+            font-size: 14px;
+            color: var(--sap-text-secondary);
+        }
+
+        .content-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 32px;
+        }
+
+        /* Welcome Screen */
+        .welcome-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .welcome-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
         }
 
-        .stat-card {
-            background: rgba(255, 255, 255, 0.03);
-            padding: 15px;
-            border-radius: 10px;
-            border-left: 3px solid #667eea;
+        .welcome-card {
+            background: var(--sap-surface);
+            border: 1px solid var(--sap-border);
+            border-radius: 4px;
+            padding: 24px;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .stat-card h5 {
-            color: #888;
-            font-size: 0.85em;
+        .welcome-card:hover {
+            box-shadow: 0 4px 12px var(--sap-shadow);
+            transform: translateY(-2px);
+        }
+
+        .welcome-card-icon {
+            font-size: 32px;
+            margin-bottom: 16px;
+        }
+
+        .welcome-card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--sap-text-primary);
             margin-bottom: 8px;
         }
 
-        .stat-card .value {
-            font-size: 1.8em;
-            color: #fff;
-            font-weight: 600;
+        .welcome-card-desc {
+            font-size: 14px;
+            color: var(--sap-text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Iframe Container */
+        .iframe-container {
+            display: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        .iframe-container.active {
+            display: block;
+        }
+
+        .iframe-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--sap-primary);
+            color: white;
+            border-color: var(--sap-primary);
+        }
+
+        .btn-primary:hover {
+            background: var(--sap-primary-hover);
+            border-color: var(--sap-primary-hover);
+        }
+
+        .btn-secondary {
+            background: var(--sap-surface);
+            color: var(--sap-text-primary);
+            border-color: var(--sap-border);
+        }
+
+        .btn-secondary:hover {
+            background: #F5F5F5;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #F0F0F0;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #C0C0C0;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #A0A0A0;
         }
     </style>
 </head>
 <body>
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="logo">
-            <h1>AIRP v2.0</h1>
-            <p>AI-Native Financial ERP</p>
+    <!-- Top Navigation -->
+    <div class="top-nav">
+        <div class="logo-section">
+            <div class="logo-icon">⚡</div>
+            <div class="logo-text">AIRP v2.0</div>
         </div>
 
-        <div class="quick-actions">
-            <h3>Quick Actions</h3>
-            <div class="action-card" onclick="sendMessage('Show me the general ledger')">
-                <h4>📖 General Ledger</h4>
-                <p>View all account transactions</p>
+        <div class="nav-center">
+            <div class="breadcrumb">
+                <span>Home</span>
+                <span class="breadcrumb-separator">›</span>
+                <span class="breadcrumb-current" id="current-page">Dashboard</span>
             </div>
-            <div class="action-card" onclick="sendMessage('Post a journal entry')">
-                <h4>✍️ Post Journal Entry</h4>
-                <p>Record transactions</p>
-            </div>
-            <div class="action-card" onclick="sendMessage('Show trial balance')">
-                <h4>⚖️ Trial Balance</h4>
-                <p>Check account balances</p>
-            </div>
-            <div class="action-card" onclick="sendMessage('Classify invoice: Google Workspace subscription 2400 AED')">
-                <h4>🤖 AI Classification</h4>
-                <p>Auto-classify transactions</p>
-            </div>
-            <div class="action-card" onclick="sendMessage('Reconcile bank statement')">
-                <h4>🔄 Bank Reconciliation</h4>
-                <p>Match bank & GL entries</p>
-            </div>
-            <div class="action-card" onclick="sendMessage('Show cash flow forecast')">
-                <h4>📊 Cash Flow Forecast</h4>
-                <p>AI-powered predictions</p>
-            </div>
-            <div class="action-card" onclick="sendMessage('Generate financial narrative')">
-                <h4>📝 AI Narrative</h4>
-                <p>Explain financial data</p>
-            </div>
-            <div class="action-card" onclick="sendMessage('Check policy for approval')">
-                <h4>🛡️ Policy Check</h4>
-                <p>Approval workflows</p>
+        </div>
+
+        <div class="nav-right">
+            <div class="user-info">
+                <span>👤</span>
+                <span>ACME Corporation</span>
             </div>
         </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="main-content">
-        <div class="header">
-            <h2>AI Financial Assistant</h2>
-            <p>Ask me anything - Post transactions, view reports, get insights...</p>
-        </div>
-
-        <div class="chat-container">
-            <!-- Content Frame Overlay -->
-            <div class="content-frame" id="contentFrame">
-                <button class="close-frame" onclick="closeFrame()">✕</button>
-                <iframe id="contentIframe"></iframe>
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sidebar Navigation -->
+        <div class="sidebar">
+            <!-- Master Data Section -->
+            <div class="sidebar-section">
+                <div class="sidebar-header" onclick="toggleSection(this)">
+                    <span>1. Master Data</span>
+                    <span class="sidebar-header-icon">▼</span>
+                </div>
+                <div class="sidebar-section-content">
+                    <a class="nav-item" onclick="loadContent('chart-of-accounts.html')">
+                        <span class="nav-icon">📑</span>
+                        <span>Chart of Accounts</span>
+                    </a>
+                    <a class="nav-item" onclick="loadContent('vendors.html')">
+                        <span class="nav-icon">🏪</span>
+                        <span>Vendors</span>
+                    </a>
+                    <a class="nav-item" onclick="loadContent('customers.html')">
+                        <span class="nav-icon">👥</span>
+                        <span>Customers</span>
+                    </a>
+                    <a class="nav-item" onclick="loadContent('bank-accounts.html')">
+                        <span class="nav-icon">🏦</span>
+                        <span>Bank Accounts</span>
+                    </a>
+                </div>
             </div>
 
-            <div class="chat-messages" id="chatMessages">
-                <div class="message ai">
-                    <div class="message-avatar">🤖</div>
-                    <div class="message-content">
-                        <p>👋 <strong>Welcome to AIRP v2.0!</strong></p>
-                        <p>I'm your AI financial assistant. I can help you with:</p>
-                        <ul style="margin-left: 20px; margin-top: 10px;">
-                            <li>📝 Post journal entries & vendor payments</li>
-                            <li>📊 View ledgers, trial balance & reports</li>
-                            <li>🤖 Auto-classify transactions with AI</li>
-                            <li>🔄 Reconcile bank statements</li>
-                            <li>📈 Generate cash flow forecasts</li>
-                            <li>✍️ Create financial narratives</li>
-                            <li>✅ Check approval policies</li>
-                        </ul>
-                        <p style="margin-top: 15px;">Just type what you need in natural language!</p>
+            <!-- Transactions Section -->
+            <div class="sidebar-section">
+                <div class="sidebar-header" onclick="toggleSection(this)">
+                    <span>2. Transactions</span>
+                    <span class="sidebar-header-icon">▼</span>
+                </div>
+                <div class="sidebar-section-content">
+                    <a class="nav-item" onclick="loadContent('post-je-enhanced.html')" style="background: #FFF3CD; border-left-color: #E9730C;">
+                        <span class="nav-icon">✍️</span>
+                        <span><strong>Post Journal Entry</strong></span>
+                    </a>
+                    <a class="nav-item" onclick="loadContent('post-ap-invoice.html')">
+                        <span class="nav-icon">📥</span>
+                        <span>AP Invoice (Legacy)</span>
+                    </a>
+                    <a class="nav-item" onclick="loadContent('post-ar-invoice.html')">
+                        <span class="nav-icon">📤</span>
+                        <span>AR Invoice (Legacy)</span>
+                    </a>
+                    <a class="nav-item" onclick="loadContent('post-payment.html')">
+                        <span class="nav-icon">💳</span>
+                        <span>Payment (Legacy)</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Ledgers & Registers Section -->
+            <div class="sidebar-section">
+                <div class="sidebar-header" onclick="toggleSection(this)">
+                    <span>3. Ledgers & Registers</span>
+                    <span class="sidebar-header-icon">▼</span>
+                </div>
+                <div class="sidebar-section-content">
+                    <a class="nav-item" onclick="loadContent('je-register.html')">
+                        <span class="nav-icon">📋</span>
+                        <span>Journal Entry Register</span>
+                    </a>
+                    <a class="nav-item" onclick="loadContent('gl-line-items.html')">
+                        <span class="nav-icon">📖</span>
+                        <span>General Ledger</span>
+                    </a>
+                    <a class="nav-item" onclick="loadContent('vendor-ledger.html')">
+                        <span class="nav-icon">🏢</span>
+                        <span>Vendor Ledger</span>
+                    </a>
+                    <a class="nav-item" onclick="loadContent('customer-ledger.html')">
+                        <span class="nav-icon">👤</span>
+                        <span>Customer Ledger</span>
+                    </a>
+                    <a class="nav-item" onclick="loadContent('account-balances.html')">
+                        <span class="nav-icon">💰</span>
+                        <span>Account Balances</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Financial Reports Section -->
+            <div class="sidebar-section">
+                <div class="sidebar-header" onclick="toggleSection(this)">
+                    <span>4. Financial Reports</span>
+                    <span class="sidebar-header-icon">▼</span>
+                </div>
+                <div class="sidebar-section-content">
+                    <a class="nav-item" onclick="loadContent('trial-balance.html')">
+                        <span class="nav-icon">⚖️</span>
+                        <span>Trial Balance</span>
+                    </a>
+                    <a class="nav-item" onclick="loadContent('income-statement.html')">
+                        <span class="nav-icon">📊</span>
+                        <span>Income Statement</span>
+                    </a>
+                    <a class="nav-item" onclick="loadContent('balance-sheet.html')">
+                        <span class="nav-icon">📈</span>
+                        <span>Balance Sheet</span>
+                    </a>
+                    <a class="nav-item" onclick="loadContent('cash-flow-statement.html')">
+                        <span class="nav-icon">💸</span>
+                        <span>Cash Flow Statement</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- System Section -->
+            <div class="sidebar-section">
+                <div class="sidebar-header" onclick="toggleSection(this)">
+                    <span>5. System</span>
+                    <span class="sidebar-header-icon">▼</span>
+                </div>
+                <div class="sidebar-section-content">
+                    <a class="nav-item" onclick="loadContent('database-explorer.html')">
+                        <span class="nav-icon">🗄️</span>
+                        <span>Database Explorer</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="content-area">
+            <!-- Welcome View -->
+            <div id="welcome-view">
+                <div class="content-header">
+                    <div class="content-title">Welcome to AIRP v2.0</div>
+                    <div class="content-subtitle">AI-Powered Financial ERP with Event Sourcing & Real-time Analytics</div>
+                </div>
+
+                <div class="content-body">
+                    <div class="welcome-container">
+                        <div class="welcome-cards">
+                            <div class="welcome-card" onclick="loadContent('post-je-enhanced.html')" style="border: 2px solid #E9730C; background: #FFFBF0;">
+                                <div class="welcome-card-icon">✍️</div>
+                                <div class="welcome-card-title"><strong>Post Journal Entry (NEW)</strong></div>
+                                <div class="welcome-card-desc">Single source of truth for ALL financial transactions - Select type, auto-validates vendor/customer</div>
+                            </div>
+
+                            <div class="welcome-card" onclick="loadContent('post-ap-invoice.html')">
+                                <div class="welcome-card-icon">📥</div>
+                                <div class="welcome-card-title">Record AP Invoice</div>
+                                <div class="welcome-card-desc">Record vendor invoices and track payables</div>
+                            </div>
+
+                            <div class="welcome-card" onclick="loadContent('post-ar-invoice.html')">
+                                <div class="welcome-card-icon">📤</div>
+                                <div class="welcome-card-title">Create AR Invoice</div>
+                                <div class="welcome-card-desc">Issue customer invoices and track receivables</div>
+                            </div>
+
+                            <div class="welcome-card" onclick="loadContent('trial-balance.html')">
+                                <div class="welcome-card-icon">⚖️</div>
+                                <div class="welcome-card-title">Trial Balance</div>
+                                <div class="welcome-card-desc">Verify accounting accuracy with trial balance report</div>
+                            </div>
+
+                            <div class="welcome-card" onclick="loadContent('gl-line-items.html')">
+                                <div class="welcome-card-icon">📖</div>
+                                <div class="welcome-card-title">General Ledger</div>
+                                <div class="welcome-card-desc">View detailed general ledger transactions</div>
+                            </div>
+
+                            <div class="welcome-card" onclick="loadContent('income-statement.html')">
+                                <div class="welcome-card-icon">📊</div>
+                                <div class="welcome-card-title">Income Statement</div>
+                                <div class="welcome-card-desc">Analyze revenue and expenses with P&L statement</div>
+                            </div>
+
+                            <div class="welcome-card" onclick="loadContent('balance-sheet.html')">
+                                <div class="welcome-card-icon">📈</div>
+                                <div class="welcome-card-title">Balance Sheet</div>
+                                <div class="welcome-card-desc">View financial position with balance sheet</div>
+                            </div>
+
+                            <div class="welcome-card" onclick="loadContent('cash-flow-statement.html')">
+                                <div class="welcome-card-icon">💸</div>
+                                <div class="welcome-card-title">Cash Flow</div>
+                                <div class="welcome-card-desc">Track cash movements and liquidity</div>
+                            </div>
+
+                            <div class="welcome-card" onclick="loadContent('vendor-ledger.html')">
+                                <div class="welcome-card-icon">🏢</div>
+                                <div class="welcome-card-title">Vendor Ledger</div>
+                                <div class="welcome-card-desc">Review vendor balances and transactions</div>
+                            </div>
+
+                            <div class="welcome-card" onclick="loadContent('customer-ledger.html')">
+                                <div class="welcome-card-icon">👤</div>
+                                <div class="welcome-card-title">Customer Ledger</div>
+                                <div class="welcome-card-desc">Review customer balances and transactions</div>
+                            </div>
+
+                            <div class="welcome-card" onclick="loadContent('chart-of-accounts.html')">
+                                <div class="welcome-card-icon">📑</div>
+                                <div class="welcome-card-title">Chart of Accounts</div>
+                                <div class="welcome-card-desc">Manage general ledger accounts and structure</div>
+                            </div>
+
+                            <div class="welcome-card" onclick="loadContent('database-explorer.html')">
+                                <div class="welcome-card-icon">🗄️</div>
+                                <div class="welcome-card-title">Database Explorer</div>
+                                <div class="welcome-card-desc">Explore database tables and execute queries</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="suggestions" id="suggestions">
-                <div class="suggestion-chip" onclick="sendMessage('Post rent payment 5000 AED to Dubai Properties')">Post rent payment</div>
-                <div class="suggestion-chip" onclick="sendMessage('Show me today\\'s transactions')">Today's transactions</div>
-                <div class="suggestion-chip" onclick="sendMessage('What\\'s my cash balance?')">Cash balance</div>
-                <div class="suggestion-chip" onclick="sendMessage('Help me understand my expenses')">Analyze expenses</div>
-            </div>
-
-            <div class="chat-input-container">
-                <input
-                    type="text"
-                    class="chat-input"
-                    id="chatInput"
-                    placeholder="Ask me anything... (e.g., 'Post a journal entry for rent 5000 AED')"
-                    onkeypress="if(event.key==='Enter') sendMessage()"
-                >
-                <button class="send-button" onclick="sendMessage()" id="sendButton">
-                    ➤
-                </button>
-            </div>
-
-            <div class="typing-indicator" id="typingIndicator">
-                <span></span>
-                <span></span>
-                <span></span>
+            <!-- Content View (for iframes) -->
+            <div id="content-view" class="iframe-container">
+                <iframe id="content-frame"></iframe>
             </div>
         </div>
     </div>
 
     <script>
-        const TENANT_ID = '00000000-0000-0000-0000-000000000001';
-        const chatMessages = document.getElementById('chatMessages');
-        const chatInput = document.getElementById('chatInput');
-        const sendButton = document.getElementById('sendButton');
-        const typingIndicator = document.getElementById('typingIndicator');
+        let currentContent = null;
 
-        // Intent patterns and handlers
-        const intentPatterns = {
-            'general_ledger': /show|view|display.*(general ledger|gl|ledger)|ledger/i,
-            'trial_balance': /show|view|display.*(trial balance|tb)/i,
-            'post_journal': /post|create|record.*(journal|entry|je)/i,
-            'post_payment': /post|create|pay.*(payment|invoice|bill)/i,
-            'classify': /classify|categorize|tag/i,
-            'reconcile': /reconcile|reconciliation|match/i,
-            'cash_flow': /cash flow|forecast|projection/i,
-            'narrative': /narrative|explain|describe|summary/i,
-            'policy': /policy|approval|check|authorize/i,
-            'help': /help|what can you|how to/i
-        };
+        function loadContent(url) {
+            const welcomeView = document.getElementById('welcome-view');
+            const contentView = document.getElementById('content-view');
+            const contentFrame = document.getElementById('content-frame');
 
-        async function sendMessage(text) {
-            const message = text || chatInput.value.trim();
-            if (!message) return;
+            // Hide welcome, show iframe
+            welcomeView.style.display = 'none';
+            contentView.classList.add('active');
 
-            // Clear input
-            chatInput.value = '';
+            // Load content
+            contentFrame.src = url;
+            currentContent = url;
 
-            // Add user message
-            addMessage(message, 'user');
+            // Update breadcrumb
+            updateBreadcrumb(url);
 
-            // Show typing indicator
-            typingIndicator.classList.add('active');
-            sendButton.disabled = true;
-
-            // Detect intent and handle
-            await handleIntent(message);
-
-            // Hide typing indicator
-            typingIndicator.classList.remove('active');
-            sendButton.disabled = false;
+            // Update active nav item
+            updateActiveNav(url);
         }
 
-        function addMessage(content, type = 'ai') {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${type}`;
+        function updateBreadcrumb(url) {
+            const breadcrumb = document.getElementById('current-page');
+            const filename = url.split('?')[0].split('.html')[0];
 
-            const avatar = document.createElement('div');
-            avatar.className = 'message-avatar';
-            avatar.textContent = type === 'ai' ? '🤖' : '👤';
+            const pageNames = {
+                'chart-of-accounts': 'Chart of Accounts',
+                'vendors': 'Vendors',
+                'customers': 'Customers',
+                'bank-accounts': 'Bank Accounts',
+                'post-je': 'Journal Entry',
+                'post-ap-invoice': 'AP Invoice',
+                'post-ar-invoice': 'AR Invoice',
+                'post-payment': 'Payment',
+                'je-register': 'Journal Entry Register',
+                'gl-line-items': 'General Ledger',
+                'vendor-ledger': 'Vendor Ledger',
+                'customer-ledger': 'Customer Ledger',
+                'account-balances': 'Account Balances',
+                'trial-balance': 'Trial Balance',
+                'income-statement': 'Income Statement',
+                'balance-sheet': 'Balance Sheet',
+                'cash-flow-statement': 'Cash Flow Statement',
+                'master-data': 'Master Data',
+                'database-explorer': 'Database Explorer'
+            };
 
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'message-content';
-            contentDiv.innerHTML = content;
-
-            messageDiv.appendChild(avatar);
-            messageDiv.appendChild(contentDiv);
-            chatMessages.appendChild(messageDiv);
-
-            // Scroll to bottom
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            breadcrumb.textContent = pageNames[filename] || 'Dashboard';
         }
 
-        async function handleIntent(message) {
-            const lowerMessage = message.toLowerCase();
+        function updateActiveNav(url) {
+            // Remove active from all nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
 
-            // Detect intent
-            if (intentPatterns.general_ledger.test(message)) {
-                openFrame('/ledgers-dashboard.html');
-                addMessage(`
-                    <p>✅ Opening General Ledger dashboard...</p>
-                    <p>You can view:</p>
-                    <ul style="margin-left: 20px;">
-                        <li>📖 General Ledger (all accounts)</li>
-                        <li>🏢 Vendor Ledger (AP sub-ledger)</li>
-                        <li>👥 Customer Ledger (AR sub-ledger)</li>
-                        <li>⚖️ Trial Balance</li>
-                    </ul>
-                `);
-            }
-            else if (intentPatterns.trial_balance.test(message)) {
-                openFrame('/ledgers-dashboard.html?tab=trial-balance');
-                addMessage('✅ Opening Trial Balance report...');
-            }
-            else if (intentPatterns.post_journal.test(message)) {
-                openFrame('/post-transactions.html');
-                addMessage(`
-                    <p>✅ Opening transaction posting interface...</p>
-                    <p>You can:</p>
-                    <ul style="margin-left: 20px;">
-                        <li>📝 Post journal entries (manual GL entries)</li>
-                        <li>💰 Create vendor invoices (AP)</li>
-                    </ul>
-                    <p>Or tell me the details and I'll help you format it!</p>
-                `);
-            }
-            else if (intentPatterns.classify.test(message)) {
-                // Extract amount and description
-                const amountMatch = message.match(/(\d+(?:,\d{3})*(?:\.\d{2})?)\s*(AED|USD)?/);
-                const amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : null;
-
-                if (amount) {
-                    // Call AI classification
-                    addMessage(`
-                        <p>🤖 Classifying transaction using AI...</p>
-                        <p><strong>Description:</strong> ${message}</p>
-                        <p><strong>Amount:</strong> ${amount} AED</p>
-                    `);
-
-                    try {
-                        const response = await fetch('http://localhost:8001/classify', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                tenant_id: TENANT_ID,
-                                invoice_id: 'chat-' + Date.now(),
-                                transaction_type: 'AP',
-                                lines: [{
-                                    line_number: 1,
-                                    description: message,
-                                    amount: amount,
-                                    quantity: 1
-                                }]
-                            })
-                        });
-
-                        if (response.ok) {
-                            const result = await response.json();
-                            const suggestion = result.suggestions[0];
-                            addMessage(`
-                                <div class="result-card">
-                                    <h4>✅ AI Classification Result</h4>
-                                    <p><strong>Account Code:</strong> ${suggestion.account_code}</p>
-                                    <p><strong>Account Name:</strong> ${suggestion.account_name}</p>
-                                    <p><strong>Confidence:</strong> ${(suggestion.confidence_score * 100).toFixed(0)}%</p>
-                                    <p><strong>Reasoning:</strong> ${suggestion.reasoning}</p>
-                                </div>
-                            `);
-                        }
-                    } catch (err) {
-                        addMessage(`❌ Error classifying transaction: ${err.message}`);
-                    }
-                } else {
-                    openFrame('/classify-demo.html');
-                    addMessage('✅ Opening AI Classification demo...');
+            // Find and activate matching nav item
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                const onClick = item.getAttribute('onclick');
+                if (onClick && onClick.includes(url.split('?')[0])) {
+                    item.classList.add('active');
                 }
-            }
-            else if (intentPatterns.reconcile.test(message)) {
-                openFrame('/recon-demo.html');
-                addMessage(`
-                    <p>✅ Opening Bank Reconciliation interface...</p>
-                    <p>You can:</p>
-                    <ul style="margin-left: 20px;">
-                        <li>🔄 Upload bank statement CSV</li>
-                        <li>🤖 AI-powered transaction matching</li>
-                        <li>📊 View matched & unmatched transactions</li>
-                    </ul>
-                `);
-            }
-            else if (intentPatterns.cash_flow.test(message)) {
-                openFrame('/cashflow-demo.html');
-                addMessage('✅ Opening AI Cash Flow Forecast...');
-            }
-            else if (intentPatterns.narrative.test(message)) {
-                openFrame('/narrative-demo.html');
-                addMessage('✅ Opening AI Narrative Generation...');
-            }
-            else if (intentPatterns.policy.test(message)) {
-                openFrame('/policy-demo.html');
-                addMessage('✅ Opening AI Policy Advisor...');
-            }
-            else if (intentPatterns.help.test(message)) {
-                addMessage(`
-                    <p><strong>Here's what I can help you with:</strong></p>
-                    <ol style="margin-left: 20px; margin-top: 10px;">
-                        <li><strong>View Data:</strong> "Show me the general ledger", "Display trial balance"</li>
-                        <li><strong>Post Transactions:</strong> "Post a journal entry", "Create vendor invoice"</li>
-                        <li><strong>AI Classification:</strong> "Classify: Google Workspace 2400 AED"</li>
-                        <li><strong>Reconciliation:</strong> "Reconcile bank statement"</li>
-                        <li><strong>Forecasting:</strong> "Show cash flow forecast"</li>
-                        <li><strong>Narratives:</strong> "Generate financial narrative"</li>
-                        <li><strong>Policy Check:</strong> "Check if this needs approval"</li>
-                    </ol>
-                    <p style="margin-top: 15px;">Just ask in natural language!</p>
-                `);
-            }
-            else {
-                // Generic response with suggestions
-                addMessage(`
-                    <p>I'm not sure exactly what you need, but here are some things I can help with:</p>
-                    <div class="stats-grid">
-                        <div class="stat-card" onclick="sendMessage('Show general ledger')">
-                            <h5>View Ledgers</h5>
-                            <p>GL, AP, AR, Trial Balance</p>
-                        </div>
-                        <div class="stat-card" onclick="sendMessage('Post a journal entry')">
-                            <h5>Post Transactions</h5>
-                            <p>Journal entries & invoices</p>
-                        </div>
-                        <div class="stat-card" onclick="sendMessage('Classify transaction')">
-                            <h5>AI Classification</h5>
-                            <p>Auto-categorize with AI</p>
-                        </div>
-                        <div class="stat-card" onclick="sendMessage('Help')">
-                            <h5>Get Help</h5>
-                            <p>See all capabilities</p>
-                        </div>
-                    </div>
-                    <p style="margin-top: 15px;">Click a card above or ask me something specific!</p>
-                `);
-            }
+            });
         }
 
-        function openFrame(url) {
-            // Load URL in iframe
-            document.getElementById('contentIframe').src = url;
-            // Show the overlay
-            document.getElementById('contentFrame').classList.add('active');
-        }
+        function toggleSection(header) {
+            const content = header.nextElementSibling;
+            const icon = header.querySelector('.sidebar-header-icon');
 
-        function closeFrame() {
-            // Hide the overlay
-            document.getElementById('contentFrame').classList.remove('active');
-            // Clear iframe source to stop any running processes
-            document.getElementById('contentIframe').src = '';
+            content.classList.toggle('collapsed');
+            icon.classList.toggle('collapsed');
         }
-
-        // Auto-focus input
-        chatInput.focus();
     </script>
 </body>
 </html>
