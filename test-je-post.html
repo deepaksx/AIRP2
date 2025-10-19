@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test JE Post Functionality</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .pass { color: green; font-weight: bold; }
+        .fail { color: red; font-weight: bold; }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>JE Post Functionality Test</h1>
+
+    <div class="test-section">
+        <h2>Step 1: Open post-je-enhanced.html</h2>
+        <p><a href="post-je-enhanced.html" target="_blank">Click here to open post-je-enhanced.html in a new tab</a></p>
+    </div>
+
+    <div class="test-section">
+        <h2>Step 2: Test JavaScript Functionality</h2>
+        <p>This page will test if the JavaScript in post-je-enhanced.html is working correctly.</p>
+        <button onclick="runTests()">Run Tests</button>
+        <div id="test-results" style="margin-top: 15px;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Step 3: Check Console</h2>
+        <ol>
+            <li>Open Developer Tools (Press F12)</li>
+            <li>Go to Console tab</li>
+            <li>Clear console (right-click → Clear console)</li>
+            <li>Go to post-je-enhanced.html tab</li>
+            <li>Select a transaction type (e.g., "General Entry")</li>
+            <li>Fill in entry date (today's date)</li>
+            <li>Fill in description (e.g., "Test entry")</li>
+            <li>Add 2 lines:
+                <ul>
+                    <li>Line 1: Account 1000 (Cash), Debit: 100</li>
+                    <li>Line 2: Account 5100 (Expenses), Credit: 100</li>
+                </ul>
+            </li>
+            <li>Click "Post Journal Entry" button</li>
+            <li>Check console for messages starting with "==="</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>Expected Console Output</h2>
+        <pre>
+=== Post Journal Entry Button Clicked ===
+Selected transaction type: general
+Entry Date: 2025-10-19
+Description: Test entry
+Found line containers: 2
+Line 0: account=1000, DR=100, CR=0
+Line 1: account=5100, DR=0, CR=100
+Total lines built: 2
+Total Debits: 100 Total Credits: 100
+Posting payload: {
+  "tenantId": "00000000-0000-0000-0000-000000000001",
+  "entryDate": "2025-10-19",
+  "entryType": "general",
+  "sourceType": "Manual",
+  "description": "Test entry",
+  "lines": [...]
+}
+Response status: 201
+Success! Result: {...}
+        </pre>
+    </div>
+
+    <div class="test-section">
+        <h2>Common Issues & Solutions</h2>
+        <table border="1" cellpadding="10" style="width: 100%; border-collapse: collapse;">
+            <tr>
+                <th>Issue</th>
+                <th>Cause</th>
+                <th>Solution</th>
+            </tr>
+            <tr>
+                <td>No console output at all</td>
+                <td>JavaScript error preventing execution</td>
+                <td>Check Console for red error messages</td>
+            </tr>
+            <tr>
+                <td>"Please select a transaction type"</td>
+                <td>Transaction type not selected</td>
+                <td>Click one of the transaction type cards</td>
+            </tr>
+            <tr>
+                <td>"Please fill in all required fields"</td>
+                <td>Missing entry date or description</td>
+                <td>Fill in all required fields marked with *</td>
+            </tr>
+            <tr>
+                <td>"At least 2 lines required"</td>
+                <td>Not enough journal entry lines</td>
+                <td>Add at least 2 lines with accounts and amounts</td>
+            </tr>
+            <tr>
+                <td>"Entry is not balanced"</td>
+                <td>Debits ≠ Credits</td>
+                <td>Ensure total debits = total credits</td>
+            </tr>
+            <tr>
+                <td>"Vendor is required for AP account 2100"</td>
+                <td>Posting to AP without vendor</td>
+                <td>Select transaction type "AP Invoice" and choose vendor</td>
+            </tr>
+            <tr>
+                <td>"Customer is required for AR account 1200"</td>
+                <td>Posting to AR without customer</td>
+                <td>Select transaction type "AR Invoice" and choose customer</td>
+            </tr>
+        </table>
+    </div>
+
+    <script>
+        function runTests() {
+            const resultsDiv = document.getElementById('test-results');
+            let results = '<h3>Test Results:</h3>';
+
+            // Test 1: Check if we can access the page
+            results += '<p><strong>Test 1: Check if post-je-enhanced.html is accessible</strong></p>';
+            fetch('post-je-enhanced.html')
+                .then(response => {
+                    if (response.ok) {
+                        results += '<p class="pass">✓ PASS: Page is accessible</p>';
+                    } else {
+                        results += '<p class="fail">✗ FAIL: Page returned status ' + response.status + '</p>';
+                    }
+                    resultsDiv.innerHTML = results;
+
+                    // Test 2: Check if page contains required elements
+                    return response.text();
+                })
+                .then(html => {
+                    results += '<p><strong>Test 2: Check for required HTML elements</strong></p>';
+
+                    const checks = [
+                        { name: 'Post button', pattern: 'id="post-button"' },
+                        { name: 'onclick handler', pattern: 'onclick="postJournalEntry()"' },
+                        { name: 'Console log', pattern: 'Post Journal Entry Button Clicked' },
+                        { name: 'Error alert', pattern: 'id="error-alert"' },
+                        { name: 'Success alert', pattern: 'id="success-alert"' },
+                        { name: 'Entry date input', pattern: 'id="entry-date"' },
+                        { name: 'Description input', pattern: 'id="description"' },
+                        { name: 'Lines container', pattern: 'id="je-lines-container"' }
+                    ];
+
+                    checks.forEach(check => {
+                        if (html.includes(check.pattern)) {
+                            results += `<p class="pass">✓ PASS: ${check.name} found</p>`;
+                        } else {
+                            results += `<p class="fail">✗ FAIL: ${check.name} not found</p>`;
+                        }
+                    });
+
+                    resultsDiv.innerHTML = results;
+
+                    // Test 3: Check if ledger-writer service is running
+                    results += '<p><strong>Test 3: Check if Ledger Writer API is accessible</strong></p>';
+                    return fetch('http://localhost:3001/journal-entries?tenant_id=00000000-0000-0000-0000-000000000001');
+                })
+                .then(response => {
+                    if (response.ok) {
+                        results += '<p class="pass">✓ PASS: Ledger Writer API is accessible</p>';
+                    } else {
+                        results += '<p class="fail">✗ FAIL: Ledger Writer API returned status ' + response.status + '</p>';
+                    }
+                    resultsDiv.innerHTML = results;
+                })
+                .catch(error => {
+                    results += '<p class="fail">✗ ERROR: ' + error.message + '</p>';
+                    resultsDiv.innerHTML = results;
+                });
+        }
+    </script>
+</body>
+</html>

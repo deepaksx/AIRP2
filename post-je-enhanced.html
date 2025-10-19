@@ -102,32 +102,32 @@
         <div class="form-section">
             <div class="form-section-title">1. Select Transaction Type</div>
             <div class="transaction-type-selector">
-                <div class="transaction-type-card" onclick="selectTransactionType('ap_invoice')">
+                <div class="transaction-type-card" onclick="selectTransactionType('ap_invoice', event)">
                     <div class="transaction-type-icon">📥</div>
                     <div class="transaction-type-name">AP Invoice</div>
                     <div class="transaction-type-desc">Vendor bill received</div>
                 </div>
-                <div class="transaction-type-card" onclick="selectTransactionType('ar_invoice')">
+                <div class="transaction-type-card" onclick="selectTransactionType('ar_invoice', event)">
                     <div class="transaction-type-icon">📤</div>
                     <div class="transaction-type-name">AR Invoice</div>
                     <div class="transaction-type-desc">Customer invoice issued</div>
                 </div>
-                <div class="transaction-type-card" onclick="selectTransactionType('payment')">
+                <div class="transaction-type-card" onclick="selectTransactionType('payment', event)">
                     <div class="transaction-type-icon">💳</div>
                     <div class="transaction-type-name">Payment</div>
                     <div class="transaction-type-desc">Vendor/Customer payment</div>
                 </div>
-                <div class="transaction-type-card" onclick="selectTransactionType('bank_transaction')">
+                <div class="transaction-type-card" onclick="selectTransactionType('bank_transaction', event)">
                     <div class="transaction-type-icon">🏦</div>
                     <div class="transaction-type-name">Bank Transaction</div>
                     <div class="transaction-type-desc">Deposits & withdrawals</div>
                 </div>
-                <div class="transaction-type-card" onclick="selectTransactionType('general')">
+                <div class="transaction-type-card" onclick="selectTransactionType('general', event)">
                     <div class="transaction-type-icon">📝</div>
                     <div class="transaction-type-name">General Entry</div>
                     <div class="transaction-type-desc">Adjustments & accruals</div>
                 </div>
-                <div class="transaction-type-card" onclick="selectTransactionType('depreciation')">
+                <div class="transaction-type-card" onclick="selectTransactionType('depreciation', event)">
                     <div class="transaction-type-icon">📉</div>
                     <div class="transaction-type-name">Depreciation</div>
                     <div class="transaction-type-desc">Fixed asset depreciation</div>
@@ -252,7 +252,7 @@
         </div>
 
         <div class="form-actions">
-            <button class="btn btn-primary" onclick="postJournalEntry()">Post Journal Entry</button>
+            <button id="post-button" class="btn btn-primary" onclick="postJournalEntry()">Post Journal Entry</button>
             <button class="btn btn-secondary" onclick="resetForm()">Reset</button>
         </div>
     </div>
@@ -310,14 +310,17 @@
             });
         }
 
-        function selectTransactionType(type) {
+        function selectTransactionType(type, event) {
             selectedTransactionType = type;
+            console.log('Transaction type selected:', type);
 
             // Update UI
             document.querySelectorAll('.transaction-type-card').forEach(card => {
                 card.classList.remove('selected');
             });
-            event.currentTarget.classList.add('selected');
+            if (event && event.currentTarget) {
+                event.currentTarget.classList.add('selected');
+            }
 
             // Show/hide dimension fields
             document.getElementById('dimension-section').style.display = 'block';
@@ -412,103 +415,140 @@
         }
 
         async function postJournalEntry() {
-            // Validation
-            if (!selectedTransactionType) {
-                showError('Please select a transaction type');
-                return;
-            }
+            console.log('=== Post Journal Entry Button Clicked ===');
 
-            const entryDate = document.getElementById('entry-date').value;
-            const description = document.getElementById('description').value;
-
-            if (!entryDate || !description) {
-                showError('Please fill in all required fields');
-                return;
-            }
-
-            // Build lines
-            const lines = [];
-            const lineContainers = document.querySelectorAll('#je-lines-container .form-grid');
-
-            lineContainers.forEach((container, index) => {
-                const accountCode = container.querySelector('.account-select').value;
-                const lineDesc = container.querySelector('.line-description').value;
-                const debitAmount = parseFloat(container.querySelector('.debit-amount').value || 0);
-                const creditAmount = parseFloat(container.querySelector('.credit-amount').value || 0);
-
-                if (accountCode && (debitAmount > 0 || creditAmount > 0)) {
-                    const line = {
-                        accountCode,
-                        debitAmount,
-                        creditAmount,
-                        description: lineDesc || description
-                    };
-
-                    // Add vendor/customer for AR/AP accounts
-                    if (accountCode === '2100') {
-                        const vendorId = document.getElementById('vendor-select').value;
-                        if (!vendorId) {
-                            showError('Vendor is required for AP account 2100');
-                            throw new Error('Vendor required');
-                        }
-                        line.vendorId = vendorId;
-                        line.invoiceNumber = document.getElementById('vendor-invoice-number').value;
-                        line.dueDate = document.getElementById('vendor-due-date').value;
-                    } else if (accountCode === '1200') {
-                        const customerId = document.getElementById('customer-select').value;
-                        if (!customerId) {
-                            showError('Customer is required for AR account 1200');
-                            throw new Error('Customer required');
-                        }
-                        line.customerId = customerId;
-                        line.invoiceNumber = document.getElementById('customer-invoice-number').value;
-                        line.dueDate = document.getElementById('customer-due-date').value;
-                    }
-
-                    lines.push(line);
-                }
-            });
-
-            if (lines.length < 2) {
-                showError('At least 2 lines required');
-                return;
-            }
-
-            // Check balance
-            const totalDebits = lines.reduce((sum, line) => sum + line.debitAmount, 0);
-            const totalCredits = lines.reduce((sum, line) => sum + line.creditAmount, 0);
-            if (Math.abs(totalDebits - totalCredits) > 0.01) {
-                showError(`Entry is not balanced. Debits: ${totalDebits}, Credits: ${totalCredits}`);
-                return;
-            }
-
-            // Post to API
-            const payload = {
-                tenantId: TENANT_ID,
-                entryDate,
-                entryType: selectedTransactionType,
-                sourceType: 'Manual',
-                description,
-                lines
-            };
+            const postButton = document.getElementById('post-button');
+            const errorAlert = document.getElementById('error-alert');
+            const successAlert = document.getElementById('success-alert');
 
             try {
+                // Disable button and show loading
+                postButton.disabled = true;
+                postButton.textContent = 'Posting...';
+                errorAlert.style.display = 'none';
+                successAlert.style.display = 'none';
+
+                console.log('Selected transaction type:', selectedTransactionType);
+
+                // Validation
+                if (!selectedTransactionType) {
+                    showError('Please select a transaction type');
+                    return;
+                }
+
+                const entryDate = document.getElementById('entry-date').value;
+                const description = document.getElementById('description').value;
+
+                console.log('Entry Date:', entryDate);
+                console.log('Description:', description);
+
+                if (!entryDate || !description) {
+                    showError('Please fill in all required fields');
+                    return;
+                }
+
+                // Build lines
+                const lines = [];
+                const lineContainers = document.querySelectorAll('#je-lines-container .form-grid');
+                console.log('Found line containers:', lineContainers.length);
+
+                lineContainers.forEach((container, index) => {
+                    const accountCode = container.querySelector('.account-select').value;
+                    const lineDesc = container.querySelector('.line-description').value;
+                    const debitAmount = parseFloat(container.querySelector('.debit-amount').value || 0);
+                    const creditAmount = parseFloat(container.querySelector('.credit-amount').value || 0);
+
+                    console.log(`Line ${index}: account=${accountCode}, DR=${debitAmount}, CR=${creditAmount}`);
+
+                    if (accountCode && (debitAmount > 0 || creditAmount > 0)) {
+                        const line = {
+                            accountCode,
+                            debitAmount,
+                            creditAmount,
+                            description: lineDesc || description
+                        };
+
+                        // Add vendor/customer for AR/AP accounts
+                        if (accountCode === '2100') {
+                            const vendorId = document.getElementById('vendor-select').value;
+                            if (!vendorId) {
+                                showError('Vendor is required for AP account 2100');
+                                return;
+                            }
+                            line.vendorId = vendorId;
+                            line.invoiceNumber = document.getElementById('vendor-invoice-number').value;
+                            line.dueDate = document.getElementById('vendor-due-date').value;
+                        } else if (accountCode === '1200') {
+                            const customerId = document.getElementById('customer-select').value;
+                            if (!customerId) {
+                                showError('Customer is required for AR account 1200');
+                                return;
+                            }
+                            line.customerId = customerId;
+                            line.invoiceNumber = document.getElementById('customer-invoice-number').value;
+                            line.dueDate = document.getElementById('customer-due-date').value;
+                        }
+
+                        lines.push(line);
+                    }
+                });
+
+                console.log('Total lines built:', lines.length);
+
+                if (lines.length < 2) {
+                    showError('At least 2 lines required');
+                    return;
+                }
+
+                // Check balance
+                const totalDebits = lines.reduce((sum, line) => sum + line.debitAmount, 0);
+                const totalCredits = lines.reduce((sum, line) => sum + line.creditAmount, 0);
+                console.log('Total Debits:', totalDebits, 'Total Credits:', totalCredits);
+
+                if (Math.abs(totalDebits - totalCredits) > 0.01) {
+                    showError(`Entry is not balanced. Debits: ${totalDebits}, Credits: ${totalCredits}`);
+                    return;
+                }
+
+                // Post to API
+                const payload = {
+                    tenantId: TENANT_ID,
+                    entryDate,
+                    entryType: selectedTransactionType,
+                    sourceType: 'Manual',
+                    description,
+                    lines
+                };
+
+                console.log('Posting payload:', JSON.stringify(payload, null, 2));
+
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
 
+                console.log('Response status:', response.status);
+
                 if (!response.ok) {
                     const error = await response.text();
+                    console.error('API Error:', error);
                     throw new Error(error);
                 }
 
                 const result = await response.json();
+                console.log('Success! Result:', result);
                 showSuccess(`Journal Entry posted successfully! Entry ID: ${result.entryId}`);
                 setTimeout(() => window.location.href = 'je-register.html', 2000);
+
             } catch (error) {
+                console.error('=== ERROR in postJournalEntry ===');
+                console.error(error);
                 showError(`Failed to post: ${error.message}`);
+            } finally {
+                // Re-enable button
+                postButton.disabled = false;
+                postButton.textContent = 'Post Journal Entry';
             }
         }
 
