@@ -384,7 +384,7 @@
                 <div class="toggle-container">
                     <span class="toggle-label">Hide Zero Balances</span>
                     <label class="toggle-switch">
-                        <input type="checkbox" id="hide-zero-toggle" onchange="toggleZeroBalances()">
+                        <input type="checkbox" id="hide-zero-toggle" onchange="toggleZeroBalances()" checked>
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
@@ -615,6 +615,13 @@
             `;
 
             tbody.innerHTML = html;
+
+            // Apply initial toggle state (hide zero balances by default)
+            const checkbox = document.getElementById('hide-zero-toggle');
+            if (checkbox && checkbox.checked) {
+                const zeroBalanceRows = document.querySelectorAll('tr.zero-balance');
+                zeroBalanceRows.forEach(row => row.classList.add('hidden'));
+            }
         }
 
         function updateKPIs() {
