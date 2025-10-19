@@ -288,17 +288,7 @@
                 event.currentTarget.classList.add('selected');
             }
 
-            // Show/hide sections
-            document.getElementById('vendor-section').classList.remove('show');
-            document.getElementById('customer-section').classList.remove('show');
-
-            if (type === 'ap_invoice' || (type === 'payment' && confirm('Pay vendor? (Cancel for customer receipt)'))) {
-                document.getElementById('vendor-section').classList.add('show');
-            } else if (type === 'ar_invoice' || type === 'payment') {
-                document.getElementById('customer-section').classList.add('show');
-            }
-
-            // Pre-fill description
+            // Pre-fill description only
             const descriptions = {
                 'ap_invoice': 'AP Invoice - ',
                 'ar_invoice': 'AR Invoice - ',
@@ -308,39 +298,15 @@
             };
             document.getElementById('description').value = descriptions[type] || '';
 
-            // Clear existing lines and add template lines
+            // Clear existing lines and add 2 blank lines
             document.getElementById('lines-container').innerHTML = '';
+            addLine();
+            addLine();
 
-            // Add template lines based on transaction type
-            const templates = {
-                'ar_invoice': [
-                    { account: '1200', desc: 'AR - Customer Invoice', debit: 0, credit: 0 },
-                    { account: '4000', desc: 'Revenue', debit: 0, credit: 0 },
-                    { account: '2130', desc: 'VAT Payable (5%)', debit: 0, credit: 0 }
-                ],
-                'ap_invoice': [
-                    { account: '5100', desc: 'Operating Expenses', debit: 0, credit: 0 },
-                    { account: '2130', desc: 'VAT Recoverable (5%)', debit: 0, credit: 0 },
-                    { account: '2100', desc: 'AP - Vendor Invoice', debit: 0, credit: 0 }
-                ],
-                'payment': [
-                    { account: '2100', desc: 'Payment to Vendor', debit: 0, credit: 0 },
-                    { account: '1000', desc: 'Cash', debit: 0, credit: 0 }
-                ],
-                'bank': [
-                    { account: '1000', desc: 'Bank Transaction', debit: 0, credit: 0 },
-                    { account: '', desc: '', debit: 0, credit: 0 }
-                ],
-                'general': [
-                    { account: '', desc: '', debit: 0, credit: 0 },
-                    { account: '', desc: '', debit: 0, credit: 0 }
-                ]
-            };
-
-            const template = templates[type] || templates['general'];
-            template.forEach(line => {
-                addLineWithData(line.account, line.desc, line.debit, line.credit);
-            });
+            // Hide vendor/customer sections initially
+            // They will show when user selects AR/AP accounts
+            document.getElementById('vendor-section').classList.remove('show');
+            document.getElementById('customer-section').classList.remove('show');
         }
 
         function addLine() {
@@ -353,7 +319,7 @@
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>
-                    <select class="account-select" onchange="updateTotals()">
+                    <select class="account-select" onchange="checkARAPAccounts(); updateTotals();">
                         <option value="">Select Account...</option>
                         <option value="1000">1000 - Cash</option>
                         <option value="1200">1200 - Accounts Receivable</option>
@@ -375,6 +341,26 @@
             if (accountCode) {
                 const select = row.querySelector('.account-select');
                 select.value = accountCode;
+            }
+        }
+
+        function checkARAPAccounts() {
+            // Check if any line has AR (1200) or AP (2100) selected
+            const accounts = Array.from(document.querySelectorAll('.account-select')).map(s => s.value);
+            const hasAR = accounts.includes('1200');
+            const hasAP = accounts.includes('2100');
+
+            // Show/hide sections based on selected accounts
+            if (hasAR) {
+                document.getElementById('customer-section').classList.add('show');
+            } else {
+                document.getElementById('customer-section').classList.remove('show');
+            }
+
+            if (hasAP) {
+                document.getElementById('vendor-section').classList.add('show');
+            } else {
+                document.getElementById('vendor-section').classList.remove('show');
             }
         }
 
@@ -474,31 +460,6 @@
                 if (Math.abs(totalDebits - totalCredits) > 0.01) {
                     showError(`Entry is not balanced!\n\nDebits: ${totalDebits.toFixed(2)}\nCredits: ${totalCredits.toFixed(2)}\nDifference: ${Math.abs(totalDebits - totalCredits).toFixed(2)}`);
                     return;
-                }
-
-                // Validate transaction type patterns
-                if (selectedType === 'ar_invoice') {
-                    const hasAR = lines.some(line => line.accountCode === '1200' && line.debitAmount > 0);
-                    const hasRevenue = lines.some(line => line.accountCode === '4000' && line.creditAmount > 0);
-                    if (!hasAR) {
-                        showError('AR Invoice must have account 1200 (Accounts Receivable) as a DEBIT');
-                        return;
-                    }
-                    if (!hasRevenue) {
-                        showError('AR Invoice must have account 4000 (Revenue) as a CREDIT');
-                        return;
-                    }
-                } else if (selectedType === 'ap_invoice') {
-                    const hasExpense = lines.some(line => line.accountCode === '5100' && line.debitAmount > 0);
-                    const hasAP = lines.some(line => line.accountCode === '2100' && line.creditAmount > 0);
-                    if (!hasExpense) {
-                        showError('AP Invoice must have account 5100 (Operating Expenses) as a DEBIT');
-                        return;
-                    }
-                    if (!hasAP) {
-                        showError('AP Invoice must have account 2100 (Accounts Payable) as a CREDIT');
-                        return;
-                    }
                 }
 
                 // Post to API
