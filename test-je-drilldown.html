@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test JE Drilldown</title>
+    <script src="scripts/je-viewer.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            background: #f5f5f5;
+        }
+        .test-link {
+            color: #0070F3;
+            text-decoration: underline;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            margin: 10px 0;
+            display: block;
+        }
+        .test-link:hover {
+            color: #0051C9;
+        }
+        h1 {
+            color: #333;
+        }
+        .instruction {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #0070F3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Journal Entry Drilldown Test</h1>
+
+    <div class="instruction">
+        <strong>Instructions:</strong> Click any entry number below to test the drilldown modal.
+        The modal should pop up showing the complete journal entry with all lines.
+    </div>
+
+    <h2>Test Entries:</h2>
+
+    <a href="#" class="test-link" onclick="event.preventDefault(); JEViewer.open('44510ae6-9aba-411c-8cad-a5e406677a7c', 'JE-1760870932656'); return false;">
+        JE-1760870932656 (AP Invoice)
+    </a>
+
+    <a href="#" class="test-link" onclick="event.preventDefault(); JEViewer.open('201d88af-0ded-4063-b1ce-81d47b17fb5c', 'JE-1760870932688'); return false;">
+        JE-1760870932688
+    </a>
+
+    <a href="#" class="test-link" onclick="event.preventDefault(); JEViewer.open('1a1f0bdb-9491-40dd-86e2-6eb283100ffa', 'JE-1760870932748'); return false;">
+        JE-1760870932748
+    </a>
+
+    <script>
+        // Set global config for JE Viewer
+        window.TENANT_ID = '00000000-0000-0000-0000-000000000001';
+        window.API_URL = 'http://localhost:3008/api/query';
+
+        // Initialize JE Viewer on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Initializing JE Viewer...');
+            JEViewer.init();
+            console.log('JE Viewer initialized!');
+        });
+    </script>
+</body>
+</html>

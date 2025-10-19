@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Journal Entry Register - AIRP v2.0</title>
+    <link rel="stylesheet" href="styles/sap-design-system.css">
+    <script src="scripts/je-viewer.js"></script>
+    <style>
+        /* Make JE links more visible and clickable */
+        .je-clickable {
+            color: #0070F3;
+            text-decoration: underline;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .je-clickable:hover {
+            color: #0051C9;
+            text-decoration: underline;
+        }
+        /* Prevent entry number wrapping */
+        .entry-number-cell {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <div class="header-top">
+            <div>
+                <div class="page-title">Journal Entry Register</div>
+                <div class="page-subtitle">List of all posted journal entries - Click on any entry number to view details</div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="loadData()">🔄 Refresh</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+        <div id="error-alert" class="alert error" style="display: none;"></div>
+
+        <div class="report-card">
+            <div class="report-header">
+                <div class="report-title">Journal Entry Register</div>
+                <div class="report-date"><span id="record-count">0</span> entries</div>
+            </div>
+
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 180px;">Entry Number</th>
+                        <th style="width: 100px;">Date</th>
+                        <th>Description</th>
+                        <th style="width: 120px;">Type</th>
+                        <th style="width: 130px;" class="text-right">Total Debit</th>
+                        <th style="width: 130px;" class="text-right">Total Credit</th>
+                        <th style="width: 90px;">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="data-tbody">
+                    <tr><td colspan="7" class="loading"><div class="spinner"></div><div>Loading journal entries...</div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const TID = '00000000-0000-0000-0000-000000000001';
+        const API_URL = 'http://localhost:3008/api/query';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+        });
+
+        async function loadData() {
+            const tbody = document.getElementById('data-tbody');
+            const errorAlert = document.getElementById('error-alert');
+
+            tbody.innerHTML = '<tr><td colspan="7" class="loading"><div class="spinner"></div><div>Loading journal entries...</div></td></tr>';
+            errorAlert.style.display = 'none';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: `
+                            SELECT
+                                entry_id,
+                                entry_number,
+                                entry_date,
+                                entry_type,
+                                description,
+                                total_debit,
+                                total_credit,
+                                status
+                            FROM journal_entries
+                            WHERE tenant_id = '${TID}'
+                            ORDER BY entry_date DESC, entry_number DESC
+                            LIMIT 500
+                        `,
+                        params: []
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                renderData(Array.isArray(data) ? data : []);
+            } catch (err) {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-state-icon">⚠️</div><div><strong>Failed to load journal entries</strong></div></td></tr>';
+                errorAlert.textContent = `Error: ${err.message}`;
+                errorAlert.style.display = 'block';
+            }
+        }
+
+        function renderData(items) {
+            const tbody = document.getElementById('data-tbody');
+            document.getElementById('record-count').textContent = items.length;
+
+            if (!items.length) {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-state-icon">📋</div><div>No journal entries found</div></td></tr>';
+                return;
+            }
+
+            let html = '';
+            items.forEach(item => {
+                const debit = parseFloat(item.total_debit || 0);
+                const credit = parseFloat(item.total_credit || 0);
+                const entryDate = new Date(item.entry_date).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                });
+
+                const statusClass = item.status === 'posted' ? 'status-posted' :
+                                   item.status === 'draft' ? 'status-draft' :
+                                   'status-reversed';
+
+                const entryNumberLink = item.entry_number && item.entry_id
+                    ? `<a href="#" class="je-clickable" onclick="event.preventDefault(); JEViewer.open('${item.entry_id}', '${item.entry_number}'); return false;">${item.entry_number}</a>`
+                    : (item.entry_number || '-');
+
+                html += `
+                    <tr>
+                        <td class="entry-number-cell">${entryNumberLink}</td>
+                        <td>${entryDate}</td>
+                        <td>${item.description || '-'}</td>
+                        <td>${item.entry_type || '-'}</td>
+                        <td class="text-right amount-positive">${debit.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td>
+                        <td class="text-right amount-negative">${credit.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td>
+                        <td><span class="status-badge ${statusClass}">${item.status || 'posted'}</span></td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
