@@ -21,6 +21,16 @@ export interface JournalEntryLineDto {
   debitAmount: number;
   creditAmount: number;
   description?: string;
+  // Sub-ledger dimensions
+  vendorId?: string;      // For AP transactions (account 2100)
+  customerId?: string;    // For AR transactions (account 1200)
+  projectId?: string;     // For project costing
+  costCenterId?: string;  // For department/location tracking
+  // Metadata
+  invoiceNumber?: string;
+  dueDate?: string;
+  paymentTerms?: string;
+  metadata?: any;         // Flexible JSONB storage
 }
 
 @Injectable()
@@ -36,6 +46,31 @@ export class JournalEntryService {
 
     if (Math.abs(totalDebits - totalCredits) > 0.01) {
       throw new Error(`Journal entry is not balanced. Debits: ${totalDebits}, Credits: ${totalCredits}`);
+    }
+
+    // ACCOUNTING CONTROL: Validate AR/AP control accounts have required dimensions
+    for (const line of dto.lines) {
+      // Check AR control account (1200) - MUST have customer
+      if (line.accountCode === '1200') {
+        if (!line.customerId) {
+          throw new Error(
+            `Account 1200 (Accounts Receivable) requires a Customer ID. ` +
+            `Direct posting to AR control account is not allowed. ` +
+            `Please select a customer or use AR invoice entry.`
+          );
+        }
+      }
+
+      // Check AP control account (2100) - MUST have vendor
+      if (line.accountCode === '2100') {
+        if (!line.vendorId) {
+          throw new Error(
+            `Account 2100 (Accounts Payable) requires a Vendor ID. ` +
+            `Direct posting to AP control account is not allowed. ` +
+            `Please select a vendor or use AP invoice entry.`
+          );
+        }
+      }
     }
 
     const entryId = uuidv4();
@@ -63,6 +98,16 @@ export class JournalEntryService {
           debitAmount: line.debitAmount.toFixed(4),
           creditAmount: line.creditAmount.toFixed(4),
           description: line.description || dto.description,
+          // Sub-ledger tracking
+          vendorId: line.vendorId,
+          customerId: line.customerId,
+          projectId: line.projectId,
+          costCenterId: line.costCenterId,
+          // Additional metadata
+          invoiceNumber: line.invoiceNumber,
+          dueDate: line.dueDate,
+          paymentTerms: line.paymentTerms,
+          metadata: line.metadata,
         })),
         aiGenerated: dto.aiGenerated || false,
         aiConfidenceScore: dto.aiConfidenceScore?.toFixed(4),
@@ -108,12 +153,19 @@ export class JournalEntryService {
 
     const originalData = originalEntry.event_data;
 
-    // Create reversing entry (swap debits and credits)
+    // Create reversing entry (swap debits and credits, preserve sub-ledger info)
     const reversedLines = originalData.lines.map((line) => ({
       accountCode: line.accountCode,
       debitAmount: parseFloat(line.creditAmount),
       creditAmount: parseFloat(line.debitAmount),
       description: `REVERSAL: ${line.description}`,
+      // Preserve sub-ledger tracking
+      vendorId: line.vendorId,
+      customerId: line.customerId,
+      projectId: line.projectId,
+      costCenterId: line.costCenterId,
+      invoiceNumber: line.invoiceNumber,
+      metadata: line.metadata,
     }));
 
     const reversalEntryId = uuidv4();
