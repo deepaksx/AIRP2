@@ -55,6 +55,18 @@
             padding: 20px;
             color: #666;
         }
+        .amount-balanced {
+            color: #107E3E;
+            font-weight: 600;
+        }
+        .total-row {
+            background: #FAFAFA !important;
+            border-top: 2px solid #D9D9D9;
+            border-bottom: 2px solid #D9D9D9;
+        }
+        .total-row td {
+            padding: 14px 16px !important;
+        }
     </style>
 </head>
 <body>
@@ -206,10 +218,18 @@
             }
 
             let html = '';
+            let totalDebits = 0;
+            let totalCredits = 0;
+            let totalBalance = 0;
+
             accounts.forEach((account, index) => {
                 const debit = parseFloat(account.total_debit || 0);
                 const credit = parseFloat(account.total_credit || 0);
                 const balance = parseFloat(account.balance || 0);
+
+                totalDebits += debit;
+                totalCredits += credit;
+                totalBalance += balance;
 
                 // Main account row
                 html += `
@@ -235,6 +255,17 @@
                     </tr>
                 `;
             });
+
+            // Add total row
+            const isBalanced = Math.abs(totalBalance) < 0.01;
+            html += `
+                <tr class="total-row">
+                    <td colspan="3"><strong>TOTAL</strong></td>
+                    <td class="text-right amount-positive"><strong>${totalDebits.toLocaleString('en-AE', {minimumFractionDigits: 2})}</strong></td>
+                    <td class="text-right amount-negative"><strong>${totalCredits.toLocaleString('en-AE', {minimumFractionDigits: 2})}</strong></td>
+                    <td class="text-right ${isBalanced ? 'amount-balanced' : 'amount-negative'}"><strong>${totalBalance.toLocaleString('en-AE', {minimumFractionDigits: 2})}</strong></td>
+                </tr>
+            `;
 
             tbody.innerHTML = html;
         }
