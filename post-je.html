@@ -220,15 +220,46 @@
         const QUERY_URL = 'http://localhost:3008/api/query';
 
         let lineCount = 0;
+        let chartOfAccounts = [];
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('entry-date').valueAsDate = new Date();
+            loadChartOfAccounts();
             loadVendors();
             loadCustomers();
             addLine();
             addLine();
         });
+
+        async function loadChartOfAccounts() {
+            try {
+                const response = await fetch(QUERY_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: `SELECT account_id, account_code, account_name, account_type
+                                FROM chart_of_accounts
+                                WHERE tenant_id = '${TENANT_ID}'
+                                ORDER BY account_code`
+                    })
+                });
+                chartOfAccounts = await response.json();
+                console.log('Loaded', chartOfAccounts.length, 'accounts from Chart of Accounts');
+            } catch (error) {
+                console.error('Failed to load Chart of Accounts:', error);
+                // Fallback to hardcoded accounts if API fails
+                chartOfAccounts = [
+                    {account_code: '1000', account_name: 'Cash'},
+                    {account_code: '1200', account_name: 'Accounts Receivable'},
+                    {account_code: '2100', account_name: 'Accounts Payable'},
+                    {account_code: '2130', account_name: 'Tax Payable'},
+                    {account_code: '4000', account_name: 'Revenue'},
+                    {account_code: '5100', account_name: 'Operating Expenses'},
+                    {account_code: '5200', account_name: 'Utilities Expense'}
+                ];
+            }
+        }
 
         async function loadVendors() {
             const response = await fetch(QUERY_URL, {
@@ -301,13 +332,6 @@
                 <td>
                     <select class="account-select" onchange="checkARAPAccounts(); updateTotals();">
                         <option value="">Select Account...</option>
-                        <option value="1000">1000 - Cash</option>
-                        <option value="1200">1200 - Accounts Receivable</option>
-                        <option value="2100">2100 - Accounts Payable</option>
-                        <option value="2130">2130 - Tax Payable</option>
-                        <option value="4000">4000 - Revenue</option>
-                        <option value="5100">5100 - Operating Expenses</option>
-                        <option value="5200">5200 - Utilities Expense</option>
                     </select>
                 </td>
                 <td><input type="text" class="line-desc" placeholder="Line description" value="${description}"></td>
@@ -317,9 +341,17 @@
             `;
             container.appendChild(row);
 
+            // Populate account dropdown
+            const select = row.querySelector('.account-select');
+            chartOfAccounts.forEach(account => {
+                const option = document.createElement('option');
+                option.value = account.account_code;
+                option.textContent = `${account.account_code} - ${account.account_name}`;
+                select.appendChild(option);
+            });
+
             // Set the selected account
             if (accountCode) {
-                const select = row.querySelector('.account-select');
                 select.value = accountCode;
             }
         }
