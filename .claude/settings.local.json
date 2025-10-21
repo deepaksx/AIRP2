@@ -1,10 +1,28 @@
 {
   "permissions": {
     "allow": [
-      "Bash(powershell -ExecutionPolicy Bypass -File C:/Dev/AIRP2/test_chaterp_queries.ps1)",
-      "Bash(curl -s \"http://localhost:3008/reports/aging/ar?tenant_id=00000000-0000-0000-0000-000000000001\")",
-      "Bash(docker compose logs --tail=50 reporting-service)",
-      "Bash(git add -A)"
+      "Bash(powershell -ExecutionPolicy Bypass -File C:/Dev/AIRP2/generate_test_data_simple.ps1)",
+      "Bash(cat \"C:/Dev/AIRP2/generate_test_data.sql\")",
+      "Bash(docker exec -i airp-postgres psql -U airp_admin -d airp_master -c \"\\d journal_entry_lines\")",
+      "Bash(cat \"C:/Dev/AIRP2/generate_102_transactions.sql\")",
+      "Bash(curl -s \"http://localhost:3008/reports/trial-balance?tenant_id=00000000-0000-0000-0000-000000000001\")",
+      "Bash(python -m json.tool)",
+      "Bash(curl -s \"http://localhost:3008/reports/income-statement?tenant_id=00000000-0000-0000-0000-000000000001&start_date=2024-01-01&end_date=2025-12-31\")",
+      "Bash(curl -s \"http://localhost:3008/reports/balance-sheet?tenant_id=00000000-0000-0000-0000-000000000001&as_of_date=2025-10-21\")",
+      "Bash(docker compose logs --tail=20 reporting-service)",
+      "Bash(docker compose restart reporting-service)",
+      "Bash(docker compose logs --tail=30 reporting-service)",
+      "Bash(docker compose up -d --build reporting-service)",
+      "Bash(python -c \"import sys, json; data=json.load(sys.stdin); print(json.dumps(data, indent=2))\")",
+      "Bash(curl -s -X POST \"http://localhost:3008/api/query\" -H \"Content-Type: application/json\" -d \"{\"\"query\"\":\"\"SELECT customer_id FROM customers WHERE tenant_id = ''''00000000-0000-0000-0000-000000000001'''' LIMIT 1\"\"}\")",
+      "Bash(python -c \"import sys, json; data=json.load(sys.stdin); print(data[0][''''customer_id''''] if data else ''''No customer found'''')\")",
+      "Bash(docker exec -i airp-postgres psql -U airp_admin -d airp_master -c \"SELECT invoice_number, total_amount, metadata->>''subtotal'' as subtotal, metadata->>''tax_amount'' as tax_amount FROM vw_ar_invoices WHERE tenant_id = ''00000000-0000-0000-0000-000000000001'' LIMIT 3;\")",
+      "Bash(docker exec -i airp-postgres psql -U airp_admin -d airp_master -c \"SELECT jel.metadata->>''invoice_number'' as invoice_number, jel.metadata->>''subtotal'' as subtotal, jel.metadata->>''tax_amount'' as tax_amount FROM journal_entry_lines jel JOIN chart_of_accounts coa ON jel.account_id = coa.account_id WHERE coa.account_code = ''1200'' AND jel.metadata->>''source_type'' = ''ar_invoice'' LIMIT 3;\")",
+      "Bash(docker exec -i airp-postgres psql -U airp_admin -d airp_master -c \"SELECT metadata FROM journal_entry_lines WHERE metadata->>''source_type'' = ''ar_invoice'' LIMIT 1;\")",
+      "Bash(curl -s \"http://localhost:3008/reports/cash-flow?tenant_id=00000000-0000-0000-0000-000000000001&method=direct&start_date=2024-01-01&end_date=2025-12-31\")",
+      "Bash(curl -s \"http://localhost:3008/reports/cash-flow?tenant_id=00000000-0000-0000-0000-000000000001&method=indirect&start_date=2024-01-01&end_date=2025-12-31\")",
+      "Bash(curl -s \"http://localhost:3008/reports/cash-flow?tenant_id=00000000-0000-0000-0000-000000000001&method=direct\")",
+      "Bash(python -c \"import sys, json; data=json.load(sys.stdin); summary = data[''''summary'''']; print(''''CASH FLOW SUMMARY (Direct Method)''''); print(''''=''''*50); print(f''''Operating Activities: {summary[\"\"net_cash_from_operating\"\"]:,.2f} AED''''); print(f''''Investing Activities: {summary[\"\"net_cash_from_investing\"\"]:,.2f} AED''''); print(f''''Financing Activities: {summary[\"\"net_cash_from_financing\"\"]:,.2f} AED''''); print(''''-''''*50); print(f''''Net Increase in Cash: {summary[\"\"net_increase_in_cash\"\"]:,.2f} AED''''); print(f''''Cash at Beginning:    {summary[\"\"cash_at_beginning\"\"]:,.2f} AED''''); print(f''''Cash at End:          {summary[\"\"cash_at_end\"\"]:,.2f} AED'''')\")"
     ],
     "deny": [],
     "ask": []

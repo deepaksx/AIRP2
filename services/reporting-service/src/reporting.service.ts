@@ -315,21 +315,23 @@ export class ReportingService {
         ai.invoice_number,
         ai.invoice_date,
         ai.due_date,
-        ai.subtotal,
-        ai.tax_amount,
+        (ai.metadata->>'subtotal')::numeric as subtotal,
+        (ai.metadata->>'tax_amount')::numeric as tax_amount,
         ai.total_amount,
-        ai.amount_paid,
+        (ai.metadata->>'amount_paid')::numeric as amount_paid,
         ai.amount_outstanding,
-        ai.status,
+        'posted' as status,
         ai.payment_status,
         c.customer_name,
         c.customer_code,
-        ai.created_at
-      FROM ar_invoices ai
+        je.created_at
+      FROM vw_ar_invoices ai
       JOIN customers c ON ai.customer_id = c.customer_id
+      JOIN journal_entry_lines jel ON ai.invoice_id = jel.line_id
+      JOIN journal_entries je ON jel.entry_id = je.entry_id
       WHERE ai.tenant_id = $1
         AND ai.customer_id = $2
-      ORDER BY ai.invoice_date ASC, ai.created_at ASC
+      ORDER BY ai.invoice_date ASC, je.created_at ASC
     `;
 
     const results = await this.dataSource.query(query, [params.tenant_id, params.customer_id]);
@@ -714,91 +716,347 @@ export class ReportingService {
   async getCashFlow(params: any): Promise<any> {
     this.logger.log(`Generating cash flow statement for tenant: ${params.tenant_id}`);
 
-    const query = `
+    const method = params.method || 'direct'; // 'direct' or 'indirect'
+    const startDate = params.start_date || '2024-01-01';
+    const endDate = params.end_date || new Date().toISOString().split('T')[0];
+
+    if (method === 'indirect') {
+      return this.getCashFlowIndirect(params.tenant_id, startDate, endDate);
+    } else {
+      return this.getCashFlowDirect(params.tenant_id, startDate, endDate);
+    }
+  }
+
+  private async getCashFlowDirect(tenantId: string, startDate: string, endDate: string): Promise<any> {
+    // Direct Method: Shows actual cash receipts and payments
+
+    // Get cash account transactions (accounts 1010-1090 are bank accounts)
+    const cashQuery = `
       SELECT
-        bt.transaction_id,
-        bt.transaction_date,
-        bt.value_date,
-        bt.description,
-        bt.reference,
-        bt.debit_amount,
-        bt.credit_amount,
-        bt.balance,
-        bt.currency,
-        ba.account_name as bank_account_name,
-        ba.account_code as bank_account_code
-      FROM bank_transactions bt
-      JOIN bank_accounts ba ON bt.bank_account_id = ba.bank_account_id
-      WHERE bt.tenant_id = $1
-        ${params.start_date ? 'AND bt.transaction_date >= $2::date' : ''}
-        ${params.end_date ? 'AND bt.transaction_date <= $3::date' : ''}
-      ORDER BY bt.transaction_date ASC, bt.value_date ASC
+        je.entry_id,
+        je.entry_number,
+        je.entry_date,
+        je.entry_type,
+        je.description,
+        coa.account_code,
+        coa.account_name,
+        jel.debit_amount,
+        jel.credit_amount,
+        jel.description as line_description,
+        jel.metadata
+      FROM journal_entry_lines jel
+      JOIN journal_entries je ON jel.entry_id = je.entry_id
+      JOIN chart_of_accounts coa ON jel.account_id = coa.account_id
+      WHERE jel.tenant_id = $1
+        AND coa.account_code >= '1010' AND coa.account_code <= '1090'
+        AND je.entry_date >= $2::date
+        AND je.entry_date <= $3::date
+        AND je.status = 'posted'
+      ORDER BY je.entry_date ASC, je.entry_number ASC
     `;
 
-    const queryParams: any[] = [params.tenant_id];
-    if (params.start_date) queryParams.push(params.start_date);
-    if (params.end_date) queryParams.push(params.end_date);
+    const cashTransactions = await this.dataSource.query(cashQuery, [tenantId, startDate, endDate]);
 
-    const results = await this.dataSource.query(query, queryParams);
+    // Categorize cash flows
+    const operating = {
+      receipts_from_customers: 0,
+      payments_to_suppliers: 0,
+      payments_to_employees: 0,
+      interest_paid: 0,
+      interest_received: 0,
+      other_operating: 0,
+      transactions: [],
+    };
 
-    // Categorize transactions
-    const operating: any[] = [];
-    const investing: any[] = [];
-    const financing: any[] = [];
-    let totalInflows = 0;
-    let totalOutflows = 0;
+    const investing = {
+      purchase_of_assets: 0,
+      sale_of_assets: 0,
+      purchase_of_investments: 0,
+      sale_of_investments: 0,
+      transactions: [],
+    };
 
-    results.forEach(r => {
+    const financing = {
+      proceeds_from_borrowing: 0,
+      repayment_of_borrowing: 0,
+      capital_contributions: 0,
+      dividends_paid: 0,
+      transactions: [],
+    };
+
+    cashTransactions.forEach(tx => {
+      const netAmount = parseFloat(tx.debit_amount || 0) - parseFloat(tx.credit_amount || 0);
       const transaction = {
-        transaction_id: r.transaction_id,
-        transaction_date: r.transaction_date,
-        value_date: r.value_date,
-        description: r.description,
-        reference: r.reference,
-        debit_amount: parseFloat(r.debit_amount || 0),
-        credit_amount: parseFloat(r.credit_amount || 0),
-        net_amount: parseFloat(r.credit_amount || 0) - parseFloat(r.debit_amount || 0),
-        balance: parseFloat(r.balance || 0),
-        bank_account_name: r.bank_account_name,
-        bank_account_code: r.bank_account_code,
+        entry_number: tx.entry_number,
+        entry_date: tx.entry_date,
+        description: tx.description || tx.line_description,
+        account_code: tx.account_code,
+        account_name: tx.account_name,
+        amount: netAmount,
       };
 
-      totalInflows += transaction.credit_amount;
-      totalOutflows += transaction.debit_amount;
+      // Categorize based on entry type and description
+      const desc = (tx.description || '').toLowerCase();
+      const entryType = (tx.entry_type || '').toLowerCase();
 
-      // Simple categorization based on description keywords
-      // In a real system, this would use GL account mappings or AI categorization
-      const desc = (r.description || '').toLowerCase();
-      if (desc.includes('invest') || desc.includes('asset purchase') || desc.includes('equipment')) {
-        investing.push(transaction);
-      } else if (desc.includes('loan') || desc.includes('dividend') || desc.includes('capital')) {
-        financing.push(transaction);
+      if (entryType.includes('receipt') || desc.includes('customer') || desc.includes('ar ')) {
+        operating.receipts_from_customers += netAmount;
+        operating.transactions.push(transaction);
+      } else if (entryType.includes('payment') && (desc.includes('vendor') || desc.includes('ap '))) {
+        operating.payments_to_suppliers += netAmount;
+        operating.transactions.push(transaction);
+      } else if (entryType.includes('payroll') || desc.includes('salary') || desc.includes('wage')) {
+        operating.payments_to_employees += netAmount;
+        operating.transactions.push(transaction);
+      } else if (desc.includes('interest paid')) {
+        operating.interest_paid += netAmount;
+        operating.transactions.push(transaction);
+      } else if (desc.includes('interest received')) {
+        operating.interest_received += netAmount;
+        operating.transactions.push(transaction);
+      } else if (desc.includes('asset') || desc.includes('equipment') || desc.includes('property')) {
+        if (netAmount < 0) {
+          investing.purchase_of_assets += netAmount;
+        } else {
+          investing.sale_of_assets += netAmount;
+        }
+        investing.transactions.push(transaction);
+      } else if (desc.includes('invest')) {
+        if (netAmount < 0) {
+          investing.purchase_of_investments += netAmount;
+        } else {
+          investing.sale_of_investments += netAmount;
+        }
+        investing.transactions.push(transaction);
+      } else if (desc.includes('loan') || desc.includes('borrow')) {
+        if (netAmount > 0) {
+          financing.proceeds_from_borrowing += netAmount;
+        } else {
+          financing.repayment_of_borrowing += netAmount;
+        }
+        financing.transactions.push(transaction);
+      } else if (desc.includes('capital') || desc.includes('equity')) {
+        financing.capital_contributions += netAmount;
+        financing.transactions.push(transaction);
+      } else if (desc.includes('dividend')) {
+        financing.dividends_paid += netAmount;
+        financing.transactions.push(transaction);
       } else {
-        operating.push(transaction);
+        // Default to operating
+        operating.other_operating += netAmount;
+        operating.transactions.push(transaction);
       }
     });
 
-    const netCashFlow = totalInflows - totalOutflows;
-    const openingBalance = results.length > 0 ? parseFloat(results[0].balance || 0) - (parseFloat(results[0].credit_amount || 0) - parseFloat(results[0].debit_amount || 0)) : 0;
-    const closingBalance = results.length > 0 ? parseFloat(results[results.length - 1].balance || 0) : 0;
+    // Calculate totals
+    const operatingCashFlow =
+      operating.receipts_from_customers +
+      operating.payments_to_suppliers +
+      operating.payments_to_employees +
+      operating.interest_paid +
+      operating.interest_received +
+      operating.other_operating;
+
+    const investingCashFlow =
+      investing.purchase_of_assets +
+      investing.sale_of_assets +
+      investing.purchase_of_investments +
+      investing.sale_of_investments;
+
+    const financingCashFlow =
+      financing.proceeds_from_borrowing +
+      financing.repayment_of_borrowing +
+      financing.capital_contributions +
+      financing.dividends_paid;
+
+    const netCashFlow = operatingCashFlow + investingCashFlow + financingCashFlow;
+
+    // Get opening and closing cash balances
+    const balanceQuery = `
+      SELECT
+        SUM(CASE
+          WHEN je.entry_date < $2::date
+          THEN jel.debit_amount - jel.credit_amount
+          ELSE 0
+        END) as opening_balance,
+        SUM(CASE
+          WHEN je.entry_date <= $3::date
+          THEN jel.debit_amount - jel.credit_amount
+          ELSE 0
+        END) as closing_balance
+      FROM journal_entry_lines jel
+      JOIN journal_entries je ON jel.entry_id = je.entry_id
+      JOIN chart_of_accounts coa ON jel.account_id = coa.account_id
+      WHERE jel.tenant_id = $1
+        AND coa.account_code >= '1010' AND coa.account_code <= '1090'
+        AND je.status = 'posted'
+    `;
+
+    const balances = await this.dataSource.query(balanceQuery, [tenantId, startDate, endDate]);
+    const openingBalance = parseFloat(balances[0]?.opening_balance || 0);
+    const closingBalance = parseFloat(balances[0]?.closing_balance || 0);
 
     return {
-      tenant_id: params.tenant_id,
-      start_date: params.start_date || null,
-      end_date: params.end_date || null,
+      tenant_id: tenantId,
+      method: 'direct',
+      start_date: startDate,
+      end_date: endDate,
       generated_at: new Date().toISOString(),
-      operating_activities: operating,
-      investing_activities: investing,
-      financing_activities: financing,
+      currency: 'AED',
+      operating_activities: {
+        receipts_from_customers: operating.receipts_from_customers,
+        payments_to_suppliers: operating.payments_to_suppliers,
+        payments_to_employees: operating.payments_to_employees,
+        interest_paid: operating.interest_paid,
+        interest_received: operating.interest_received,
+        other_operating_cash_flows: operating.other_operating,
+        net_cash_from_operating: operatingCashFlow,
+        transactions: operating.transactions,
+      },
+      investing_activities: {
+        purchase_of_property_plant_equipment: investing.purchase_of_assets,
+        proceeds_from_sale_of_assets: investing.sale_of_assets,
+        purchase_of_investments: investing.purchase_of_investments,
+        proceeds_from_sale_of_investments: investing.sale_of_investments,
+        net_cash_from_investing: investingCashFlow,
+        transactions: investing.transactions,
+      },
+      financing_activities: {
+        proceeds_from_borrowings: financing.proceeds_from_borrowing,
+        repayment_of_borrowings: financing.repayment_of_borrowing,
+        proceeds_from_share_capital: financing.capital_contributions,
+        dividends_paid: financing.dividends_paid,
+        net_cash_from_financing: financingCashFlow,
+        transactions: financing.transactions,
+      },
       summary: {
-        total_inflows: totalInflows,
-        total_outflows: totalOutflows,
-        net_cash_flow: netCashFlow,
-        opening_balance: openingBalance,
-        closing_balance: closingBalance,
-        operating_cash_flow: operating.reduce((sum, t) => sum + t.net_amount, 0),
-        investing_cash_flow: investing.reduce((sum, t) => sum + t.net_amount, 0),
-        financing_cash_flow: financing.reduce((sum, t) => sum + t.net_amount, 0),
+        net_cash_from_operating: operatingCashFlow,
+        net_cash_from_investing: investingCashFlow,
+        net_cash_from_financing: financingCashFlow,
+        net_increase_in_cash: netCashFlow,
+        cash_at_beginning: openingBalance,
+        cash_at_end: closingBalance,
+      },
+    };
+  }
+
+  private async getCashFlowIndirect(tenantId: string, startDate: string, endDate: string): Promise<any> {
+    // Indirect Method: Starts with net income and adjusts for non-cash items
+
+    // Get net income from Income Statement
+    const incomeQuery = `
+      SELECT
+        COALESCE(SUM(CASE WHEN coa.account_type = 'Revenue' THEN gb.credit_amount - gb.debit_amount ELSE 0 END), 0) as revenue,
+        COALESCE(SUM(CASE WHEN coa.account_type = 'Expense' THEN gb.debit_amount - gb.credit_amount ELSE 0 END), 0) as expenses
+      FROM gl_balances gb
+      JOIN chart_of_accounts coa ON gb.account_id = coa.account_id
+      WHERE gb.tenant_id = $1
+        AND coa.account_type IN ('Revenue', 'Expense')
+    `;
+
+    const incomeResult = await this.dataSource.query(incomeQuery, [tenantId]);
+    const revenue = parseFloat(incomeResult[0]?.revenue || 0);
+    const expenses = parseFloat(incomeResult[0]?.expenses || 0);
+    const netIncome = revenue - expenses;
+
+    // Get changes in working capital
+    const workingCapitalQuery = `
+      SELECT
+        coa.account_code,
+        coa.account_name,
+        coa.account_type,
+        COALESCE(SUM(gb.debit_amount - gb.credit_amount), 0) as balance
+      FROM gl_balances gb
+      JOIN chart_of_accounts coa ON gb.account_id = coa.account_id
+      WHERE gb.tenant_id = $1
+        AND (
+          (coa.account_code >= '1100' AND coa.account_code < '1200') OR -- Current assets (non-cash)
+          (coa.account_code >= '1200' AND coa.account_code < '1600') OR -- Receivables
+          (coa.account_code >= '2000' AND coa.account_code < '2500')    -- Current liabilities
+        )
+      GROUP BY coa.account_code, coa.account_name, coa.account_type
+      ORDER BY coa.account_code
+    `;
+
+    const wcChanges = await this.dataSource.query(workingCapitalQuery, [tenantId]);
+
+    let arIncrease = 0;
+    let apIncrease = 0;
+    let inventoryIncrease = 0;
+    let otherWCChanges = 0;
+
+    wcChanges.forEach(wc => {
+      const balance = parseFloat(wc.balance || 0);
+      if (wc.account_code >= '1200' && wc.account_code < '1300') {
+        arIncrease += balance; // AR increase = use of cash
+      } else if (wc.account_code >= '2100' && wc.account_code < '2200') {
+        apIncrease += balance; // AP increase = source of cash
+      } else if (wc.account_code >= '1400' && wc.account_code < '1500') {
+        inventoryIncrease += balance;
+      } else {
+        otherWCChanges += balance;
+      }
+    });
+
+    // Adjustments for non-cash items (depreciation, amortization, etc.)
+    const nonCashQuery = `
+      SELECT
+        COALESCE(SUM(CASE
+          WHEN je.description ILIKE '%depreciation%' OR je.description ILIKE '%amortization%'
+          THEN jel.debit_amount
+          ELSE 0
+        END), 0) as depreciation_amortization
+      FROM journal_entry_lines jel
+      JOIN journal_entries je ON jel.entry_id = je.entry_id
+      WHERE jel.tenant_id = $1
+        AND je.entry_date >= $2::date
+        AND je.entry_date <= $3::date
+        AND je.status = 'posted'
+    `;
+
+    const nonCash = await this.dataSource.query(nonCashQuery, [tenantId, startDate, endDate]);
+    const depreciation = parseFloat(nonCash[0]?.depreciation_amortization || 0);
+
+    // Operating cash flow calculation
+    const operatingCashFlow = netIncome +
+      depreciation -
+      arIncrease +
+      apIncrease -
+      inventoryIncrease +
+      otherWCChanges;
+
+    // Get investing and financing activities (same as direct method)
+    const directMethod = await this.getCashFlowDirect(tenantId, startDate, endDate);
+
+    return {
+      tenant_id: tenantId,
+      method: 'indirect',
+      start_date: startDate,
+      end_date: endDate,
+      generated_at: new Date().toISOString(),
+      currency: 'AED',
+      operating_activities: {
+        net_income: netIncome,
+        adjustments_for_non_cash_items: {
+          depreciation_and_amortization: depreciation,
+        },
+        changes_in_working_capital: {
+          increase_in_accounts_receivable: -arIncrease,
+          increase_in_inventory: -inventoryIncrease,
+          increase_in_accounts_payable: apIncrease,
+          other_working_capital_changes: otherWCChanges,
+        },
+        net_cash_from_operating: operatingCashFlow,
+      },
+      investing_activities: directMethod.investing_activities,
+      financing_activities: directMethod.financing_activities,
+      summary: {
+        net_cash_from_operating: operatingCashFlow,
+        net_cash_from_investing: directMethod.summary.net_cash_from_investing,
+        net_cash_from_financing: directMethod.summary.net_cash_from_financing,
+        net_increase_in_cash: operatingCashFlow + directMethod.summary.net_cash_from_investing + directMethod.summary.net_cash_from_financing,
+        cash_at_beginning: directMethod.summary.cash_at_beginning,
+        cash_at_end: directMethod.summary.cash_at_end,
       },
     };
   }
@@ -808,7 +1066,7 @@ export class ReportingService {
 
     const asOfDate = params.as_of_date || new Date().toISOString().split('T')[0];
 
-    // Query all unpaid AP invoices with vendor information
+    // Query materialized view for AP aging
     const query = `
       SELECT
         ai.invoice_id,
@@ -822,16 +1080,16 @@ export class ReportingService {
         ai.total_amount,
         ai.amount_outstanding,
         ai.currency,
-        ($1::date - ai.due_date::date) as days_outstanding
-      FROM ap_invoices ai
+        ai.days_outstanding
+      FROM vw_ap_invoices ai
       JOIN vendors v ON ai.vendor_id = v.vendor_id
-      WHERE ai.tenant_id = $2
-        AND ai.payment_status = 'unpaid'
+      WHERE ai.tenant_id = $1
+        AND ai.payment_status IN ('unpaid', 'partial')
         AND ai.amount_outstanding > 0
-      ORDER BY v.vendor_name, ($1::date - ai.due_date::date) DESC
+      ORDER BY v.vendor_name, ai.days_outstanding DESC
     `;
 
-    const results = await this.dataSource.query(query, [asOfDate, params.tenant_id]);
+    const results = await this.dataSource.query(query, [params.tenant_id]);
 
     // Calculate aging buckets and group by vendor
     const vendorMap = new Map();
@@ -938,23 +1196,136 @@ export class ReportingService {
   }
 
   async getARAging(params: any): Promise<any> {
-    this.logger.log(`Fetching AR aging report`);
+    this.logger.log(`Fetching AR aging report for tenant: ${params.tenant_id}`);
 
+    const asOfDate = params.as_of_date || new Date().toISOString().split('T')[0];
+
+    // Query materialized view for AR aging
     const query = `
-      SELECT customer_name, invoice_number, invoice_date, due_date,
-             outstanding_amount, days_outstanding, aging_bucket
-      FROM ar_aging
-      WHERE tenant_id = $1
-      ORDER BY days_outstanding DESC
+      SELECT
+        ai.invoice_id,
+        ai.customer_id,
+        c.customer_code,
+        c.customer_name,
+        c.payment_terms,
+        ai.invoice_number,
+        ai.invoice_date,
+        ai.due_date,
+        ai.total_amount,
+        ai.amount_outstanding,
+        ai.currency,
+        ai.days_outstanding
+      FROM vw_ar_invoices ai
+      JOIN customers c ON ai.customer_id = c.customer_id
+      WHERE ai.tenant_id = $1
+        AND ai.payment_status IN ('unpaid', 'partial')
+        AND ai.amount_outstanding > 0
+      ORDER BY c.customer_name, ai.days_outstanding DESC
     `;
 
     const results = await this.dataSource.query(query, [params.tenant_id]);
 
+    // Calculate aging buckets and group by customer
+    const customerMap = new Map();
+    let totalCurrent = 0;
+    let total1to30 = 0;
+    let total31to60 = 0;
+    let total61to90 = 0;
+    let total90Plus = 0;
+
+    results.forEach(r => {
+      const daysOutstanding = parseInt(r.days_outstanding || 0);
+      const outstanding = parseFloat(r.amount_outstanding || 0);
+
+      // Determine aging bucket
+      let agingBucket = 'current';
+      let bucketAmount = {
+        current: 0,
+        days_1_30: 0,
+        days_31_60: 0,
+        days_61_90: 0,
+        days_90_plus: 0,
+      };
+
+      if (daysOutstanding < 0) {
+        agingBucket = 'current';
+        bucketAmount.current = outstanding;
+        totalCurrent += outstanding;
+      } else if (daysOutstanding <= 30) {
+        agingBucket = '1-30 days';
+        bucketAmount.days_1_30 = outstanding;
+        total1to30 += outstanding;
+      } else if (daysOutstanding <= 60) {
+        agingBucket = '31-60 days';
+        bucketAmount.days_31_60 = outstanding;
+        total31to60 += outstanding;
+      } else if (daysOutstanding <= 90) {
+        agingBucket = '61-90 days';
+        bucketAmount.days_61_90 = outstanding;
+        total61to90 += outstanding;
+      } else {
+        agingBucket = '90+ days';
+        bucketAmount.days_90_plus = outstanding;
+        total90Plus += outstanding;
+      }
+
+      // Create invoice record
+      const invoiceRecord = {
+        invoice_id: r.invoice_id,
+        invoice_number: r.invoice_number,
+        invoice_date: r.invoice_date,
+        due_date: r.due_date,
+        days_outstanding: daysOutstanding,
+        aging_bucket: agingBucket,
+        total_amount: parseFloat(r.total_amount || 0),
+        amount_outstanding: outstanding,
+        currency: r.currency,
+      };
+
+      // Group by customer
+      if (!customerMap.has(r.customer_id)) {
+        customerMap.set(r.customer_id, {
+          customer_id: r.customer_id,
+          customer_code: r.customer_code,
+          customer_name: r.customer_name,
+          payment_terms: r.payment_terms,
+          invoices: [],
+          total_outstanding: 0,
+          current: 0,
+          days_1_30: 0,
+          days_31_60: 0,
+          days_61_90: 0,
+          days_90_plus: 0,
+        });
+      }
+
+      const customer = customerMap.get(r.customer_id);
+      customer.invoices.push(invoiceRecord);
+      customer.total_outstanding += outstanding;
+      customer.current += bucketAmount.current;
+      customer.days_1_30 += bucketAmount.days_1_30;
+      customer.days_31_60 += bucketAmount.days_31_60;
+      customer.days_61_90 += bucketAmount.days_61_90;
+      customer.days_90_plus += bucketAmount.days_90_plus;
+    });
+
+    const customers = Array.from(customerMap.values());
+
     return {
       tenant_id: params.tenant_id,
+      as_of_date: asOfDate,
       generated_at: new Date().toISOString(),
-      invoices: results,
-      total_outstanding: results.reduce((sum, r) => sum + parseFloat(r.outstanding_amount || 0), 0),
+      customers: customers,
+      summary: {
+        total_customers: customers.length,
+        total_invoices: results.length,
+        total_outstanding: customers.reduce((sum, c) => sum + c.total_outstanding, 0),
+        current: totalCurrent,
+        days_1_30: total1to30,
+        days_31_60: total31to60,
+        days_61_90: total61to90,
+        days_90_plus: total90Plus,
+      },
     };
   }
 
