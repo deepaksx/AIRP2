@@ -1,11 +1,137 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Account Balances - AIRP v2.0</title><link rel="stylesheet" href="styles/sap-design-system.css"></head><body>
-<div class="page-header"><div class="header-top"><div><div class="page-title">Account Balances</div><div class="page-subtitle">Summary of account balances by account code</div></div><div class="header-actions"><button class="btn btn-secondary" onclick="loadData()">🔄 Refresh</button></div></div></div>
-<div class="content"><div id="error-alert" class="alert error" style="display: none;"></div><div class="report-card"><div class="report-header"><div class="report-title">Account Balances Summary</div><div class="report-date">As of <span id="report-date">...</span></div></div><table class="report-table"><thead><tr><th style="width: 100px;">Account Code</th><th>Account Name</th><th style="width: 100px;">Type</th><th style="width: 150px;" class="text-right">Balance (AED)</th></tr></thead><tbody id="data-tbody"><tr><td colspan="4" class="loading"><div class="spinner"></div><div>Loading account balances...</div></td></tr></tbody></table></div></div>
-<script>
-const URL='http://localhost:3008',TID='00000000-0000-0000-0000-000000000001';
-document.addEventListener('DOMContentLoaded',()=>{loadData();});
-async function loadData(){const t=document.getElementById('data-tbody'),e=document.getElementById('error-alert');t.innerHTML='<tr><td colspan="4" class="loading"><div class="spinner"></div><div>Loading...</div></td></tr>';e.style.display='none';try{const r=await fetch(`${URL}/reports/account-balances?tenant_id=${TID}`);if(!r.ok)throw new Error(`HTTP ${r.status}`);const d=await r.json();document.getElementById('report-date').textContent=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});renderData(d.accounts||[]);}catch(err){t.innerHTML='<tr><td colspan="4" class="empty-state"><div class="empty-state-icon">⚠️</div><div><strong>Failed to load</strong></div></td></tr>';e.textContent=`Error: ${err.message}`;e.style.display='block';}}
-function renderData(items){const t=document.getElementById('data-tbody');if(!items.length){t.innerHTML='<tr><td colspan="4" class="empty-state"><div class="empty-state-icon">💰</div><div>No accounts found</div></td></tr>';return;}let h='';items.forEach(i=>{const bal=parseFloat(i.net_balance||i.balance||0);h+=`<tr><td class="text-bold">${i.account_code}</td><td>${i.account_name}</td><td>${i.account_type||'-'}</td><td class="text-right ${bal>0?'amount-positive':bal<0?'amount-negative':''}">${bal.toLocaleString('en-AE',{minimumFractionDigits:2})}</td></tr>`;});t.innerHTML=h;}
-</script>
-</body></html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Balances - AIRP v2.0</title>
+    <link rel="stylesheet" href="styles/sap-design-system.css">
+</head>
+<body>
+    <div class="page-header">
+        <div class="header-top">
+            <div>
+                <div class="page-title">Account Balances</div>
+                <div class="page-subtitle">Summary of account balances by account code</div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="loadData()">🔄 Refresh</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+        <div id="error-alert" class="alert error" style="display: none;"></div>
+
+        <div class="report-card">
+            <div class="report-header">
+                <div class="report-title">Account Balances Summary</div>
+                <div class="report-date">As of <span id="report-date">...</span></div>
+            </div>
+
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th style="width: 100px;">Account Code</th>
+                        <th>Account Name</th>
+                        <th style="width: 100px;">Type</th>
+                        <th style="width: 150px;" class="text-right">Balance (AED)</th>
+                    </tr>
+                </thead>
+                <tbody id="data-tbody">
+                    <tr><td colspan="4" class="loading"><div class="spinner"></div><div>Loading account balances...</div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const REPORTING_SERVICE_URL = 'http://localhost:3008';
+        const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+
+        document.addEventListener('DOMContentLoaded', () => { loadData(); });
+
+        async function loadData() {
+            const tbody = document.getElementById('data-tbody');
+            const errorAlert = document.getElementById('error-alert');
+            tbody.innerHTML = '<tr><td colspan="4" class="loading"><div class="spinner"></div><div>Loading account balances...</div></td></tr>';
+            errorAlert.style.display = 'none';
+
+            try {
+                const response = await fetch(`${REPORTING_SERVICE_URL}/reports/account-balances?tenant_id=${TENANT_ID}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                document.getElementById('report-date').textContent = new Date().toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric'});
+                renderData(data.accounts || []);
+            } catch (error) {
+                tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><div class="empty-state-icon">⚠️</div><div><strong>Failed to load account balances</strong></div></td></tr>';
+                errorAlert.textContent = `Error: ${error.message}`;
+                errorAlert.style.display = 'block';
+            }
+        }
+
+        function renderData(accounts) {
+            const tbody = document.getElementById('data-tbody');
+
+            if (!accounts || accounts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><div class="empty-state-icon">💰</div><div>No accounts found</div></td></tr>';
+                return;
+            }
+
+            // Group accounts by type
+            const grouped = {
+                'Asset': [],
+                'Liability': [],
+                'Equity': [],
+                'Revenue': [],
+                'Expense': []
+            };
+
+            accounts.forEach(account => {
+                const type = account.account_type || 'Other';
+                if (!grouped[type]) grouped[type] = [];
+                grouped[type].push(account);
+            });
+
+            let html = '';
+            let grandTotal = 0;
+
+            // Render each type with subtotal
+            Object.keys(grouped).forEach(type => {
+                if (grouped[type].length === 0) return;
+
+                // Type header
+                html += `<tr class="section-header"><td colspan="4">${type.toUpperCase()}S</td></tr>`;
+
+                let typeTotal = 0;
+                grouped[type].forEach(account => {
+                    const balance = parseFloat(account.net_balance || account.balance || 0);
+                    typeTotal += balance;
+
+                    html += `<tr>
+                        <td class="text-bold">${account.account_code}</td>
+                        <td>${account.account_name}</td>
+                        <td>${type.toLowerCase()}</td>
+                        <td class="text-right ${balance >= 0 ? 'amount-positive' : 'amount-negative'}">${balance.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td>
+                    </tr>`;
+                });
+
+                // Type subtotal
+                html += `<tr style="background: #FAFAFA; font-weight: 600;">
+                    <td colspan="3">Total ${type}s</td>
+                    <td class="text-right ${typeTotal >= 0 ? 'amount-positive' : 'amount-negative'}">${typeTotal.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td>
+                </tr>`;
+
+                grandTotal += typeTotal;
+            });
+
+            // Grand total
+            html += `<tr class="total-row">
+                <td colspan="3"><strong>GRAND TOTAL (All Accounts)</strong></td>
+                <td class="text-right ${grandTotal >= 0 ? 'amount-positive' : 'amount-negative'}"><strong>${grandTotal.toLocaleString('en-AE', {minimumFractionDigits: 2})}</strong></td>
+            </tr>`;
+
+            tbody.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
