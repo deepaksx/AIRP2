@@ -23,10 +23,28 @@
     <div class="content">
         <div id="error-alert" class="alert error" style="display: none;"></div>
 
+        <!-- Method Selector -->
+        <div class="report-card" style="margin-bottom: 20px; padding: 20px;">
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <label style="font-weight: 600; color: #32363a;">Cash Flow Method:</label>
+                <div style="display: flex; gap: 10px;">
+                    <button id="btn-direct" class="btn btn-primary" onclick="changeMethod('direct')" style="min-width: 140px;">
+                        📊 Direct Method
+                    </button>
+                    <button id="btn-indirect" class="btn btn-secondary" onclick="changeMethod('indirect')" style="min-width: 140px;">
+                        📈 Indirect Method
+                    </button>
+                </div>
+                <div style="flex: 1; text-align: right; font-size: 13px; color: #666;">
+                    <span id="method-description">Showing actual cash receipts and payments</span>
+                </div>
+            </div>
+        </div>
+
         <div class="report-card">
             <div class="report-header">
                 <div class="report-title">ACME Corporation</div>
-                <div class="report-date">For Period Ending <span id="report-date">...</span></div>
+                <div class="report-date">For Period Ending <span id="report-date">...</span> | <span id="method-label">Direct Method</span></div>
             </div>
 
             <table class="report-table">
@@ -46,8 +64,33 @@
     <script>
         const REPORTING_SERVICE_URL = 'http://localhost:3008';
         const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+        let currentMethod = 'direct';
 
         document.addEventListener('DOMContentLoaded', () => { loadReport(); });
+
+        function changeMethod(method) {
+            currentMethod = method;
+
+            // Update button styles
+            const btnDirect = document.getElementById('btn-direct');
+            const btnIndirect = document.getElementById('btn-indirect');
+            const methodDescription = document.getElementById('method-description');
+            const methodLabel = document.getElementById('method-label');
+
+            if (method === 'direct') {
+                btnDirect.className = 'btn btn-primary';
+                btnIndirect.className = 'btn btn-secondary';
+                methodDescription.textContent = 'Showing actual cash receipts and payments';
+                methodLabel.textContent = 'Direct Method';
+            } else {
+                btnDirect.className = 'btn btn-secondary';
+                btnIndirect.className = 'btn btn-primary';
+                methodDescription.textContent = 'Showing net income adjusted for non-cash items and working capital changes';
+                methodLabel.textContent = 'Indirect Method';
+            }
+
+            loadReport();
+        }
 
         async function loadReport() {
             const tbody = document.getElementById('report-tbody');
@@ -56,10 +99,10 @@
             errorAlert.style.display = 'none';
 
             try {
-                const response = await fetch(`${REPORTING_SERVICE_URL}/reports/cash-flow?tenant_id=${TENANT_ID}`);
+                const response = await fetch(`${REPORTING_SERVICE_URL}/reports/cash-flow?tenant_id=${TENANT_ID}&method=${currentMethod}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
-                document.getElementById('report-date').textContent = new Date(data.period_end_date || new Date()).toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric'});
+                document.getElementById('report-date').textContent = new Date(data.end_date || new Date()).toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric'});
                 renderReport(data);
             } catch (error) {
                 tbody.innerHTML = '<tr><td colspan="2" class="empty-state"><div class="empty-state-icon">⚠️</div><div><strong>Failed to load report</strong></div><div>Ensure Reporting Service is running on port 3008</div></td></tr>';
