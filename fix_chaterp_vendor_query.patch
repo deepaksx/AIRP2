@@ -1,0 +1,24 @@
+--- a/chaterp.html
++++ b/chaterp.html
+@@ -1727,13 +1727,17 @@ AIRP v2.11.0 | Ask me anything about your financial data
+                 addMessage('📊 Fetching vendor balances...');
+
+                 const query = `
+-                    SELECT v.vendor_name, v.payment_terms,
+-                           COALESCE(SUM(i.amount_outstanding), 0) as balance,
+-                           COUNT(i.invoice_id) as invoice_count
++                    SELECT v.vendor_code, v.vendor_name, v.payment_terms,
++                           COALESCE(SUM(jel.credit_amount - jel.debit_amount), 0) as balance,
++                           COUNT(DISTINCT je.entry_id) as invoice_count
+                     FROM vendors v
+-                    LEFT JOIN ap_invoices i ON v.vendor_id = i.vendor_id AND i.tenant_id=v.tenant_id
++                    LEFT JOIN journal_entry_lines jel ON jel.dimension_1::text = v.vendor_id::text
++                    LEFT JOIN journal_entries je ON jel.entry_id = je.entry_id
++                    LEFT JOIN chart_of_accounts coa ON jel.account_id = coa.account_id
+                     WHERE v.tenant_id='${TENANT_ID}' AND v.status='active'
+-                    GROUP BY v.vendor_id, v.vendor_name, v.payment_terms
++                      AND (coa.account_code = '2100' OR coa.account_code IS NULL)
++                      AND (je.status = 'posted' OR je.status IS NULL)
++                    GROUP BY v.vendor_id, v.vendor_code, v.vendor_name, v.payment_terms
+                     ORDER BY balance DESC
+                 `;

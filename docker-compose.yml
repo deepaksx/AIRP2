@@ -611,3 +611,26 @@ services:
     networks:
       - airp-network
     restart: unless-stopped
+
+  # AI Context Generator (NEW - v2.11.0)
+  ai-context-generator:
+    build:
+      context: ./services/ai-context-generator
+      dockerfile: Dockerfile
+    container_name: airp-ai-context-generator
+    environment:
+      PORT: 8007
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: airp_master
+      DB_USER: airp_admin
+      DB_PASSWORD: airp_secure_2024
+    ports:
+      - "8007:8007"
+    networks:
+      - airp-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped

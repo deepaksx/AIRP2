@@ -3,27 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <title>ChatERP - AIRP v2.11.0 (Build 20251021-1810)</title>
+    <title>ChatERP - AIRP v2.0</title>
     <!-- Bootstrap CSS for table formatting -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         :root {
-            /* SAP Light Theme - Matching index.html */
-            --primary: #0854A0;
-            --primary-dark: #0066B3;
-            --secondary: #32363A;
-            --success: #107E3E;
-            --warning: #E9730C;
-            --danger: #BB0000;
-            --dark-bg: #F7F7F7;
-            --card-bg: #FFFFFF;
-            --border: #D9D9D9;
-            --text-primary: #32363A;
-            --text-secondary: #6A6D70;
-            --chat-bg: #FAFAFA;
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark-bg: #0a0a0f;
+            --card-bg: #1a1a24;
+            --border: #2a2a3a;
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --chat-bg: #13131a;
         }
 
         * {
@@ -45,9 +41,14 @@
             height: 100vh;
         }
 
-        /* Sidebar - HIDDEN for clean chat interface */
+        /* Sidebar */
         .sidebar {
-            display: none; /* Hide sidebar completely */
+            width: 320px;
+            background: var(--card-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s;
         }
 
         .sidebar-header {
@@ -790,7 +791,7 @@
                     <div class="logo-icon">💼</div>
                     <div class="logo-text">
                         <h1>ChatERP</h1>
-                        <p>AIRP v2.11.0 AI-Native</p>
+                        <p>AIRP v2.0 AI-Native</p>
                     </div>
                 </div>
             </div>
@@ -874,8 +875,8 @@
         <div class="chat-main">
             <div class="chat-header">
                 <div class="chat-header-left">
-                    <h2>💬 ChatERP - AI Financial Assistant</h2>
-                    <p>AIRP v2.11.0 | Ask me anything about your financial data</p>
+                    <h2>Financial Assistant</h2>
+                    <p>Your AI-powered ERP companion</p>
                 </div>
                 <div class="status-indicator">
                     <span class="status-dot"></span>
@@ -1703,7 +1704,7 @@
                                 <h4>💰 Cash Balance</h4>
                                 <div style="text-align: center; padding: 20px 0;">
                                     <div style="font-size: 36px; font-weight: 700; color: var(--success);">
-                                        ${balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} AED
+                                        ${balance.toFixed(2)} AED
                                     </div>
                                     <div style="margin-top: 8px; color: var(--text-secondary);">
                                         Account 1000 - Cash
@@ -1730,17 +1731,13 @@
                 addMessage('📊 Fetching vendor balances...');
 
                 const query = `
-                    SELECT v.vendor_code, v.vendor_name, v.payment_terms,
-                           COALESCE(SUM(jel.credit_amount - jel.debit_amount), 0) as balance,
-                           COUNT(DISTINCT je.entry_id) as invoice_count
+                    SELECT v.vendor_name, v.payment_terms,
+                           COALESCE(SUM(i.amount_outstanding), 0) as balance,
+                           COUNT(i.invoice_id) as invoice_count
                     FROM vendors v
-                    LEFT JOIN journal_entry_lines jel ON jel.dimension_1::text = v.vendor_id::text
-                    LEFT JOIN journal_entries je ON jel.entry_id = je.entry_id
-                    LEFT JOIN chart_of_accounts coa ON jel.account_id = coa.account_id
+                    LEFT JOIN ap_invoices i ON v.vendor_id = i.vendor_id AND i.tenant_id=v.tenant_id
                     WHERE v.tenant_id='${TENANT_ID}' AND v.status='active'
-                      AND (coa.account_code = '2100' OR coa.account_code IS NULL)
-                      AND (je.status = 'posted' OR je.status IS NULL)
-                    GROUP BY v.vendor_id, v.vendor_code, v.vendor_name, v.payment_terms
+                    GROUP BY v.vendor_id, v.vendor_name, v.payment_terms
                     ORDER BY balance DESC
                 `;
 
@@ -1759,32 +1756,6 @@
                     }
 
                     const totalBalance = vendors.reduce((sum, v) => sum + parseFloat(v.balance || 0), 0);
-
-                    // Fetch GL Account 2100 balance for reconciliation
-                    const glQuery = `
-                        SELECT COALESCE(SUM(jel.credit_amount - jel.debit_amount), 0) as gl_balance
-                        FROM journal_entry_lines jel
-                        JOIN journal_entries je ON jel.entry_id = je.entry_id
-                        JOIN chart_of_accounts coa ON jel.account_id = coa.account_id
-                        WHERE coa.account_code = '2100'
-                          AND je.tenant_id = '${TENANT_ID}'
-                          AND je.status = 'posted'
-                    `;
-                    
-                    const glResponse = await fetch('http://localhost:3008/api/query', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ query: glQuery, params: [] })
-                    });
-                    
-                    let glBalance = 0;
-                    if (glResponse.ok) {
-                        const glResult = await glResponse.json();
-                        glBalance = parseFloat(glResult[0]?.gl_balance || 0);
-                    }
-                    
-                    const variance = Math.abs(glBalance - totalBalance);
-                    const isBalanced = variance < 0.01;
 
                     let html = `
                         <div class="result-card">
@@ -1808,7 +1779,7 @@
                                 <td>${vendor.vendor_name}</td>
                                 <td>${vendor.payment_terms} days</td>
                                 <td>${vendor.invoice_count || 0}</td>
-                                <td style="text-align: right; ${balance > 0 ? 'color: var(--danger);' : ''}">${balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} AED</td>
+                                <td style="text-align: right; ${balance > 0 ? 'color: var(--danger);' : ''}">${balance.toFixed(2)} AED</td>
                             </tr>
                         `;
                     });
@@ -1818,16 +1789,8 @@
                             </table>
                             <div style="margin-top: 16px; padding-top: 16px; border-top: 2px solid var(--border);">
                                 <div class="result-row">
-                                    <span class="label"><strong>Total AP (Sub-Ledger):</strong></span>
-                                    <span class="value" style="color: var(--danger); font-size: 18px;">${totalBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} AED</span>
-                                </div>
-                                <div class="result-row" style="margin-top: 8px; padding: 12px; background: #FFF9E6; border-radius: 6px;">
-                                    <span class="label"><strong>GL Account 2100 Balance:</strong></span>
-                                    <span class="value" style="font-size: 16px; font-weight: 600;">${glBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} AED</span>
-                                </div>
-                                <div class="result-row" style="margin-top: 8px; padding: 12px; background: ${isBalanced ? '#E8F5E9' : '#FFEBEE'}; border-radius: 6px;">
-                                    <span class="label"><strong>${isBalanced ? '✅' : '⚠️'} Reconciliation Variance:</strong></span>
-                                    <span class="value" style="font-size: 16px; font-weight: 600; color: ${isBalanced ? '#2E7D32' : '#C62828'};">${variance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} AED ${isBalanced ? 'BALANCED' : 'OUT OF BALANCE'}</span>
+                                    <span class="label"><strong>Total Payable:</strong></span>
+                                    <span class="value" style="color: var(--danger); font-size: 18px;">${totalBalance.toFixed(2)} AED</span>
                                 </div>
                             </div>
                         </div>
@@ -1847,17 +1810,13 @@
                 addMessage('📊 Fetching customer balances...');
 
                 const query = `
-                    SELECT c.customer_code, c.customer_name, c.payment_terms,
-                           COALESCE(SUM(jel.debit_amount - jel.credit_amount), 0) as balance,
-                           COUNT(DISTINCT je.entry_id) as invoice_count
+                    SELECT c.customer_name, c.payment_terms,
+                           COALESCE(SUM(i.amount_outstanding), 0) as balance,
+                           COUNT(i.invoice_id) as invoice_count
                     FROM customers c
-                    LEFT JOIN journal_entry_lines jel ON jel.dimension_2::text = c.customer_id::text
-                    LEFT JOIN journal_entries je ON jel.entry_id = je.entry_id
-                    LEFT JOIN chart_of_accounts coa ON jel.account_id = coa.account_id
+                    LEFT JOIN ar_invoices i ON c.customer_id = i.customer_id AND i.tenant_id=c.tenant_id
                     WHERE c.tenant_id='${TENANT_ID}' AND c.status='active'
-                      AND (coa.account_code = '1200' OR coa.account_code IS NULL)
-                      AND (je.status = 'posted' OR je.status IS NULL)
-                    GROUP BY c.customer_id, c.customer_code, c.customer_name, c.payment_terms
+                    GROUP BY c.customer_id, c.customer_name, c.payment_terms
                     ORDER BY balance DESC
                 `;
 
@@ -1876,32 +1835,6 @@
                     }
 
                     const totalBalance = customers.reduce((sum, c) => sum + parseFloat(c.balance || 0), 0);
-
-                    // Fetch GL Account 1200 balance for reconciliation
-                    const glQuery = `
-                        SELECT COALESCE(SUM(jel.debit_amount - jel.credit_amount), 0) as gl_balance
-                        FROM journal_entry_lines jel
-                        JOIN journal_entries je ON jel.entry_id = je.entry_id
-                        JOIN chart_of_accounts coa ON jel.account_id = coa.account_id
-                        WHERE coa.account_code = '1200'
-                          AND je.tenant_id = '${TENANT_ID}'
-                          AND je.status = 'posted'
-                    `;
-
-                    const glResponse = await fetch('http://localhost:3008/api/query', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ query: glQuery, params: [] })
-                    });
-
-                    let glBalance = 0;
-                    if (glResponse.ok) {
-                        const glResult = await glResponse.json();
-                        glBalance = parseFloat(glResult[0]?.gl_balance || 0);
-                    }
-
-                    const variance = Math.abs(glBalance - totalBalance);
-                    const isBalanced = variance < 0.01;
 
                     let html = `
                         <div class="result-card">
@@ -1925,7 +1858,7 @@
                                 <td>${customer.customer_name}</td>
                                 <td>${customer.payment_terms} days</td>
                                 <td>${customer.invoice_count || 0}</td>
-                                <td style="text-align: right; ${balance > 0 ? 'color: var(--success);' : ''}">${balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} AED</td>
+                                <td style="text-align: right; ${balance > 0 ? 'color: var(--success);' : ''}">${balance.toFixed(2)} AED</td>
                             </tr>
                         `;
                     });
@@ -1935,16 +1868,8 @@
                             </table>
                             <div style="margin-top: 16px; padding-top: 16px; border-top: 2px solid var(--border);">
                                 <div class="result-row">
-                                    <span class="label"><strong>Total AR (Sub-Ledger):</strong></span>
-                                    <span class="value" style="color: var(--success); font-size: 18px;">${totalBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} AED</span>
-                                </div>
-                                <div class="result-row" style="margin-top: 8px; padding: 12px; background: #FFF9E6; border-radius: 6px;">
-                                    <span class="label"><strong>GL Account 1200 Balance:</strong></span>
-                                    <span class="value" style="font-size: 16px; font-weight: 600;">${glBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} AED</span>
-                                </div>
-                                <div class="result-row" style="margin-top: 8px; padding: 12px; background: ${isBalanced ? '#E8F5E9' : '#FFEBEE'}; border-radius: 6px;">
-                                    <span class="label"><strong>${isBalanced ? '✅' : '⚠️'} Reconciliation Variance:</strong></span>
-                                    <span class="value" style="font-size: 16px; font-weight: 600; color: ${isBalanced ? '#2E7D32' : '#C62828'};">${variance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} AED ${isBalanced ? 'BALANCED' : 'OUT OF BALANCE'}</span>
+                                    <span class="label"><strong>Total Receivable:</strong></span>
+                                    <span class="value" style="color: var(--success); font-size: 18px;">${totalBalance.toFixed(2)} AED</span>
                                 </div>
                             </div>
                         </div>

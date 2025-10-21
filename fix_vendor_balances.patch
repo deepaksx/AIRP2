@@ -1,0 +1,14 @@
+--- a/services/ai-query-parser/app/main.py
++++ b/services/ai-query-parser/app/main.py
+@@ -170,9 +170,9 @@ Examples:
+     },
+     "fields": ["vendor_name", "balance", "payment_terms"]
+   },
+-  "sql_query": "SELECT v.vendor_name, COALESCE(SUM(i.amount_outstanding), 0) as balance FROM vendors v LEFT JOIN ap_invoices i ON v.vendor_id = i.vendor_id WHERE v.tenant_id = ? GROUP BY v.vendor_id HAVING balance > 5000 ORDER BY balance DESC",
++  "sql_query": "SELECT v.vendor_code, v.vendor_name, COALESCE(SUM(jel.credit_amount - jel.debit_amount), 0) as balance FROM vendors v LEFT JOIN journal_entry_lines jel ON jel.dimension_1::text = v.vendor_id::text LEFT JOIN journal_entries je ON jel.entry_id = je.entry_id LEFT JOIN chart_of_accounts coa ON jel.account_id = coa.account_id WHERE v.tenant_id = ? AND coa.account_code = '2100' AND je.status = 'posted' GROUP BY v.vendor_id, v.vendor_code, v.vendor_name HAVING balance > 5000 ORDER BY balance DESC",
+   "api_endpoint": "POST /api/query",
+-  "explanation": "Querying all vendors with outstanding balance greater than 5000 AED"
++  "explanation": "Querying all vendors with outstanding balance greater than 5000 AED from GL (source of truth)"
+ }
+
+ User: "Create a new vendor account for Acme Corp"

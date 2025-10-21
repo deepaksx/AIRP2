@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AIRP v2.0 - AI-Powered Financial ERP</title>
+    <title>AIRP v2.11.0 - AI-Powered Financial ERP with Context Search</title>
     <style>
         /* ==================== SAP-like Design System ==================== */
         * {
@@ -353,7 +353,7 @@
     <div class="top-nav">
         <div class="logo-section">
             <div class="logo-icon">⚡</div>
-            <div class="logo-text">AIRP v2.0</div>
+            <div class="logo-text">AIRP v2.11.0</div>
         </div>
 
         <div class="nav-center">
@@ -485,6 +485,44 @@
                     </a>
                 </div>
             </div>
+
+            <!-- AI Assistant Section (NEW v2.11.0) -->
+            <div class="sidebar-section" style="border-top: 2px solid #0854A0;">
+                <div class="sidebar-header" onclick="toggleSection(this)" style="background: linear-gradient(135deg, #E8F0F8 0%, #F0F8FF 100%);">
+                    <span style="color: #0854A0; font-weight: 700;">🤖 6. AI ASSISTANT</span>
+                    <span style="background: linear-gradient(135deg, #0854A0, #0066B3); color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px;">NEW</span>
+                </div>
+                <div class="sidebar-section-content">
+                    <a class="nav-item" onclick="loadContent('chaterp.html')" style="background: #E8F0F8;">
+                        <span class="nav-icon">💬</span>
+                        <span><strong>ChatERP</strong></span>
+                    </a>
+                    <a class="nav-item" onclick="loadContent('classify-demo.html')">
+                        <span class="nav-icon">🏷️</span>
+                        <span>AI Classification</span>
+                    </a>
+                    <a class="nav-item" onclick="loadContent('recon-demo.html')">
+                        <span class="nav-icon">🔄</span>
+                        <span>AI Reconciliation</span>
+                    </a>
+                    <a class="nav-item" onclick="loadContent('cashflow-demo.html')">
+                        <span class="nav-icon">📈</span>
+                        <span>AI Cash Forecast</span>
+                    </a>
+                    <a class="nav-item" onclick="loadContent('narrative-demo.html')">
+                        <span class="nav-icon">📝</span>
+                        <span>AI Narratives</span>
+                    </a>
+                    <a class="nav-item" onclick="loadContent('policy-demo.html')">
+                        <span class="nav-icon">📋</span>
+                        <span>AI Policy Advisor</span>
+                    </a>
+                    <a class="nav-item" onclick="window.open('http://localhost:8007/health', '_blank')">
+                        <span class="nav-icon">📊</span>
+                        <span>Context Stats</span>
+                    </a>
+                </div>
+            </div>
         </div>
 
         <!-- Content Area -->
@@ -492,16 +530,22 @@
             <!-- Welcome View -->
             <div id="welcome-view">
                 <div class="content-header">
-                    <div class="content-title">Welcome to AIRP v2.0</div>
-                    <div class="content-subtitle">AI-Powered Financial ERP with Event Sourcing & Real-time Analytics</div>
+                    <div class="content-title">Welcome to AIRP v2.11.0</div>
+                    <div class="content-subtitle">AI-Powered Financial ERP with Context-Aware Natural Language Querying</div>
                 </div>
 
                 <div class="content-body">
                     <div class="welcome-container">
                         <div class="welcome-cards">
+                            <div class="welcome-card" onclick="loadContent('chaterp.html')" style="border: 2px solid #0854A0; background: #E8F0F8;">
+                                <div class="welcome-card-icon">🤖</div>
+                                <div class="welcome-card-title"><strong>ChatERP - AI Assistant (NEW)</strong></div>
+                                <div class="welcome-card-desc">Ask questions in natural language: "Who sells office supplies?" with AI-powered context search</div>
+                            </div>
+
                             <div class="welcome-card" onclick="loadContent('post-je.html')" style="border: 2px solid #E9730C; background: #FFFBF0;">
                                 <div class="welcome-card-icon">✍️</div>
-                                <div class="welcome-card-title"><strong>Post Journal Entry (NEW)</strong></div>
+                                <div class="welcome-card-title"><strong>Post Journal Entry</strong></div>
                                 <div class="welcome-card-desc">Single source of truth for ALL financial transactions - Select type, auto-validates vendor/customer</div>
                             </div>
 
@@ -613,7 +657,13 @@
                 'balance-sheet': 'Balance Sheet',
                 'cash-flow-statement': 'Cash Flow Statement',
                 'master-data': 'Master Data',
-                'database-explorer': 'Database Explorer'
+                'database-explorer': 'Database Explorer',
+                'chaterp': 'ChatERP - AI Assistant',
+                'classify-demo': 'AI Transaction Classification',
+                'recon-demo': 'AI Bank Reconciliation',
+                'cashflow-demo': 'AI Cash Flow Forecasting',
+                'narrative-demo': 'AI Report Narratives',
+                'policy-demo': 'AI Policy Advisor'
             };
 
             breadcrumb.textContent = pageNames[filename] || 'Dashboard';

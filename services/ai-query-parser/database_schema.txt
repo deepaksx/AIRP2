@@ -22,6 +22,12 @@ Columns:
   - created_at (timestamp with time zone)
   - updated_at (timestamp with time zone)
   - metadata (jsonb)
+  - ai_context_summary (text) - AI-generated plain English description
+  - ai_context_keywords (text[]) - Searchable keywords array
+  - ai_context_entities (jsonb) - Extracted business entities
+  - ai_context_relationships (jsonb) - Related records and patterns
+  - ai_context_generated_at (timestamptz)
+  - ai_context_model_version (varchar(50))
 
 ❌ CRITICAL: chart_of_accounts DOES NOT HAVE BALANCE COLUMNS!
    NO: current_balance, balance, debit_balance, credit_balance
@@ -68,6 +74,12 @@ Columns:
   - ai_model_version (varchar(50))
   - created_at, updated_at (timestamp with time zone)
   - metadata (jsonb)
+  - ai_context_summary (text)
+  - ai_context_keywords (text[])
+  - ai_context_entities (jsonb)
+  - ai_context_relationships (jsonb)
+  - ai_context_generated_at (timestamptz)
+  - ai_context_model_version (varchar(50))
 
 ═══════════════════════════════════════════════════════════════════════════════
 4. journal_entry_lines (TABLE) - Journal Entry Line Items
@@ -126,6 +138,12 @@ Columns:
   - status (varchar(20), default: 'active')
   - created_at, updated_at (timestamp with time zone)
   - metadata (jsonb)
+  - ai_context_summary (text)
+  - ai_context_keywords (text[])
+  - ai_context_entities (jsonb)
+  - ai_context_relationships (jsonb)
+  - ai_context_generated_at (timestamptz)
+  - ai_context_model_version (varchar(50))
 
 ═══════════════════════════════════════════════════════════════════════════════
 7. customers (TABLE) - Customer Master
@@ -144,6 +162,12 @@ Columns:
   - status (varchar(20), default: 'active')
   - created_at, updated_at (timestamp with time zone)
   - metadata (jsonb)
+  - ai_context_summary (text)
+  - ai_context_keywords (text[])
+  - ai_context_entities (jsonb)
+  - ai_context_relationships (jsonb)
+  - ai_context_generated_at (timestamptz)
+  - ai_context_model_version (varchar(50))
 
 ═══════════════════════════════════════════════════════════════════════════════
 8. ap_invoices (TABLE) - Accounts Payable Invoices
@@ -170,6 +194,12 @@ Columns:
   - paid_at (timestamp with time zone)
   - created_at, updated_at (timestamp with time zone)
   - metadata (jsonb)
+  - ai_context_summary (text)
+  - ai_context_keywords (text[])
+  - ai_context_entities (jsonb)
+  - ai_context_relationships (jsonb)
+  - ai_context_generated_at (timestamptz)
+  - ai_context_model_version (varchar(50))
 
 ═══════════════════════════════════════════════════════════════════════════════
 9. ar_invoices (TABLE) - Accounts Receivable Invoices
@@ -193,6 +223,12 @@ Columns:
   - paid_at (timestamp with time zone)
   - created_at, updated_at (timestamp with time zone)
   - metadata (jsonb)
+  - ai_context_summary (text)
+  - ai_context_keywords (text[])
+  - ai_context_entities (jsonb)
+  - ai_context_relationships (jsonb)
+  - ai_context_generated_at (timestamptz)
+  - ai_context_model_version (varchar(50))
 
 ═══════════════════════════════════════════════════════════════════════════════
 10. bank_accounts (TABLE) - Bank Account Master
@@ -272,3 +308,93 @@ SQL GENERATION RULES:
 5. Always use proper JOIN syntax
 6. Use COALESCE for null values in aggregations
 7. If you try to select current_balance from chart_of_accounts, the query WILL FAIL
+
+═══════════════════════════════════════════════════════════════════════════════
+⚠️ CONTEXT-AWARE SEMANTIC SEARCH ⚠️
+═══════════════════════════════════════════════════════════════════════════════
+
+AI CONTEXT FIELDS (available on all master and transaction tables):
+- ai_context_summary (text) - Plain English description
+- ai_context_keywords (text[]) - Array of searchable keywords
+- ai_context_entities (jsonb) - Structured business entities
+- ai_context_relationships (jsonb) - Related records and patterns
+
+SEMANTIC SEARCH PATTERNS:
+
+1. Keyword Array Search (Fast):
+   SELECT vendor_id, vendor_name, ai_context_summary
+   FROM vendors
+   WHERE tenant_id = ?
+     AND ai_context_keywords && ARRAY['office', 'supplies', 'stationery']
+   ORDER BY vendor_name
+
+2. Full-Text Search (More Powerful):
+   SELECT vendor_id, vendor_name, ai_context_summary,
+          ts_rank(to_tsvector('english', ai_context_summary),
+                  plainto_tsquery('english', 'office supplies')) AS relevance
+   FROM vendors
+   WHERE tenant_id = ?
+     AND to_tsvector('english', ai_context_summary) @@ plainto_tsquery('english', 'office supplies')
+   ORDER BY relevance DESC
+
+3. JSONB Entity Search:
+   SELECT account_code, account_name, ai_context_summary
+   FROM chart_of_accounts
+   WHERE tenant_id = ?
+     AND ai_context_entities->>'usage_pattern' = 'fixed_monthly'
+
+4. JSONB Array Contains:
+   SELECT vendor_id, vendor_name, ai_context_summary
+   FROM vendors
+   WHERE tenant_id = ?
+     AND ai_context_entities->'products_services' @> '["IT services"]'::jsonb
+
+HELPER FUNCTIONS (already created):
+
+1. search_vendors_by_context(tenant_id, search_terms[])
+2. search_accounts_by_context(tenant_id, search_terms[])
+3. search_transactions_by_context(tenant_id, search_query)
+
+WHEN TO USE CONTEXT SEARCH:
+
+✅ USE CONTEXT when user asks about BUSINESS MEANING:
+   - "Who sells office supplies?" → Search ai_context_keywords
+   - "Find vendors for IT equipment" → Search ai_context_keywords && ARRAY['IT', 'equipment']
+   - "Which account for rent?" → Search accounts where keywords contain 'rent'
+   - "Show electricity vendors" → Search ai_context_keywords && ARRAY['electricity', 'utility']
+
+❌ DON'T USE CONTEXT for EXACT MATCHES:
+   - "Vendor V001" → Direct vendor_code lookup
+   - "Account 5300" → Direct account_code lookup
+   - "Invoice INV-123" → Direct invoice_number lookup
+
+EXAMPLE NATURAL LANGUAGE QUERIES:
+
+User: "Who do we buy office supplies from?"
+SQL:
+SELECT vendor_id, vendor_code, vendor_name, ai_context_summary
+FROM vendors
+WHERE tenant_id = '00000000-0000-0000-0000-000000000001'
+  AND ai_context_keywords && ARRAY['office', 'supplies', 'stationery']
+ORDER BY vendor_name
+
+User: "Which account should I use for rent payments?"
+SQL:
+SELECT account_code, account_name, ai_context_summary
+FROM chart_of_accounts
+WHERE tenant_id = '00000000-0000-0000-0000-000000000001'
+  AND (ai_context_keywords && ARRAY['rent', 'lease', 'property']
+       OR account_name ILIKE '%rent%')
+ORDER BY account_code
+
+User: "Find all vendors that provide utilities"
+SQL:
+SELECT vendor_id, vendor_code, vendor_name, ai_context_summary,
+       ai_context_entities->>'industry' as industry
+FROM vendors
+WHERE tenant_id = '00000000-0000-0000-0000-000000000001'
+  AND ai_context_keywords && ARRAY['utility', 'utilities', 'electricity', 'water']
+ORDER BY vendor_name
+
+INCLUDE CONTEXT IN RESULTS:
+When returning records with context, ALWAYS include ai_context_summary in SELECT to provide rich information to the user.

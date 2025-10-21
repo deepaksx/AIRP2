@@ -1,0 +1,414 @@
+/**
+ * AIRP v2.11.0 - ChatERP Context Display Styles
+ * Rich styling for AI-generated context metadata
+ *
+ * ADD THIS TO chaterp.html IN THE <style> SECTION
+ */
+
+/* Context-Enriched Card */
+.context-enriched-card {
+    background: var(--dark-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    transition: all 0.3s ease;
+}
+
+.context-enriched-card:hover {
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    transform: translateY(-2px);
+}
+
+/* Card Header */
+.context-enriched-card .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.context-enriched-card .card-header h5 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.context-enriched-card .badge-status {
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.context-enriched-card .badge-status {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.context-enriched-card .badge-asset {
+    background: rgba(99, 102, 241, 0.2);
+    color: var(--primary);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.context-enriched-card .badge-liability {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--danger);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.context-enriched-card .badge-expense {
+    background: rgba(245, 158, 11, 0.2);
+    color: var(--warning);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.context-enriched-card .badge-revenue {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* Context Summary (AI-Generated) */
+.context-summary {
+    display: flex;
+    gap: 12px;
+    background: rgba(99, 102, 241, 0.05);
+    border-left: 3px solid var(--primary);
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.context-summary .context-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.context-summary .summary-text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-primary);
+    margin: 0;
+    font-style: italic;
+}
+
+/* Detail Grid */
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.detail-item .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.detail-item .value {
+    font-size: 14px;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+/* Context Keywords */
+.context-keywords {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.context-keywords .keywords-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.keyword-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.keyword-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--primary);
+    transition: all 0.2s;
+}
+
+.keyword-chip:hover {
+    background: rgba(99, 102, 241, 0.2);
+    transform: scale(1.05);
+}
+
+/* Context Relationships */
+.context-relationships {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.relationship-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 8px 0;
+}
+
+.relationship-item:not(:last-child) {
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+    padding-bottom: 12px;
+}
+
+.relationship-item .rel-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.relationship-item .rel-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.relationship-item .rel-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.relationship-item .rel-value {
+    font-size: 14px;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+/* Context Insights */
+.context-insights {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+.insight-item {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.insight-item .insight-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.insight-item .insight-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.insight-item .insight-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.insight-item .insight-value {
+    font-size: 13px;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* Context List */
+.context-list-header {
+    margin-bottom: 16px;
+}
+
+.context-list-header h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.context-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Context Badge Colors */
+.text-danger {
+    color: var(--danger) !important;
+}
+
+.text-warning {
+    color: var(--warning) !important;
+}
+
+.text-success {
+    color: var(--success) !important;
+}
+
+/* Tooltip for Context Explanation */
+.context-tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+}
+
+.context-tooltip .tooltip-text {
+    visibility: hidden;
+    width: 250px;
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+    text-align: left;
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    position: absolute;
+    z-index: 1000;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -125px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 12px;
+    line-height: 1.5;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.context-tooltip .tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: var(--border) transparent transparent transparent;
+}
+
+.context-tooltip:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Context Loading State */
+.context-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(99, 102, 241, 0.1);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--primary);
+}
+
+.context-loading::before {
+    content: "⏳";
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Context Not Available */
+.context-unavailable {
+    padding: 12px;
+    background: rgba(245, 158, 11, 0.1);
+    border-left: 3px solid var(--warning);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+}
+
+.context-unavailable strong {
+    color: var(--warning);
+}
+
+/* Context Generation Prompt */
+.generate-context-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.generate-context-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+}
+
+.generate-context-btn::before {
+    content: "🤖";
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .context-insights {
+        grid-template-columns: 1fr;
+    }
+
+    .context-enriched-card .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+}
