@@ -74,40 +74,93 @@
 
             // Operating Activities
             html += '<tr class="section-header"><td colspan="2">CASH FLOWS FROM OPERATING ACTIVITIES</td></tr>';
-            const operating = data.operating_activities || [];
-            let totalOperating = 0;
-            operating.forEach(item => {
-                const amt = parseFloat(item.amount || 0);
-                totalOperating += amt;
-                html += `<tr><td style="padding-left: 32px;">${item.description}</td><td class="text-right ${amt >= 0 ? 'amount-positive' : 'amount-negative'}">${amt.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
-            });
+            const operating = data.operating_activities || {};
+
+            // Direct method format
+            if (operating.receipts_from_customers !== undefined) {
+                html += `<tr><td style="padding-left: 32px;">Receipts from Customers</td><td class="text-right ${operating.receipts_from_customers >= 0 ? 'amount-positive' : 'amount-negative'}">${parseFloat(operating.receipts_from_customers || 0).toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+                html += `<tr><td style="padding-left: 32px;">Payments to Suppliers</td><td class="text-right ${operating.payments_to_suppliers >= 0 ? 'amount-positive' : 'amount-negative'}">${parseFloat(operating.payments_to_suppliers || 0).toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+                html += `<tr><td style="padding-left: 32px;">Payments to Employees</td><td class="text-right ${operating.payments_to_employees >= 0 ? 'amount-positive' : 'amount-negative'}">${parseFloat(operating.payments_to_employees || 0).toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+                if (operating.interest_paid !== 0) {
+                    html += `<tr><td style="padding-left: 32px;">Interest Paid</td><td class="text-right ${operating.interest_paid >= 0 ? 'amount-positive' : 'amount-negative'}">${parseFloat(operating.interest_paid || 0).toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+                }
+                if (operating.interest_received !== 0) {
+                    html += `<tr><td style="padding-left: 32px;">Interest Received</td><td class="text-right ${operating.interest_received >= 0 ? 'amount-positive' : 'amount-negative'}">${parseFloat(operating.interest_received || 0).toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+                }
+                if (operating.other_operating_cash_flows !== 0) {
+                    html += `<tr><td style="padding-left: 32px;">Other Operating Cash Flows</td><td class="text-right ${operating.other_operating_cash_flows >= 0 ? 'amount-positive' : 'amount-negative'}">${parseFloat(operating.other_operating_cash_flows || 0).toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+                }
+            }
+            // Indirect method format
+            else if (operating.net_income !== undefined) {
+                html += `<tr><td style="padding-left: 32px;">Net Income</td><td class="text-right ${operating.net_income >= 0 ? 'amount-positive' : 'amount-negative'}">${parseFloat(operating.net_income || 0).toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+                if (operating.adjustments_for_non_cash_items) {
+                    html += '<tr><td style="padding-left: 32px; font-style: italic;">Adjustments for Non-Cash Items:</td><td></td></tr>';
+                    html += `<tr><td style="padding-left: 48px;">Depreciation & Amortization</td><td class="text-right">${parseFloat(operating.adjustments_for_non_cash_items.depreciation_and_amortization || 0).toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+                }
+                if (operating.changes_in_working_capital) {
+                    html += '<tr><td style="padding-left: 32px; font-style: italic;">Changes in Working Capital:</td><td></td></tr>';
+                    const wc = operating.changes_in_working_capital;
+                    html += `<tr><td style="padding-left: 48px;">Increase in Accounts Receivable</td><td class="text-right ${wc.increase_in_accounts_receivable >= 0 ? 'amount-positive' : 'amount-negative'}">${parseFloat(wc.increase_in_accounts_receivable || 0).toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+                    if (wc.increase_in_inventory !== 0) {
+                        html += `<tr><td style="padding-left: 48px;">Increase in Inventory</td><td class="text-right ${wc.increase_in_inventory >= 0 ? 'amount-positive' : 'amount-negative'}">${parseFloat(wc.increase_in_inventory || 0).toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+                    }
+                    html += `<tr><td style="padding-left: 48px;">Increase in Accounts Payable</td><td class="text-right ${wc.increase_in_accounts_payable >= 0 ? 'amount-positive' : 'amount-negative'}">${parseFloat(wc.increase_in_accounts_payable || 0).toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+                }
+            }
+
+            const totalOperating = parseFloat(operating.net_cash_from_operating || 0);
             html += `<tr style="background: #FAFAFA; font-weight: 600;"><td>Net Cash from Operating Activities</td><td class="text-right ${totalOperating >= 0 ? 'amount-positive' : 'amount-negative'}">${totalOperating.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
 
             // Investing Activities
             html += '<tr class="section-header"><td colspan="2">CASH FLOWS FROM INVESTING ACTIVITIES</td></tr>';
-            const investing = data.investing_activities || [];
-            let totalInvesting = 0;
-            investing.forEach(item => {
-                const amt = parseFloat(item.amount || 0);
-                totalInvesting += amt;
-                html += `<tr><td style="padding-left: 32px;">${item.description}</td><td class="text-right ${amt >= 0 ? 'amount-positive' : 'amount-negative'}">${amt.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
-            });
+            const investing = data.investing_activities || {};
+
+            if (investing.purchase_of_property_plant_equipment !== 0) {
+                html += `<tr><td style="padding-left: 32px;">Purchase of Property, Plant & Equipment</td><td class="text-right ${investing.purchase_of_property_plant_equipment >= 0 ? 'amount-positive' : 'amount-negative'}">${parseFloat(investing.purchase_of_property_plant_equipment || 0).toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+            }
+            if (investing.proceeds_from_sale_of_assets !== 0) {
+                html += `<tr><td style="padding-left: 32px;">Proceeds from Sale of Assets</td><td class="text-right ${investing.proceeds_from_sale_of_assets >= 0 ? 'amount-positive' : 'amount-negative'}">${parseFloat(investing.proceeds_from_sale_of_assets || 0).toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+            }
+            if (investing.purchase_of_investments !== 0) {
+                html += `<tr><td style="padding-left: 32px;">Purchase of Investments</td><td class="text-right ${investing.purchase_of_investments >= 0 ? 'amount-positive' : 'amount-negative'}">${parseFloat(investing.purchase_of_investments || 0).toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+            }
+            if (investing.proceeds_from_sale_of_investments !== 0) {
+                html += `<tr><td style="padding-left: 32px;">Proceeds from Sale of Investments</td><td class="text-right ${investing.proceeds_from_sale_of_investments >= 0 ? 'amount-positive' : 'amount-negative'}">${parseFloat(investing.proceeds_from_sale_of_investments || 0).toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+            }
+
+            const totalInvesting = parseFloat(investing.net_cash_from_investing || 0);
             html += `<tr style="background: #FAFAFA; font-weight: 600;"><td>Net Cash from Investing Activities</td><td class="text-right ${totalInvesting >= 0 ? 'amount-positive' : 'amount-negative'}">${totalInvesting.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
 
             // Financing Activities
             html += '<tr class="section-header"><td colspan="2">CASH FLOWS FROM FINANCING ACTIVITIES</td></tr>';
-            const financing = data.financing_activities || [];
-            let totalFinancing = 0;
-            financing.forEach(item => {
-                const amt = parseFloat(item.amount || 0);
-                totalFinancing += amt;
-                html += `<tr><td style="padding-left: 32px;">${item.description}</td><td class="text-right ${amt >= 0 ? 'amount-positive' : 'amount-negative'}">${amt.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
-            });
+            const financing = data.financing_activities || {};
+
+            if (financing.proceeds_from_borrowings !== 0) {
+                html += `<tr><td style="padding-left: 32px;">Proceeds from Borrowings</td><td class="text-right ${financing.proceeds_from_borrowings >= 0 ? 'amount-positive' : 'amount-negative'}">${parseFloat(financing.proceeds_from_borrowings || 0).toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+            }
+            if (financing.repayment_of_borrowings !== 0) {
+                html += `<tr><td style="padding-left: 32px;">Repayment of Borrowings</td><td class="text-right ${financing.repayment_of_borrowings >= 0 ? 'amount-positive' : 'amount-negative'}">${parseFloat(financing.repayment_of_borrowings || 0).toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+            }
+            if (financing.proceeds_from_share_capital !== 0) {
+                html += `<tr><td style="padding-left: 32px;">Proceeds from Share Capital</td><td class="text-right ${financing.proceeds_from_share_capital >= 0 ? 'amount-positive' : 'amount-negative'}">${parseFloat(financing.proceeds_from_share_capital || 0).toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+            }
+            if (financing.dividends_paid !== 0) {
+                html += `<tr><td style="padding-left: 32px;">Dividends Paid</td><td class="text-right ${financing.dividends_paid >= 0 ? 'amount-positive' : 'amount-negative'}">${parseFloat(financing.dividends_paid || 0).toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+            }
+
+            const totalFinancing = parseFloat(financing.net_cash_from_financing || 0);
             html += `<tr style="background: #FAFAFA; font-weight: 600;"><td>Net Cash from Financing Activities</td><td class="text-right ${totalFinancing >= 0 ? 'amount-positive' : 'amount-negative'}">${totalFinancing.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
 
-            // Net Change
-            const netChange = totalOperating + totalInvesting + totalFinancing;
-            html += `<tr class="total-row"><td><strong>NET CHANGE IN CASH</strong></td><td class="text-right ${netChange >= 0 ? 'amount-positive' : 'amount-negative'}"><strong>${netChange.toLocaleString('en-AE', {minimumFractionDigits: 2})}</strong></td></tr>`;
+            // Summary
+            const summary = data.summary || {};
+            const netChange = parseFloat(summary.net_increase_in_cash || (totalOperating + totalInvesting + totalFinancing));
+            const cashBeginning = parseFloat(summary.cash_at_beginning || 0);
+            const cashEnd = parseFloat(summary.cash_at_end || 0);
+
+            html += `<tr class="total-row"><td><strong>NET INCREASE IN CASH</strong></td><td class="text-right ${netChange >= 0 ? 'amount-positive' : 'amount-negative'}"><strong>${netChange.toLocaleString('en-AE', {minimumFractionDigits: 2})}</strong></td></tr>`;
+            html += `<tr><td>Cash at Beginning of Period</td><td class="text-right">${cashBeginning.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td></tr>`;
+            html += `<tr class="total-row"><td><strong>CASH AT END OF PERIOD</strong></td><td class="text-right ${cashEnd >= 0 ? 'amount-positive' : 'amount-negative'}"><strong>${cashEnd.toLocaleString('en-AE', {minimumFractionDigits: 2})}</strong></td></tr>`;
 
             tbody.innerHTML = html || '<tr><td colspan="2" class="empty-state"><div class="empty-state-icon">💸</div><div>No data available</div></td></tr>';
         }
