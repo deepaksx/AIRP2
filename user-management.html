@@ -298,6 +298,139 @@
             margin-bottom: 16px;
             opacity: 0.5;
         }
+
+        /* Context Evolution Timeline */
+        .evolution-summary {
+            background: #F0F8FF;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 24px;
+            border-left: 4px solid var(--sap-primary);
+        }
+
+        .evolution-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .evolution-stat {
+            text-align: center;
+        }
+
+        .evolution-stat-value {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--sap-primary);
+        }
+
+        .evolution-stat-label {
+            font-size: 12px;
+            color: var(--sap-text-secondary);
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 40px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--sap-border);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 30px;
+            padding: 16px;
+            background: white;
+            border: 1px solid var(--sap-border);
+            border-radius: 6px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -29px;
+            top: 20px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--sap-primary);
+            border: 3px solid white;
+            box-shadow: 0 0 0 2px var(--sap-border);
+        }
+
+        .timeline-item.current::before {
+            background: var(--sap-success);
+            width: 16px;
+            height: 16px;
+            left: -31px;
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--sap-border);
+        }
+
+        .timeline-date {
+            font-size: 13px;
+            color: var(--sap-text-secondary);
+        }
+
+        .timeline-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            background: var(--sap-primary);
+            color: white;
+        }
+
+        .timeline-summary {
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--sap-text-primary);
+            margin-bottom: 12px;
+        }
+
+        .timeline-keywords {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .keyword-tag {
+            padding: 4px 10px;
+            background: #F0F0F0;
+            border-radius: 12px;
+            font-size: 11px;
+            color: var(--sap-text-primary);
+        }
+
+        .keyword-tag.new {
+            background: rgba(16, 126, 62, 0.1);
+            color: var(--sap-success);
+            font-weight: 600;
+        }
+
+        .keyword-tag.removed {
+            background: rgba(187, 0, 0, 0.1);
+            color: var(--sap-error);
+            text-decoration: line-through;
+        }
     </style>
 </head>
 <body>
@@ -332,6 +465,23 @@
         <div class="content">
             <div id="userList" class="user-grid">
                 <div class="loading">Loading users...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context History Modal -->
+    <div id="contextHistoryModal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <span id="contextHistoryTitle">Context Evolution</span>
+            </div>
+            <div class="modal-body">
+                <div id="contextEvolutionContent">
+                    <div class="loading">Loading context history...</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeContextHistory()">Close</button>
             </div>
         </div>
     </div>
@@ -466,6 +616,9 @@
                         <button class="btn-icon" onclick="editUser('${user.user_id}')" title="Edit">
                             ✏️
                         </button>
+                        <button class="btn-icon" onclick="viewContextHistory('${user.user_id}', '${user.full_name}')" title="View Context History">
+                            📊
+                        </button>
                         <button class="btn-icon" onclick="regenerateContext('${user.user_id}')" title="Regenerate AI Context">
                             🤖
                         </button>
@@ -566,9 +719,129 @@
             document.getElementById('userModal').classList.remove('active');
         }
 
+        async function viewContextHistory(userId, fullName) {
+            const modal = document.getElementById('contextHistoryModal');
+            const content = document.getElementById('contextEvolutionContent');
+            const title = document.getElementById('contextHistoryTitle');
+
+            title.textContent = `Context Evolution - ${fullName}`;
+            modal.classList.add('active');
+            content.innerHTML = '<div class="loading">Loading context history...</div>';
+
+            try {
+                const response = await fetch(`${API_URL}/users/${userId}/context-evolution`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const data = await response.json();
+                renderContextEvolution(data);
+            } catch (error) {
+                content.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Unable to load context history</div>
+                        <div style="font-size: 14px; color: var(--sap-text-secondary);">${error.message}</div>
+                    </div>
+                `;
+            }
+        }
+
+        function renderContextEvolution(data) {
+            const content = document.getElementById('contextEvolutionContent');
+            const evolution = data.keyword_evolution;
+
+            content.innerHTML = `
+                <div class="evolution-summary">
+                    <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">
+                        Current Context Summary
+                    </div>
+                    <div style="font-size: 14px; color: var(--sap-text-secondary); margin-bottom: 16px;">
+                        ${data.current_context.summary || 'No summary available yet'}
+                    </div>
+                    <div class="evolution-stats">
+                        <div class="evolution-stat">
+                            <div class="evolution-stat-value">${data.history_count}</div>
+                            <div class="evolution-stat-label">Snapshots</div>
+                        </div>
+                        <div class="evolution-stat">
+                            <div class="evolution-stat-value">${data.current_context.keyword_count}</div>
+                            <div class="evolution-stat-label">Keywords</div>
+                        </div>
+                        <div class="evolution-stat">
+                            <div class="evolution-stat-value">${evolution.new_keywords.length}</div>
+                            <div class="evolution-stat-label">New Keywords</div>
+                        </div>
+                        <div class="evolution-stat">
+                            <div class="evolution-stat-value">${evolution.persistent_keywords.length}</div>
+                            <div class="evolution-stat-label">Persistent</div>
+                        </div>
+                        <div class="evolution-stat">
+                            <div class="evolution-stat-value">${evolution.growth_rate}</div>
+                            <div class="evolution-stat-label">Growth Rate</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="font-size: 16px; font-weight: 600; margin-bottom: 16px;">
+                    📊 Context Timeline
+                </div>
+
+                <div class="timeline">
+                    <!-- Current Context -->
+                    <div class="timeline-item current">
+                        <div class="timeline-header">
+                            <div class="timeline-date">
+                                ${formatDate(data.current_context.generated_at)}
+                            </div>
+                            <div class="timeline-badge" style="background: var(--sap-success);">CURRENT</div>
+                        </div>
+                        <div class="timeline-summary">
+                            ${data.current_context.summary || 'No summary available'}
+                        </div>
+                        <div class="timeline-keywords">
+                            ${(data.current_context.keywords || []).slice(0, 20).map(keyword =>
+                                `<span class="keyword-tag ${evolution.new_keywords.includes(keyword) ? 'new' : ''}">${keyword}</span>`
+                            ).join('')}
+                            ${data.current_context.keywords?.length > 20 ?
+                                `<span class="keyword-tag">+${data.current_context.keywords.length - 20} more</span>` : ''}
+                        </div>
+                    </div>
+
+                    ${data.history.map((snapshot, index) => `
+                        <div class="timeline-item">
+                            <div class="timeline-header">
+                                <div class="timeline-date">
+                                    ${formatDate(snapshot.generatedAt)}
+                                </div>
+                                <div class="timeline-badge">Snapshot ${data.history.length - index}</div>
+                            </div>
+                            <div class="timeline-summary">
+                                ${snapshot.summary || 'No summary available'}
+                            </div>
+                            <div class="timeline-keywords">
+                                ${(snapshot.keywords || []).slice(0, 15).map(keyword => {
+                                    const isRemoved = evolution.removed_keywords.includes(keyword);
+                                    return `<span class="keyword-tag ${isRemoved ? 'removed' : ''}">${keyword}</span>`;
+                                }).join('')}
+                                ${snapshot.keywords?.length > 15 ?
+                                    `<span class="keyword-tag">+${snapshot.keywords.length - 15} more</span>` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function closeContextHistory() {
+            document.getElementById('contextHistoryModal').classList.remove('active');
+        }
+
         // Close modal on background click
         document.getElementById('userModal').addEventListener('click', (e) => {
             if (e.target.id === 'userModal') closeModal();
+        });
+
+        document.getElementById('contextHistoryModal').addEventListener('click', (e) => {
+            if (e.target.id === 'contextHistoryModal') closeContextHistory();
         });
     </script>
 </body>

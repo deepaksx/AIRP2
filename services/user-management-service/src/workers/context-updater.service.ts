@@ -93,11 +93,22 @@ export class ContextUpdaterService {
         { timeout: 30000 }
       );
 
+      // Incremental update: merge keywords and append history
       await this.dataSource.query(`
         UPDATE users
         SET
+          ai_context_history = append_context_history(
+            ai_context_history,
+            ai_context_summary,
+            ai_context_keywords,
+            ai_context_entities,
+            ai_context_relationships,
+            ai_context_generated_at,
+            ai_context_model_version,
+            10  -- Keep last 10 snapshots
+          ),
           ai_context_summary = $1,
-          ai_context_keywords = $2,
+          ai_context_keywords = merge_context_keywords(ai_context_keywords, $2, 100),
           ai_context_entities = $3,
           ai_context_relationships = $4,
           ai_context_generated_at = NOW(),
@@ -169,11 +180,22 @@ export class ContextUpdaterService {
         { timeout: 30000 }
       );
 
+      // Incremental update: merge keywords and append history
       await this.dataSource.query(`
         UPDATE vendors
         SET
+          ai_context_history = append_context_history(
+            ai_context_history,
+            ai_context_summary,
+            ai_context_keywords,
+            ai_context_entities,
+            ai_context_relationships,
+            ai_context_generated_at,
+            ai_context_model_version,
+            10
+          ),
           ai_context_summary = $1,
-          ai_context_keywords = $2,
+          ai_context_keywords = merge_context_keywords(ai_context_keywords, $2, 100),
           ai_context_entities = $3,
           ai_context_relationships = $4,
           ai_context_generated_at = NOW(),
@@ -244,11 +266,22 @@ export class ContextUpdaterService {
         { timeout: 30000 }
       );
 
+      // Incremental update: merge keywords and append history
       await this.dataSource.query(`
         UPDATE customers
         SET
+          ai_context_history = append_context_history(
+            ai_context_history,
+            ai_context_summary,
+            ai_context_keywords,
+            ai_context_entities,
+            ai_context_relationships,
+            ai_context_generated_at,
+            ai_context_model_version,
+            10
+          ),
           ai_context_summary = $1,
-          ai_context_keywords = $2,
+          ai_context_keywords = merge_context_keywords(ai_context_keywords, $2, 100),
           ai_context_entities = $3,
           ai_context_relationships = $4,
           ai_context_generated_at = NOW(),
@@ -319,11 +352,22 @@ export class ContextUpdaterService {
         { timeout: 30000 }
       );
 
+      // Incremental update: merge keywords and append history
       await this.dataSource.query(`
         UPDATE chart_of_accounts
         SET
+          ai_context_history = append_context_history(
+            ai_context_history,
+            ai_context_summary,
+            ai_context_keywords,
+            ai_context_entities,
+            ai_context_relationships,
+            ai_context_generated_at,
+            ai_context_model_version,
+            10
+          ),
           ai_context_summary = $1,
-          ai_context_keywords = $2,
+          ai_context_keywords = merge_context_keywords(ai_context_keywords, $2, 100),
           ai_context_entities = $3,
           ai_context_relationships = $4,
           ai_context_generated_at = NOW(),

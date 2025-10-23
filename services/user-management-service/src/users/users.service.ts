@@ -269,4 +269,85 @@ export class UsersService {
       .limit(20)
       .getMany();
   }
+
+  async getContextHistory(userId: string): Promise<any[]> {
+    this.logger.log(`Fetching context history for user ${userId}`);
+
+    const result = await this.dataSource.query(`
+      SELECT * FROM get_context_history('user', $1)
+    `, [userId]);
+
+    return result.map(row => ({
+      snapshotIndex: row.snapshot_index,
+      summary: row.summary,
+      keywords: row.keywords,
+      entities: row.entities,
+      relationships: row.relationships,
+      generatedAt: row.generated_at,
+      modelVersion: row.model_version,
+    }));
+  }
+
+  async getContextEvolution(userId: string): Promise<any> {
+    this.logger.log(`Fetching context evolution for user ${userId}`);
+
+    const user = await this.usersRepository.findOne({
+      where: { user_id: userId },
+      select: [
+        'user_id', 'username', 'full_name',
+        'ai_context_summary', 'ai_context_keywords',
+        'ai_context_generated_at', 'ai_context_model_version'
+      ]
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User ${userId} not found`);
+    }
+
+    const history = await this.getContextHistory(userId);
+
+    return {
+      user_id: user.user_id,
+      username: user.username,
+      full_name: user.full_name,
+      current_context: {
+        summary: user.ai_context_summary,
+        keywords: user.ai_context_keywords,
+        keyword_count: user.ai_context_keywords?.length || 0,
+        generated_at: user.ai_context_generated_at,
+        model_version: user.ai_context_model_version,
+      },
+      history_count: history.length,
+      history: history,
+      keyword_evolution: this.analyzeKeywordEvolution(history, user.ai_context_keywords),
+    };
+  }
+
+  private analyzeKeywordEvolution(history: any[], currentKeywords: string[]): any {
+    if (!history || history.length === 0) {
+      return {
+        total_unique_keywords: currentKeywords?.length || 0,
+        new_keywords: [],
+        persistent_keywords: currentKeywords || [],
+        removed_keywords: [],
+      };
+    }
+
+    const oldestKeywords = new Set(history[history.length - 1].keywords || []);
+    const currentSet = new Set(currentKeywords || []);
+
+    const newKeywords = Array.from(currentSet).filter(k => !oldestKeywords.has(k));
+    const removedKeywords = Array.from(oldestKeywords).filter(k => !currentSet.has(k));
+    const persistentKeywords = Array.from(currentSet).filter(k => oldestKeywords.has(k));
+
+    return {
+      total_unique_keywords: currentSet.size,
+      new_keywords: newKeywords,
+      persistent_keywords: persistentKeywords,
+      removed_keywords: removedKeywords,
+      growth_rate: oldestKeywords.size > 0
+        ? ((currentSet.size - oldestKeywords.size) / oldestKeywords.size * 100).toFixed(1) + '%'
+        : 'N/A',
+    };
+  }
 }

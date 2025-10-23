@@ -96,4 +96,16 @@ export class UsersController {
     await this.usersService.generateContextForUser(id);
     return { message: 'Context regeneration started' };
   }
+
+  @Get(':id/context-history')
+  async getContextHistory(@Param('id') id: string) {
+    this.logger.log(`Fetching context history for user: ${id}`);
+    return this.usersService.getContextHistory(id);
+  }
+
+  @Get(':id/context-evolution')
+  async getContextEvolution(@Param('id') id: string) {
+    this.logger.log(`Fetching context evolution for user: ${id}`);
+    return this.usersService.getContextEvolution(id);
+  }
 }
