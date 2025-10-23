@@ -74,6 +74,12 @@ export class ReportingController {
     return this.reportingService.getIncomeStatement(params);
   }
 
+  @Get('dashboard-kpis')
+  async getDashboardKPIs(@Query() params: any) {
+    this.logger.log(`Generating dashboard KPIs for tenant: ${params.tenant_id}`);
+    return this.reportingService.getDashboardKPIs(params);
+  }
+
   @Get('export/excel')
   async exportToExcel(@Query() params: any, @Res() res: Response) {
     this.logger.log(`Exporting report to Excel: ${params.report_type}`);

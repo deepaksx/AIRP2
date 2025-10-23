@@ -1329,6 +1329,246 @@ export class ReportingService {
     };
   }
 
+  async getDashboardKPIs(params: any): Promise<any> {
+    this.logger.log(`Generating dashboard KPIs for tenant: ${params.tenant_id}`);
+
+    const tenantId = params.tenant_id;
+
+    // Parallel queries for better performance
+    const [
+      cashBalanceResult,
+      trialBalanceResult,
+      incomeStatsResult,
+      apAgingResult,
+      arAgingResult,
+      recentActivityResult,
+      pendingEntriesResult,
+      accountCountResult,
+    ] = await Promise.all([
+      // 1. Cash Balance (Bank accounts 1010-1090)
+      this.dataSource.query(`
+        SELECT SUM(net_balance) as total_cash
+        FROM trial_balance
+        WHERE tenant_id = $1
+          AND account_code BETWEEN '1010' AND '1090'
+      `, [tenantId]),
+
+      // 2. Trial Balance Status
+      this.dataSource.query(`
+        SELECT
+          SUM(debit_balance) as total_debits,
+          SUM(credit_balance) as total_credits,
+          COUNT(*) as account_count
+        FROM trial_balance
+        WHERE tenant_id = $1
+      `, [tenantId]),
+
+      // 3. Income Stats (Revenue and Expenses)
+      this.dataSource.query(`
+        SELECT
+          account_type,
+          SUM(net_balance) as total
+        FROM trial_balance
+        WHERE tenant_id = $1
+          AND account_type IN ('Revenue', 'Expense')
+        GROUP BY account_type
+      `, [tenantId]),
+
+      // 4. AP Aging Summary
+      this.dataSource.query(`
+        SELECT
+          COUNT(DISTINCT jel.dimension_1) as vendor_count,
+          SUM(CASE WHEN coa.account_code = '2100' THEN jel.credit_amount - jel.debit_amount ELSE 0 END) as total_payable
+        FROM journal_entry_lines jel
+        JOIN chart_of_accounts coa ON jel.account_id = coa.account_id
+        WHERE jel.tenant_id = $1
+          AND jel.dimension_1 IS NOT NULL
+          AND coa.account_code = '2100'
+      `, [tenantId]),
+
+      // 5. AR Aging Summary
+      this.dataSource.query(`
+        SELECT
+          COUNT(DISTINCT jel.dimension_2) as customer_count,
+          SUM(CASE WHEN coa.account_code = '1200' THEN jel.debit_amount - jel.credit_amount ELSE 0 END) as total_receivable
+        FROM journal_entry_lines jel
+        JOIN chart_of_accounts coa ON jel.account_id = coa.account_id
+        WHERE jel.tenant_id = $1
+          AND jel.dimension_2 IS NOT NULL
+          AND coa.account_code = '1200'
+      `, [tenantId]),
+
+      // 6. Recent Activity (Last 10 entries)
+      this.dataSource.query(`
+        SELECT
+          je.entry_id,
+          je.entry_number,
+          je.entry_date,
+          je.entry_type,
+          je.description,
+          je.status,
+          COUNT(jel.line_id) as line_count,
+          SUM(jel.debit_amount) as total_debit
+        FROM journal_entries je
+        LEFT JOIN journal_entry_lines jel ON je.entry_id = jel.entry_id
+        WHERE je.tenant_id = $1
+        GROUP BY je.entry_id
+        ORDER BY je.entry_date DESC, je.created_at DESC
+        LIMIT 10
+      `, [tenantId]),
+
+      // 7. Pending Entries (Draft or Pending Approval)
+      this.dataSource.query(`
+        SELECT
+          COUNT(*) as pending_count,
+          SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as draft_count,
+          SUM(CASE WHEN status = 'pending_approval' THEN 1 ELSE 0 END) as pending_approval_count
+        FROM journal_entries
+        WHERE tenant_id = $1
+          AND status IN ('draft', 'pending_approval')
+      `, [tenantId]),
+
+      // 8. Account Counts by Type
+      this.dataSource.query(`
+        SELECT
+          account_type,
+          COUNT(*) as count,
+          COUNT(CASE WHEN ABS(net_balance) > 0.01 THEN 1 END) as non_zero_count
+        FROM trial_balance
+        WHERE tenant_id = $1
+        GROUP BY account_type
+      `, [tenantId]),
+    ]);
+
+    // Process results
+    const cashBalance = parseFloat(cashBalanceResult[0]?.total_cash || 0);
+    const totalDebits = parseFloat(trialBalanceResult[0]?.total_debits || 0);
+    const totalCredits = parseFloat(trialBalanceResult[0]?.total_credits || 0);
+    const isBalanced = Math.abs(totalDebits - totalCredits) < 0.01;
+
+    // Calculate revenue and expenses
+    let totalRevenue = 0;
+    let totalExpenses = 0;
+    incomeStatsResult.forEach(r => {
+      if (r.account_type === 'Revenue') {
+        totalRevenue = Math.abs(parseFloat(r.total || 0));
+      } else if (r.account_type === 'Expense') {
+        totalExpenses = Math.abs(parseFloat(r.total || 0));
+      }
+    });
+    const netIncome = totalRevenue - totalExpenses;
+
+    const vendorCount = parseInt(apAgingResult[0]?.vendor_count || 0);
+    const totalPayable = parseFloat(apAgingResult[0]?.total_payable || 0);
+    const customerCount = parseInt(arAgingResult[0]?.customer_count || 0);
+    const totalReceivable = parseFloat(arAgingResult[0]?.total_receivable || 0);
+
+    const pendingCount = parseInt(pendingEntriesResult[0]?.pending_count || 0);
+    const draftCount = parseInt(pendingEntriesResult[0]?.draft_count || 0);
+    const pendingApprovalCount = parseInt(pendingEntriesResult[0]?.pending_approval_count || 0);
+
+    // Check for exceptions
+    const exceptions = [];
+    if (!isBalanced) {
+      exceptions.push({
+        type: 'balance',
+        severity: 'high',
+        message: `Trial balance is out of balance by ${Math.abs(totalDebits - totalCredits).toFixed(2)} AED`,
+        action: 'Review journal entries for errors',
+      });
+    }
+    if (totalPayable < 0) {
+      exceptions.push({
+        type: 'ap_negative',
+        severity: 'medium',
+        message: `Negative AP balance detected: ${totalPayable.toFixed(2)} AED`,
+        action: 'Review vendor payments and invoices',
+      });
+    }
+    if (totalReceivable < 0) {
+      exceptions.push({
+        type: 'ar_negative',
+        severity: 'medium',
+        message: `Negative AR balance detected: ${totalReceivable.toFixed(2)} AED`,
+        action: 'Review customer payments and invoices',
+      });
+    }
+
+    // Pending actions
+    const pendingActions = [];
+    if (draftCount > 0) {
+      pendingActions.push({
+        type: 'draft_entries',
+        count: draftCount,
+        message: `${draftCount} draft journal ${draftCount === 1 ? 'entry' : 'entries'} pending posting`,
+        link: 'je-register.html?status=draft',
+      });
+    }
+    if (pendingApprovalCount > 0) {
+      pendingActions.push({
+        type: 'pending_approval',
+        count: pendingApprovalCount,
+        message: `${pendingApprovalCount} ${pendingApprovalCount === 1 ? 'entry' : 'entries'} pending approval`,
+        link: 'je-register.html?status=pending_approval',
+      });
+    }
+
+    return {
+      tenant_id: tenantId,
+      generated_at: new Date().toISOString(),
+      kpis: {
+        financial: {
+          cash_balance: cashBalance,
+          total_revenue: totalRevenue,
+          total_expenses: totalExpenses,
+          net_income: netIncome,
+          profit_margin: totalRevenue > 0 ? (netIncome / totalRevenue) * 100 : 0,
+        },
+        operational: {
+          vendor_count: vendorCount,
+          customer_count: customerCount,
+          total_payable: totalPayable,
+          total_receivable: totalReceivable,
+          working_capital: totalReceivable - totalPayable,
+        },
+        accounting: {
+          total_debits: totalDebits,
+          total_credits: totalCredits,
+          is_balanced: isBalanced,
+          variance: totalDebits - totalCredits,
+          account_count: parseInt(trialBalanceResult[0]?.account_count || 0),
+        },
+      },
+      health: {
+        status: exceptions.length === 0 ? 'healthy' : (exceptions.some(e => e.severity === 'high') ? 'critical' : 'warning'),
+        score: Math.max(0, 100 - (exceptions.length * 20)),
+        checks: {
+          trial_balance: isBalanced,
+          ap_balance: totalPayable >= 0,
+          ar_balance: totalReceivable >= 0,
+          has_activity: recentActivityResult.length > 0,
+        },
+      },
+      exceptions: exceptions,
+      pending_actions: pendingActions,
+      recent_activity: recentActivityResult.map(r => ({
+        entry_id: r.entry_id,
+        entry_number: r.entry_number,
+        entry_date: r.entry_date,
+        entry_type: r.entry_type,
+        description: r.description,
+        status: r.status,
+        line_count: parseInt(r.line_count || 0),
+        amount: parseFloat(r.total_debit || 0),
+      })),
+      account_summary: accountCountResult.map(r => ({
+        account_type: r.account_type,
+        total_count: parseInt(r.count || 0),
+        non_zero_count: parseInt(r.non_zero_count || 0),
+      })),
+    };
+  }
+
   async exportToExcel(params: any): Promise<any> {
     this.logger.log(`Exporting report to Excel: ${params.report_type}`);
 

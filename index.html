@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AIRP v2.11.0 - AI-Powered Financial ERP with Context Search</title>
+    <title>AIRP v2.13.0 - Financial Dashboard & Health Monitoring</title>
     <style>
         /* ==================== SAP-like Design System ==================== */
         * {
@@ -231,49 +231,378 @@
             padding: 24px 32px;
         }
 
-        /* Welcome Screen */
-        .welcome-container {
-            max-width: 1200px;
+        /* Dashboard Styles */
+        .dashboard-container {
+            max-width: 1600px;
             margin: 0 auto;
         }
 
-        .welcome-cards {
+        .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 20px;
-            margin-bottom: 32px;
+            margin-bottom: 24px;
         }
 
-        .welcome-card {
+        /* KPI Cards */
+        .kpi-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
             background: var(--sap-surface);
             border: 1px solid var(--sap-border);
-            border-radius: 4px;
-            padding: 24px;
-            cursor: pointer;
+            border-radius: 8px;
+            padding: 20px;
             transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
         }
 
-        .welcome-card:hover {
+        .kpi-card:hover {
             box-shadow: 0 4px 12px var(--sap-shadow);
             transform: translateY(-2px);
         }
 
-        .welcome-card-icon {
-            font-size: 32px;
-            margin-bottom: 16px;
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--sap-primary);
         }
 
-        .welcome-card-title {
-            font-size: 16px;
+        .kpi-card.success::before { background: var(--sap-success); }
+        .kpi-card.warning::before { background: var(--sap-warning); }
+        .kpi-card.error::before { background: var(--sap-error); }
+
+        .kpi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .kpi-title {
+            font-size: 13px;
+            color: var(--sap-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .kpi-icon {
+            font-size: 24px;
+            opacity: 0.7;
+        }
+
+        .kpi-value {
+            font-size: 32px;
             font-weight: 600;
             color: var(--sap-text-primary);
             margin-bottom: 8px;
+            line-height: 1;
         }
 
-        .welcome-card-desc {
-            font-size: 14px;
+        .kpi-value.positive { color: var(--sap-success); }
+        .kpi-value.negative { color: var(--sap-error); }
+
+        .kpi-subtitle {
+            font-size: 12px;
             color: var(--sap-text-secondary);
-            line-height: 1.6;
+        }
+
+        .kpi-trend {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .kpi-trend.up {
+            background: rgba(16, 126, 62, 0.1);
+            color: var(--sap-success);
+        }
+
+        .kpi-trend.down {
+            background: rgba(187, 0, 0, 0.1);
+            color: var(--sap-error);
+        }
+
+        /* Health Status */
+        .health-section {
+            background: var(--sap-surface);
+            border: 1px solid var(--sap-border);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .health-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .health-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--sap-text-primary);
+        }
+
+        .health-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .health-badge.healthy {
+            background: rgba(16, 126, 62, 0.1);
+            color: var(--sap-success);
+        }
+
+        .health-badge.warning {
+            background: rgba(233, 115, 12, 0.1);
+            color: var(--sap-warning);
+        }
+
+        .health-badge.critical {
+            background: rgba(187, 0, 0, 0.1);
+            color: var(--sap-error);
+        }
+
+        .health-checks {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .health-check {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #FAFAFA;
+            border-radius: 6px;
+        }
+
+        .health-check-icon {
+            font-size: 20px;
+        }
+
+        .health-check-label {
+            font-size: 13px;
+            color: var(--sap-text-secondary);
+        }
+
+        /* Exceptions & Actions */
+        .two-column-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .two-column-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .info-panel {
+            background: var(--sap-surface);
+            border: 1px solid var(--sap-border);
+            border-radius: 8px;
+            padding: 24px;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .panel-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--sap-text-primary);
+        }
+
+        .panel-count {
+            background: var(--sap-primary);
+            color: white;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .exception-item, .action-item {
+            padding: 12px;
+            background: #FAFAFA;
+            border-left: 3px solid var(--sap-border);
+            border-radius: 4px;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+        }
+
+        .exception-item:hover, .action-item:hover {
+            background: #F0F0F0;
+            cursor: pointer;
+        }
+
+        .exception-item.high { border-left-color: var(--sap-error); }
+        .exception-item.medium { border-left-color: var(--sap-warning); }
+        .exception-item.low { border-left-color: var(--sap-info); }
+
+        .exception-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 6px;
+        }
+
+        .exception-message {
+            font-size: 14px;
+            color: var(--sap-text-primary);
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .exception-action {
+            font-size: 12px;
+            color: var(--sap-text-secondary);
+        }
+
+        .severity-badge {
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .severity-badge.high {
+            background: rgba(187, 0, 0, 0.1);
+            color: var(--sap-error);
+        }
+
+        .severity-badge.medium {
+            background: rgba(233, 115, 12, 0.1);
+            color: var(--sap-warning);
+        }
+
+        /* Recent Activity */
+        .activity-panel {
+            background: var(--sap-surface);
+            border: 1px solid var(--sap-border);
+            border-radius: 8px;
+            padding: 24px;
+        }
+
+        .activity-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid var(--sap-border);
+            transition: all 0.2s;
+        }
+
+        .activity-item:hover {
+            background: #FAFAFA;
+            cursor: pointer;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-left {
+            flex: 1;
+        }
+
+        .activity-title {
+            font-size: 14px;
+            color: var(--sap-text-primary);
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .activity-meta {
+            font-size: 12px;
+            color: var(--sap-text-secondary);
+        }
+
+        .activity-amount {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--sap-text-primary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--sap-text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .spinner {
+            border: 4px solid var(--sap-border);
+            border-top: 4px solid var(--sap-primary);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .refresh-btn {
+            background: var(--sap-primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: var(--sap-primary-hover);
         }
 
         /* Iframe Container */
@@ -353,7 +682,7 @@
     <div class="top-nav">
         <div class="logo-section">
             <div class="logo-icon">⚡</div>
-            <div class="logo-text">AIRP v2.11.0</div>
+            <div class="logo-text">AIRP v2.13.0</div>
         </div>
 
         <div class="nav-center">
@@ -527,81 +856,27 @@
 
         <!-- Content Area -->
         <div class="content-area">
-            <!-- Welcome View -->
+            <!-- Dashboard View -->
             <div id="welcome-view">
                 <div class="content-header">
-                    <div class="content-title">Welcome to AIRP v2.11.0</div>
-                    <div class="content-subtitle">AI-Powered Financial ERP with Context-Aware Natural Language Querying</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div class="content-title">Financial Dashboard</div>
+                            <div class="content-subtitle">Real-time KPIs, Health Status, and Action Items</div>
+                        </div>
+                        <button class="refresh-btn" onclick="loadDashboard()">
+                            <span>🔄</span>
+                            <span>Refresh</span>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="content-body">
-                    <div class="welcome-container">
-                        <div class="welcome-cards">
-                            <div class="welcome-card" onclick="loadContent('chaterp.html')" style="border: 2px solid #0854A0; background: #E8F0F8;">
-                                <div class="welcome-card-icon">🤖</div>
-                                <div class="welcome-card-title"><strong>ChatERP - AI Assistant (NEW)</strong></div>
-                                <div class="welcome-card-desc">Ask questions in natural language: "Who sells office supplies?" with AI-powered context search</div>
-                            </div>
-
-                            <div class="welcome-card" onclick="loadContent('post-je.html')" style="border: 2px solid #E9730C; background: #FFFBF0;">
-                                <div class="welcome-card-icon">✍️</div>
-                                <div class="welcome-card-title"><strong>Post Journal Entry</strong></div>
-                                <div class="welcome-card-desc">Single source of truth for ALL financial transactions - Select type, auto-validates vendor/customer</div>
-                            </div>
-
-                            <div class="welcome-card" onclick="loadContent('trial-balance.html')">
-                                <div class="welcome-card-icon">⚖️</div>
-                                <div class="welcome-card-title">Trial Balance</div>
-                                <div class="welcome-card-desc">Verify accounting accuracy with trial balance report</div>
-                            </div>
-
-                            <div class="welcome-card" onclick="loadContent('gl-line-items.html')">
-                                <div class="welcome-card-icon">📖</div>
-                                <div class="welcome-card-title">General Ledger</div>
-                                <div class="welcome-card-desc">View detailed general ledger transactions</div>
-                            </div>
-
-                            <div class="welcome-card" onclick="loadContent('income-statement.html')">
-                                <div class="welcome-card-icon">📊</div>
-                                <div class="welcome-card-title">Income Statement</div>
-                                <div class="welcome-card-desc">Analyze revenue and expenses with P&L statement</div>
-                            </div>
-
-                            <div class="welcome-card" onclick="loadContent('balance-sheet.html')">
-                                <div class="welcome-card-icon">📈</div>
-                                <div class="welcome-card-title">Balance Sheet</div>
-                                <div class="welcome-card-desc">View financial position with balance sheet</div>
-                            </div>
-
-                            <div class="welcome-card" onclick="loadContent('cash-flow-statement.html')">
-                                <div class="welcome-card-icon">💸</div>
-                                <div class="welcome-card-title">Cash Flow</div>
-                                <div class="welcome-card-desc">Track cash movements and liquidity</div>
-                            </div>
-
-                            <div class="welcome-card" onclick="loadContent('vendor-ledger.html')">
-                                <div class="welcome-card-icon">🏢</div>
-                                <div class="welcome-card-title">Vendor Ledger</div>
-                                <div class="welcome-card-desc">Review vendor balances and transactions</div>
-                            </div>
-
-                            <div class="welcome-card" onclick="loadContent('customer-ledger.html')">
-                                <div class="welcome-card-icon">👤</div>
-                                <div class="welcome-card-title">Customer Ledger</div>
-                                <div class="welcome-card-desc">Review customer balances and transactions</div>
-                            </div>
-
-                            <div class="welcome-card" onclick="loadContent('chart-of-accounts.html')">
-                                <div class="welcome-card-icon">📑</div>
-                                <div class="welcome-card-title">Chart of Accounts</div>
-                                <div class="welcome-card-desc">Manage general ledger accounts and structure</div>
-                            </div>
-
-                            <div class="welcome-card" onclick="loadContent('database-explorer.html')">
-                                <div class="welcome-card-icon">🗄️</div>
-                                <div class="welcome-card-title">Database Explorer</div>
-                                <div class="welcome-card-desc">Explore database tables and execute queries</div>
-                            </div>
+                    <div class="dashboard-container" id="dashboard-content">
+                        <!-- Loading spinner -->
+                        <div class="loading-spinner">
+                            <div class="spinner"></div>
+                            <div style="color: var(--sap-text-secondary);">Loading dashboard...</div>
                         </div>
                     </div>
                 </div>
@@ -616,6 +891,206 @@
 
     <script>
         let currentContent = null;
+        const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+        const REPORTING_API = 'http://localhost:3008';
+
+        // Load dashboard on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDashboard();
+            // Auto-refresh every 30 seconds
+            setInterval(loadDashboard, 30000);
+        });
+
+        async function loadDashboard() {
+            const dashboardContent = document.getElementById('dashboard-content');
+
+            try {
+                const response = await fetch(`${REPORTING_API}/reports/dashboard-kpis?tenant_id=${TENANT_ID}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                renderDashboard(data);
+            } catch (error) {
+                console.error('Dashboard loading error:', error);
+                dashboardContent.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Unable to load dashboard</div>
+                        <div style="font-size: 14px;">${error.message}</div>
+                        <button class="refresh-btn" onclick="loadDashboard()" style="margin-top: 20px;">
+                            <span>🔄</span>
+                            <span>Retry</span>
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        function renderDashboard(data) {
+            const dashboardContent = document.getElementById('dashboard-content');
+            const kpis = data.kpis;
+            const health = data.health;
+
+            dashboardContent.innerHTML = `
+                <!-- KPI Cards -->
+                <div class="kpi-section">
+                    ${renderKPICard('💰 Cash Balance', formatCurrency(kpis.financial.cash_balance), 'Total cash in bank accounts', kpis.financial.cash_balance >= 0 ? 'success' : 'error')}
+                    ${renderKPICard('📈 Total Revenue', formatCurrency(kpis.financial.total_revenue), 'Revenue from all sources', 'success')}
+                    ${renderKPICard('📉 Total Expenses', formatCurrency(kpis.financial.total_expenses), 'Operating expenses', 'warning')}
+                    ${renderKPICard('💵 Net Income', formatCurrency(kpis.financial.net_income), `Profit margin: ${kpis.financial.profit_margin.toFixed(1)}%`, kpis.financial.net_income >= 0 ? 'success' : 'error', kpis.financial.net_income >= 0)}
+                    ${renderKPICard('🏪 Vendors', kpis.operational.vendor_count.toString(), `Payable: ${formatCurrency(kpis.operational.total_payable)}`)}
+                    ${renderKPICard('👥 Customers', kpis.operational.customer_count.toString(), `Receivable: ${formatCurrency(kpis.operational.total_receivable)}`)}
+                    ${renderKPICard('💼 Working Capital', formatCurrency(kpis.operational.working_capital), 'Receivable - Payable', kpis.operational.working_capital >= 0 ? 'success' : 'warning')}
+                    ${renderKPICard('⚖️ Trial Balance', health.checks.trial_balance ? '✓ Balanced' : '✗ Out of Balance', `Variance: ${formatCurrency(kpis.accounting.variance)}`, health.checks.trial_balance ? 'success' : 'error')}
+                </div>
+
+                <!-- Health Status -->
+                <div class="health-section">
+                    <div class="health-header">
+                        <div class="health-title">System Health</div>
+                        <div class="health-badge ${health.status}">
+                            <span>${getHealthIcon(health.status)}</span>
+                            <span>${health.status.charAt(0).toUpperCase() + health.status.slice(1)} (${health.score}/100)</span>
+                        </div>
+                    </div>
+                    <div class="health-checks">
+                        ${renderHealthCheck(health.checks.trial_balance, 'Trial Balance')}
+                        ${renderHealthCheck(health.checks.ap_balance, 'AP Balance')}
+                        ${renderHealthCheck(health.checks.ar_balance, 'AR Balance')}
+                        ${renderHealthCheck(health.checks.has_activity, 'Recent Activity')}
+                    </div>
+                </div>
+
+                <!-- Exceptions and Pending Actions -->
+                <div class="two-column-section">
+                    <!-- Exceptions -->
+                    <div class="info-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">⚠️ Exceptions</div>
+                            ${data.exceptions.length > 0 ? `<div class="panel-count">${data.exceptions.length}</div>` : ''}
+                        </div>
+                        ${data.exceptions.length > 0 ?
+                            data.exceptions.map(ex => renderException(ex)).join('') :
+                            '<div class="empty-state"><div class="empty-state-icon">✓</div><div>No exceptions found</div></div>'
+                        }
+                    </div>
+
+                    <!-- Pending Actions -->
+                    <div class="info-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">📋 Pending Actions</div>
+                            ${data.pending_actions.length > 0 ? `<div class="panel-count">${data.pending_actions.length}</div>` : ''}
+                        </div>
+                        ${data.pending_actions.length > 0 ?
+                            data.pending_actions.map(action => renderPendingAction(action)).join('') :
+                            '<div class="empty-state"><div class="empty-state-icon">✓</div><div>All caught up!</div></div>'
+                        }
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="activity-panel">
+                    <div class="panel-header">
+                        <div class="panel-title">📊 Recent Activity</div>
+                        <a href="#" onclick="loadContent('je-register.html'); return false;" style="font-size: 13px; color: var(--sap-primary); text-decoration: none;">View All →</a>
+                    </div>
+                    ${data.recent_activity.length > 0 ?
+                        data.recent_activity.map(activity => renderActivity(activity)).join('') :
+                        '<div class="empty-state"><div class="empty-state-icon">📭</div><div>No recent activity</div></div>'
+                    }
+                </div>
+            `;
+        }
+
+        function renderKPICard(title, value, subtitle, type = '', isPositive = null) {
+            const valueClass = isPositive !== null ? (isPositive ? 'positive' : 'negative') : '';
+            return `
+                <div class="kpi-card ${type}">
+                    <div class="kpi-header">
+                        <div class="kpi-title">${title.split(' ').slice(1).join(' ')}</div>
+                        <div class="kpi-icon">${title.split(' ')[0]}</div>
+                    </div>
+                    <div class="kpi-value ${valueClass}">${value}</div>
+                    <div class="kpi-subtitle">${subtitle}</div>
+                </div>
+            `;
+        }
+
+        function renderHealthCheck(passed, label) {
+            return `
+                <div class="health-check">
+                    <div class="health-check-icon">${passed ? '✅' : '❌'}</div>
+                    <div class="health-check-label">${label}</div>
+                </div>
+            `;
+        }
+
+        function renderException(exception) {
+            return `
+                <div class="exception-item ${exception.severity}">
+                    <div class="exception-header">
+                        <div style="flex: 1;">
+                            <div class="exception-message">${exception.message}</div>
+                            <div class="exception-action">Action: ${exception.action}</div>
+                        </div>
+                        <div class="severity-badge ${exception.severity}">${exception.severity}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderPendingAction(action) {
+            return `
+                <div class="action-item" onclick="loadContent('${action.link}')">
+                    <div>
+                        <div class="exception-message">${action.message}</div>
+                        <div class="exception-action">Click to view</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderActivity(activity) {
+            return `
+                <div class="activity-item" onclick="alert('Entry ID: ${activity.entry_id}')">
+                    <div class="activity-left">
+                        <div class="activity-title">${activity.entry_number || activity.entry_id.substring(0, 8)} - ${activity.description}</div>
+                        <div class="activity-meta">${formatDate(activity.entry_date)} • ${activity.entry_type} • ${activity.line_count} lines</div>
+                    </div>
+                    <div class="activity-amount">${formatCurrency(activity.amount)}</div>
+                </div>
+            `;
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-AE', {
+                style: 'currency',
+                currency: 'AED',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(amount);
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return new Intl.DateTimeFormat('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            }).format(date);
+        }
+
+        function getHealthIcon(status) {
+            switch(status) {
+                case 'healthy': return '✅';
+                case 'warning': return '⚠️';
+                case 'critical': return '🔴';
+                default: return '❓';
+            }
+        }
 
         function loadContent(url) {
             const welcomeView = document.getElementById('welcome-view');
