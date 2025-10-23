@@ -487,6 +487,31 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  inventory-service:
+    build:
+      context: ./services/inventory-service
+      dockerfile: Dockerfile
+    container_name: airp-inventory-service
+    environment:
+      NODE_ENV: development
+      PORT: 3009
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: airp_admin
+      POSTGRES_PASSWORD: airp_secure_2024
+      POSTGRES_DB: airp_master
+      KAFKA_BROKERS: kafka:9092
+    ports:
+      - "3009:3009"
+    networks:
+      - airp-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    restart: unless-stopped
+
   # ============================================
   # AI SERVICES - FastAPI Python
   # ============================================

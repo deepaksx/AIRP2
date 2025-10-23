@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COPA Profitability Analysis - AIRP v2.14</title>
+    <link href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --sap-primary: #0070F2;
+            --sap-success: #28A745;
+            --sap-warning: #FFC107;
+            --sap-danger: #DC3545;
+            --sap-text: #1D2D3E;
+            --sap-text-secondary: #5E6C84;
+            --sap-bg: #FAFAFA;
+            --sap-card: #FFFFFF;
+            --sap-border: #E5E5E5;
+            --sap-hover: #F5F7FA;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: '72', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--sap-bg);
+            color: var(--sap-text);
+            line-height: 1.6;
+        }
+
+        .container { max-width: 1600px; margin: 0 auto; padding: 24px; }
+
+        .header {
+            background: var(--sap-card);
+            padding: 24px;
+            border-bottom: 1px solid var(--sap-border);
+            margin: -24px -24px 24px;
+        }
+
+        .header h1 { font-size: 24px; font-weight: 400; margin-bottom: 8px; }
+
+        .breadcrumb { font-size: 14px; color: var(--sap-text-secondary); }
+        .breadcrumb a { color: var(--sap-primary); text-decoration: none; }
+
+        .filters {
+            background: var(--sap-card);
+            padding: 20px;
+            border: 1px solid var(--sap-border);
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .filter-group label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 6px;
+            color: var(--sap-text-secondary);
+            text-transform: uppercase;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--sap-border);
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary { background: var(--sap-primary); color: white; }
+        .btn-primary:hover { background: #0064D9; }
+
+        .tabs {
+            display: flex;
+            gap: 4px;
+            border-bottom: 1px solid var(--sap-border);
+            margin-bottom: 24px;
+            background: var(--sap-card);
+            padding: 0 24px;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            color: var(--sap-text-secondary);
+            cursor: pointer;
+            font-size: 14px;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab:hover { background: var(--sap-hover); }
+        .tab.active { color: var(--sap-primary); border-bottom-color: var(--sap-primary); }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--sap-card);
+            border: 1px solid var(--sap-border);
+            border-radius: 4px;
+            padding: 20px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--sap-text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--sap-text);
+        }
+
+        .stat-change {
+            font-size: 13px;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stat-change.positive { color: var(--sap-success); }
+        .stat-change.negative { color: var(--sap-danger); }
+
+        .card {
+            background: var(--sap-card);
+            border: 1px solid var(--sap-border);
+            border-radius: 4px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .card h3 { font-size: 16px; font-weight: 500; margin-bottom: 16px; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--sap-card);
+        }
+
+        th {
+            background: var(--sap-hover);
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+            border-bottom: 1px solid var(--sap-border);
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--sap-border);
+            font-size: 14px;
+        }
+
+        tr:hover { background: var(--sap-hover); }
+
+        .progress-bar {
+            height: 8px;
+            background: #E5E5E5;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--sap-success);
+            transition: width 0.3s;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 968px) {
+            .grid-2 { grid-template-columns: 1fr; }
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="breadcrumb">
+                <a href="index.html">Dashboard</a> / <a href="#">Finance</a> / COPA Profitability Analysis
+            </div>
+            <h1>📊 COPA - Profitability Analysis (SAP CO-PA Style)</h1>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters">
+            <div class="filter-group">
+                <label>Start Date</label>
+                <input type="date" id="filterStartDate" value="2024-01-01">
+            </div>
+            <div class="filter-group">
+                <label>End Date</label>
+                <input type="date" id="filterEndDate" value="2025-12-31">
+            </div>
+            <div class="filter-group">
+                <label>Group By</label>
+                <select id="filterGroupBy" multiple>
+                    <option value="product_code" selected>Product</option>
+                    <option value="customer_code">Customer</option>
+                    <option value="region">Region</option>
+                    <option value="sales_org">Sales Org</option>
+                </select>
+            </div>
+            <div class="filter-group" style="display: flex; align-items: flex-end;">
+                <button class="btn btn-primary" onclick="loadCopaData()">🔍 Analyze</button>
+            </div>
+        </div>
+
+        <!-- Summary Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Revenue</div>
+                <div class="stat-value" id="statRevenue">0 AED</div>
+                <div class="stat-change positive" id="statRevenueChange">+0%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total COGS</div>
+                <div class="stat-value" id="statCOGS">0 AED</div>
+                <div class="stat-change" id="statCOGSChange">+0%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Gross Margin</div>
+                <div class="stat-value" id="statMargin">0 AED</div>
+                <div class="stat-change positive" id="statMarginChange">+0%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Margin %</div>
+                <div class="stat-value" id="statMarginPct">0%</div>
+                <div class="stat-change positive" id="statMarginPctChange">+0%</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('overview')">Overview</button>
+            <button class="tab" onclick="switchTab('product')">Product Profitability</button>
+            <button class="tab" onclick="switchTab('customer')">Customer Profitability</button>
+            <button class="tab" onclick="switchTab('region')">Regional Analysis</button>
+            <button class="tab" onclick="switchTab('reconciliation')">GL Reconciliation</button>
+        </div>
+
+        <!-- Overview Tab -->
+        <div id="overviewTab" class="tab-content active">
+            <div class="grid-2">
+                <div class="card">
+                    <h3>Revenue Trend</h3>
+                    <div class="chart-container">
+                        <canvas id="revenueTrendChart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Margin Trend</h3>
+                    <div class="chart-container">
+                        <canvas id="marginTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Profitability Matrix</h3>
+                <table id="profitabilityTable">
+                    <thead>
+                        <tr>
+                            <th>Dimension</th>
+                            <th>Revenue</th>
+                            <th>COGS</th>
+                            <th>Gross Margin</th>
+                            <th>Margin %</th>
+                            <th>Transactions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="6" style="text-align: center;">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Product Tab -->
+        <div id="productTab" class="tab-content">
+            <div class="card">
+                <h3>Top 20 Products by Gross Margin</h3>
+                <table id="productTable">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Product Code</th>
+                            <th>Product Name</th>
+                            <th>Revenue</th>
+                            <th>COGS</th>
+                            <th>Margin</th>
+                            <th>Margin %</th>
+                            <th>Qty Sold</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="8" style="text-align: center;">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Customer Tab -->
+        <div id="customerTab" class="tab-content">
+            <div class="card">
+                <h3>Top 20 Customers by Gross Margin</h3>
+                <table id="customerTable">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Customer Code</th>
+                            <th>Customer Name</th>
+                            <th>Revenue</th>
+                            <th>COGS</th>
+                            <th>Margin</th>
+                            <th>Margin %</th>
+                            <th>Transactions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="8" style="text-align: center;">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Region Tab -->
+        <div id="regionTab" class="tab-content">
+            <div class="card">
+                <h3>Regional Profitability Analysis</h3>
+                <table id="regionTable">
+                    <thead>
+                        <tr>
+                            <th>Region</th>
+                            <th>Country</th>
+                            <th>Revenue</th>
+                            <th>COGS</th>
+                            <th>Margin</th>
+                            <th>Margin %</th>
+                            <th>Transactions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="7" style="text-align: center;">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Reconciliation Tab -->
+        <div id="reconciliationTab" class="tab-content">
+            <div class="card">
+                <h3>COPA vs GL Reconciliation</h3>
+                <p style="margin-bottom: 16px; color: var(--sap-text-secondary);">
+                    This report verifies 100% reconciliation between COPA profitability data and General Ledger.
+                </p>
+                <table id="reconciliationTable">
+                    <thead>
+                        <tr>
+                            <th>Period</th>
+                            <th>COPA Revenue</th>
+                            <th>GL Revenue</th>
+                            <th>Revenue Variance</th>
+                            <th>COPA COGS</th>
+                            <th>GL COGS</th>
+                            <th>COGS Variance</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="8" style="text-align: center;">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        const API_URL = 'http://localhost:3009';
+        const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+
+        let revenueTrendChart, marginTrendChart;
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            event.target.classList.add('active');
+
+            if (tabName === 'product') loadProductProfitability();
+            else if (tabName === 'customer') loadCustomerProfitability();
+            else if (tabName === 'region') loadRegionProfitability();
+            else if (tabName === 'reconciliation') loadReconciliation();
+        }
+
+        async function loadCopaData() {
+            const startDate = document.getElementById('filterStartDate').value;
+            const endDate = document.getElementById('filterEndDate').value;
+
+            try {
+                const response = await fetch(
+                    `${API_URL}/copa/dashboard?tenant_id=${TENANT_ID}&start_date=${startDate}&end_date=${endDate}`
+                );
+                const data = await response.json();
+
+                // Update charts and tables
+                updateDashboard(data);
+                renderTrendCharts(data.trend_data);
+            } catch (error) {
+                console.error('Error loading COPA data:', error);
+                alert('Error loading COPA data. Make sure the inventory service is running.');
+            }
+        }
+
+        function updateDashboard(data) {
+            // Calculate totals from trend data
+            const totals = (data.trend_data || []).reduce((acc, row) => {
+                acc.revenue += parseFloat(row.revenue || 0);
+                acc.cogs += parseFloat(row.cogs || 0);
+                acc.margin += parseFloat(row.margin || 0);
+                return acc;
+            }, { revenue: 0, cogs: 0, margin: 0 });
+
+            document.getElementById('statRevenue').textContent = totals.revenue.toFixed(2) + ' AED';
+            document.getElementById('statCOGS').textContent = totals.cogs.toFixed(2) + ' AED';
+            document.getElementById('statMargin').textContent = totals.margin.toFixed(2) + ' AED';
+
+            const marginPct = totals.revenue > 0 ? (totals.margin / totals.revenue * 100) : 0;
+            document.getElementById('statMarginPct').textContent = marginPct.toFixed(1) + '%';
+
+            // Update profitability table
+            const tbody = document.getElementById('profitabilityTable').querySelector('tbody');
+
+            if (data.top_products && data.top_products.length > 0) {
+                tbody.innerHTML = data.top_products.slice(0, 10).map(product => `
+                    <tr>
+                        <td><strong>${product.product_code}</strong></td>
+                        <td>${parseFloat(product.total_revenue || 0).toFixed(2)} AED</td>
+                        <td>${parseFloat(product.total_cogs || 0).toFixed(2)} AED</td>
+                        <td><strong>${parseFloat(product.total_margin || 0).toFixed(2)} AED</strong></td>
+                        <td>${parseFloat(product.margin_pct || 0).toFixed(1)}%</td>
+                        <td>${product.transaction_count}</td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No data available</td></tr>';
+            }
+        }
+
+        function renderTrendCharts(trendData) {
+            if (!trendData || trendData.length === 0) return;
+
+            const labels = trendData.map(d => d.period_label);
+            const revenues = trendData.map(d => parseFloat(d.revenue || 0));
+            const margins = trendData.map(d => parseFloat(d.margin || 0));
+            const marginPcts = trendData.map(d => parseFloat(d.margin_pct || 0));
+
+            // Revenue Trend Chart
+            const revenueCtx = document.getElementById('revenueTrendChart');
+            if (revenueTrendChart) revenueTrendChart.destroy();
+            revenueTrendChart = new Chart(revenueCtx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Revenue',
+                        data: revenues,
+                        borderColor: '#0070F2',
+                        backgroundColor: 'rgba(0, 112, 242, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            // Margin Trend Chart
+            const marginCtx = document.getElementById('marginTrendChart');
+            if (marginTrendChart) marginTrendChart.destroy();
+            marginTrendChart = new Chart(marginCtx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Margin %',
+                        data: marginPcts,
+                        borderColor: '#28A745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function loadProductProfitability() {
+            const startDate = document.getElementById('filterStartDate').value;
+            const endDate = document.getElementById('filterEndDate').value;
+
+            try {
+                const response = await fetch(
+                    `${API_URL}/copa/product-profitability?tenant_id=${TENANT_ID}&start_date=${startDate}&end_date=${endDate}`
+                );
+                const products = await response.json();
+
+                const tbody = document.getElementById('productTable').querySelector('tbody');
+                if (products.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No product data available</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = products.slice(0, 20).map((product, idx) => `
+                    <tr>
+                        <td><strong>#${idx + 1}</strong></td>
+                        <td>${product.product_code}</td>
+                        <td>${product.product_name || '-'}</td>
+                        <td>${parseFloat(product.total_revenue || 0).toFixed(2)} AED</td>
+                        <td>${parseFloat(product.total_cogs || 0).toFixed(2)} AED</td>
+                        <td><strong>${parseFloat(product.total_margin || 0).toFixed(2)} AED</strong></td>
+                        <td>${parseFloat(product.margin_pct || 0).toFixed(1)}%</td>
+                        <td>${parseFloat(product.total_quantity || 0).toFixed(0)}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading product profitability:', error);
+            }
+        }
+
+        async function loadCustomerProfitability() {
+            const startDate = document.getElementById('filterStartDate').value;
+            const endDate = document.getElementById('filterEndDate').value;
+
+            try {
+                const response = await fetch(
+                    `${API_URL}/copa/customer-profitability?tenant_id=${TENANT_ID}&start_date=${startDate}&end_date=${endDate}`
+                );
+                const customers = await response.json();
+
+                const tbody = document.getElementById('customerTable').querySelector('tbody');
+                if (customers.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No customer data available</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = customers.slice(0, 20).map((customer, idx) => `
+                    <tr>
+                        <td><strong>#${idx + 1}</strong></td>
+                        <td>${customer.customer_code}</td>
+                        <td>${customer.customer_name || '-'}</td>
+                        <td>${parseFloat(customer.total_revenue || 0).toFixed(2)} AED</td>
+                        <td>${parseFloat(customer.total_cogs || 0).toFixed(2)} AED</td>
+                        <td><strong>${parseFloat(customer.total_margin || 0).toFixed(2)} AED</strong></td>
+                        <td>${parseFloat(customer.margin_pct || 0).toFixed(1)}%</td>
+                        <td>${customer.transaction_count}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading customer profitability:', error);
+            }
+        }
+
+        async function loadRegionProfitability() {
+            const startDate = document.getElementById('filterStartDate').value;
+            const endDate = document.getElementById('filterEndDate').value;
+
+            try {
+                const response = await fetch(
+                    `${API_URL}/copa/region-profitability?tenant_id=${TENANT_ID}&start_date=${startDate}&end_date=${endDate}`
+                );
+                const regions = await response.json();
+
+                const tbody = document.getElementById('regionTable').querySelector('tbody');
+                if (regions.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No region data available</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = regions.map(region => `
+                    <tr>
+                        <td><strong>${region.region}</strong></td>
+                        <td>${region.country}</td>
+                        <td>${parseFloat(region.total_revenue || 0).toFixed(2)} AED</td>
+                        <td>${parseFloat(region.total_cogs || 0).toFixed(2)} AED</td>
+                        <td><strong>${parseFloat(region.total_margin || 0).toFixed(2)} AED</strong></td>
+                        <td>${parseFloat(region.margin_pct || 0).toFixed(1)}%</td>
+                        <td>${region.transaction_count}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading region profitability:', error);
+            }
+        }
+
+        async function loadReconciliation() {
+            const year = new Date().getFullYear();
+
+            try {
+                const response = await fetch(
+                    `${API_URL}/copa/reconciliation?tenant_id=${TENANT_ID}&fiscal_year=${year}`
+                );
+                const reconciliation = await response.json();
+
+                const tbody = document.getElementById('reconciliationTable').querySelector('tbody');
+                if (reconciliation.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No reconciliation data available</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = reconciliation.map(row => {
+                    const revenueVariance = parseFloat(row.revenue_variance || 0);
+                    const cogsVariance = parseFloat(row.cogs_variance || 0);
+                    const isReconciled = Math.abs(revenueVariance) < 0.01 && Math.abs(cogsVariance) < 0.01;
+
+                    return `
+                        <tr>
+                            <td><strong>${row.fiscal_year}-${String(row.fiscal_period).padStart(2, '0')}</strong></td>
+                            <td>${parseFloat(row.copa_total_revenue || 0).toFixed(2)} AED</td>
+                            <td>${parseFloat(row.gl_total_revenue || 0).toFixed(2)} AED</td>
+                            <td style="color: ${Math.abs(revenueVariance) < 0.01 ? 'var(--sap-success)' : 'var(--sap-danger)'}">
+                                ${revenueVariance.toFixed(2)} AED
+                            </td>
+                            <td>${parseFloat(row.copa_total_cogs || 0).toFixed(2)} AED</td>
+                            <td>${parseFloat(row.gl_total_cogs || 0).toFixed(2)} AED</td>
+                            <td style="color: ${Math.abs(cogsVariance) < 0.01 ? 'var(--sap-success)' : 'var(--sap-danger)'}">
+                                ${cogsVariance.toFixed(2)} AED
+                            </td>
+                            <td>
+                                <span style="color: ${isReconciled ? 'var(--sap-success)' : 'var(--sap-danger)'}">
+                                    ${isReconciled ? '✓ Reconciled' : '⚠ Variance'}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading reconciliation:', error);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCopaData();
+        });
+    </script>
+</body>
+</html>

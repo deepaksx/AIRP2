@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Management - AIRP v2.14</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <style>
+        :root {
+            --sap-primary: #0070F2;
+            --sap-primary-hover: #0064D9;
+            --sap-success: #28A745;
+            --sap-warning: #FFC107;
+            --sap-danger: #DC3545;
+            --sap-text: #1D2D3E;
+            --sap-text-secondary: #5E6C84;
+            --sap-bg: #FAFAFA;
+            --sap-card: #FFFFFF;
+            --sap-border: #E5E5E5;
+            --sap-hover: #F5F7FA;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: '72', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--sap-bg);
+            color: var(--sap-text);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .header {
+            background: var(--sap-card);
+            padding: 24px;
+            border-bottom: 1px solid var(--sap-border);
+            margin: -24px -24px 24px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 400;
+            color: var(--sap-text);
+            margin-bottom: 8px;
+        }
+
+        .breadcrumb {
+            font-size: 14px;
+            color: var(--sap-text-secondary);
+        }
+
+        .breadcrumb a {
+            color: var(--sap-primary);
+            text-decoration: none;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 4px;
+            border-bottom: 1px solid var(--sap-border);
+            margin-bottom: 24px;
+            background: var(--sap-card);
+            padding: 0 24px;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            color: var(--sap-text-secondary);
+            cursor: pointer;
+            font-size: 14px;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            background: var(--sap-hover);
+        }
+
+        .tab.active {
+            color: var(--sap-primary);
+            border-bottom-color: var(--sap-primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            background: var(--sap-card);
+            border: 1px solid var(--sap-border);
+            border-radius: 4px;
+            margin-bottom: 16px;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .search-box input {
+            padding: 8px 16px;
+            border: 1px solid var(--sap-border);
+            border-radius: 4px;
+            font-size: 14px;
+            min-width: 300px;
+        }
+
+        .search-box select {
+            padding: 8px 16px;
+            border: 1px solid var(--sap-border);
+            border-radius: 4px;
+            font-size: 14px;
+            background: white;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--sap-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--sap-primary-hover);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--sap-text);
+            border: 1px solid var(--sap-border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--sap-hover);
+        }
+
+        .card {
+            background: var(--sap-card);
+            border: 1px solid var(--sap-border);
+            border-radius: 4px;
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--sap-card);
+            border: 1px solid var(--sap-border);
+            border-radius: 4px;
+            padding: 20px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--sap-text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--sap-text);
+        }
+
+        .stat-change {
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        .stat-change.positive {
+            color: var(--sap-success);
+        }
+
+        .stat-change.negative {
+            color: var(--sap-danger);
+        }
+
+        .table-container {
+            background: var(--sap-card);
+            border: 1px solid var(--sap-border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: var(--sap-hover);
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--sap-text);
+            border-bottom: 1px solid var(--sap-border);
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--sap-border);
+            font-size: 14px;
+        }
+
+        tr:hover {
+            background: var(--sap-hover);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background: #D4EDDA;
+            color: #155724;
+        }
+
+        .badge-warning {
+            background: #FFF3CD;
+            color: #856404;
+        }
+
+        .badge-danger {
+            background: #F8D7DA;
+            color: #721C24;
+        }
+
+        .badge-info {
+            background: #D1ECF1;
+            color: #0C5460;
+        }
+
+        .action-btn {
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: none;
+            color: var(--sap-primary);
+            background: none;
+            border: none;
+        }
+
+        .action-btn:hover {
+            text-decoration: underline;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 4px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--sap-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 18px;
+            font-weight: 400;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--sap-border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: var(--sap-text);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--sap-border);
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--sap-text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="breadcrumb">
+                <a href="index.html">Dashboard</a> / <a href="#">Supply Chain</a> / Inventory Management
+            </div>
+            <h1>🏭 Inventory Management</h1>
+        </div>
+
+        <!-- Stats Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Items</div>
+                <div class="stat-value" id="statTotalItems">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Stock Value</div>
+                <div class="stat-value" id="statTotalValue">0 AED</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Low Stock Items</div>
+                <div class="stat-value" id="statLowStock">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Warehouses</div>
+                <div class="stat-value" id="statWarehouses">0</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('items')">Items</button>
+            <button class="tab" onclick="switchTab('stock')">Stock Levels</button>
+            <button class="tab" onclick="switchTab('transactions')">Transactions</button>
+            <button class="tab" onclick="switchTab('valuation')">Valuation</button>
+            <button class="tab" onclick="switchTab('warehouses')">Warehouses</button>
+        </div>
+
+        <!-- Items Tab -->
+        <div id="itemsTab" class="tab-content active">
+            <div class="toolbar">
+                <div class="search-box">
+                    <input type="text" id="searchItems" placeholder="Search items by code or name...">
+                    <select id="filterItemType">
+                        <option value="">All Types</option>
+                        <option value="FINISHED_GOODS">Finished Goods</option>
+                        <option value="RAW_MATERIAL">Raw Materials</option>
+                        <option value="TRADING_GOODS">Trading Goods</option>
+                        <option value="CONSUMABLES">Consumables</option>
+                    </select>
+                </div>
+                <div>
+                    <button class="btn btn-primary" onclick="showCreateItemModal()">+ Create Item</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item Code</th>
+                            <th>Item Name</th>
+                            <th>Type</th>
+                            <th>Category</th>
+                            <th>Unit</th>
+                            <th>Std Cost</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemsTableBody">
+                        <tr><td colspan="8" style="text-align: center;">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Stock Tab -->
+        <div id="stockTab" class="tab-content">
+            <div class="toolbar">
+                <div class="search-box">
+                    <select id="filterWarehouse">
+                        <option value="">All Warehouses</option>
+                    </select>
+                </div>
+                <div>
+                    <button class="btn btn-secondary" onclick="loadStockLevels()">🔄 Refresh</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item Code</th>
+                            <th>Item Name</th>
+                            <th>Warehouse</th>
+                            <th>On Hand</th>
+                            <th>Reserved</th>
+                            <th>Available</th>
+                            <th>Avg Cost</th>
+                            <th>Total Value</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stockTableBody">
+                        <tr><td colspan="8" style="text-align: center;">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Transactions Tab -->
+        <div id="transactionsTab" class="tab-content">
+            <div class="toolbar">
+                <div class="search-box">
+                    <select id="filterTxnType">
+                        <option value="">All Types</option>
+                        <option value="GOODS_RECEIPT">Goods Receipt</option>
+                        <option value="GOODS_ISSUE">Goods Issue</option>
+                        <option value="TRANSFER">Transfer</option>
+                        <option value="ADJUSTMENT">Adjustment</option>
+                    </select>
+                    <input type="date" id="filterStartDate">
+                    <input type="date" id="filterEndDate">
+                </div>
+                <div>
+                    <button class="btn btn-secondary" onclick="loadTransactions()">🔍 Search</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Transaction#</th>
+                            <th>Type</th>
+                            <th>Item</th>
+                            <th>Warehouse</th>
+                            <th>Quantity</th>
+                            <th>Unit Cost</th>
+                            <th>Total Value</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionsTableBody">
+                        <tr><td colspan="8" style="text-align: center;">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Valuation Tab -->
+        <div id="valuationTab" class="tab-content">
+            <div class="card">
+                <h3 style="margin-bottom: 16px;">Inventory Valuation Summary</h3>
+                <div id="valuationSummary">Loading...</div>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item Code</th>
+                            <th>Item Name</th>
+                            <th>Warehouse</th>
+                            <th>Quantity</th>
+                            <th>Avg Cost</th>
+                            <th>Total Value</th>
+                            <th>GL Account</th>
+                        </tr>
+                    </thead>
+                    <tbody id="valuationTableBody">
+                        <tr><td colspan="7" style="text-align: center;">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Warehouses Tab -->
+        <div id="warehousesTab" class="tab-content">
+            <div class="toolbar">
+                <div></div>
+                <div>
+                    <button class="btn btn-primary" onclick="showCreateWarehouseModal()">+ Create Warehouse</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Location</th>
+                            <th>Contact</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="warehousesTableBody">
+                        <tr><td colspan="7" style="text-align: center;">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Item Modal -->
+    <div id="createItemModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create New Item</h2>
+                <button class="close-btn" onclick="closeModal('createItemModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="createItemForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Item Code *</label>
+                            <input type="text" name="item_code" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Item Name *</label>
+                            <input type="text" name="item_name" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea name="description"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Item Type *</label>
+                            <select name="item_type" required>
+                                <option value="FINISHED_GOODS">Finished Goods</option>
+                                <option value="RAW_MATERIAL">Raw Material</option>
+                                <option value="TRADING_GOODS">Trading Goods</option>
+                                <option value="CONSUMABLES">Consumables</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Category</label>
+                            <input type="text" name="item_category">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Base Unit *</label>
+                            <input type="text" name="base_unit" value="EA" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Standard Cost</label>
+                            <input type="number" name="standard_cost" step="0.01" value="0">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('createItemModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="createItem()">Create Item</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3009';
+        const TENANT_ID = '00000000-0000-0000-0000-000000000001';
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+
+            // Show selected tab
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            event.target.classList.add('active');
+
+            // Load tab data
+            if (tabName === 'items') loadItems();
+            else if (tabName === 'stock') loadStockLevels();
+            else if (tabName === 'transactions') loadTransactions();
+            else if (tabName === 'valuation') loadValuation();
+            else if (tabName === 'warehouses') loadWarehouses();
+        }
+
+        // Load Items
+        async function loadItems() {
+            try {
+                const response = await fetch(`${API_URL}/inventory/items?tenant_id=${TENANT_ID}`);
+                const items = await response.json();
+
+                const tbody = document.getElementById('itemsTableBody');
+                if (items.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No items found</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = items.map(item => `
+                    <tr>
+                        <td><strong>${item.item_code}</strong></td>
+                        <td>${item.item_name}</td>
+                        <td><span class="badge badge-info">${item.item_type}</span></td>
+                        <td>${item.item_category || '-'}</td>
+                        <td>${item.base_unit}</td>
+                        <td>${parseFloat(item.standard_cost || 0).toFixed(2)} AED</td>
+                        <td><span class="badge ${item.is_active ? 'badge-success' : 'badge-danger'}">${item.is_active ? 'Active' : 'Inactive'}</span></td>
+                        <td>
+                            <button class="action-btn" onclick="viewItem('${item.item_id}')">View</button>
+                            <button class="action-btn" onclick="editItem('${item.item_id}')">Edit</button>
+                        </td>
+                    </tr>
+                `).join('');
+
+                // Update stats
+                document.getElementById('statTotalItems').textContent = items.length;
+            } catch (error) {
+                console.error('Error loading items:', error);
+                document.getElementById('itemsTableBody').innerHTML = '<tr><td colspan="8" style="text-align: center; color: red;">Error loading items</td></tr>';
+            }
+        }
+
+        // Load Stock Levels
+        async function loadStockLevels() {
+            try {
+                const response = await fetch(`${API_URL}/inventory/valuation?tenant_id=${TENANT_ID}`);
+                const data = await response.json();
+
+                const tbody = document.getElementById('stockTableBody');
+                if (!data.items || data.items.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No stock data found</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.items.map(item => `
+                    <tr>
+                        <td><strong>${item.item_code}</strong></td>
+                        <td>${item.item_name}</td>
+                        <td>${item.warehouse_name}</td>
+                        <td>${parseFloat(item.quantity_on_hand || 0).toFixed(2)}</td>
+                        <td>${parseFloat(item.quantity_reserved || 0).toFixed(2)}</td>
+                        <td>${parseFloat(item.quantity_available || 0).toFixed(2)}</td>
+                        <td>${parseFloat(item.average_cost || 0).toFixed(2)}</td>
+                        <td>${parseFloat(item.total_value || 0).toFixed(2)} AED</td>
+                    </tr>
+                `).join('');
+
+                // Update stats
+                document.getElementById('statTotalValue').textContent = parseFloat(data.summary.total_value || 0).toFixed(2) + ' AED';
+            } catch (error) {
+                console.error('Error loading stock:', error);
+            }
+        }
+
+        // Load Transactions
+        async function loadTransactions() {
+            try {
+                const response = await fetch(`${API_URL}/inventory/transactions?tenant_id=${TENANT_ID}`);
+                const transactions = await response.json();
+
+                const tbody = document.getElementById('transactionsTableBody');
+                if (transactions.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No transactions found</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = transactions.map(txn => `
+                    <tr>
+                        <td>${new Date(txn.transaction_date).toLocaleDateString()}</td>
+                        <td><strong>${txn.transaction_number}</strong></td>
+                        <td><span class="badge badge-info">${txn.transaction_type}</span></td>
+                        <td>${txn.item_code} - ${txn.item_name}</td>
+                        <td>${txn.warehouse_name}</td>
+                        <td>${parseFloat(txn.quantity).toFixed(2)}</td>
+                        <td>${parseFloat(txn.unit_cost || 0).toFixed(2)}</td>
+                        <td>${parseFloat(txn.total_value || 0).toFixed(2)} AED</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading transactions:', error);
+            }
+        }
+
+        // Load Valuation
+        async function loadValuation() {
+            try {
+                const response = await fetch(`${API_URL}/inventory/valuation?tenant_id=${TENANT_ID}`);
+                const data = await response.json();
+
+                // Update summary
+                document.getElementById('valuationSummary').innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+                        <div>
+                            <div style="font-size: 12px; color: var(--sap-text-secondary);">Total Items</div>
+                            <div style="font-size: 24px; font-weight: 600;">${data.summary.item_count}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: var(--sap-text-secondary);">Total Quantity</div>
+                            <div style="font-size: 24px; font-weight: 600;">${parseFloat(data.summary.total_quantity).toFixed(2)}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: var(--sap-text-secondary);">Total Value</div>
+                            <div style="font-size: 24px; font-weight: 600;">${parseFloat(data.summary.total_value).toFixed(2)} AED</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: var(--sap-text-secondary);">Warehouses</div>
+                            <div style="font-size: 24px; font-weight: 600;">${data.summary.warehouse_count}</div>
+                        </div>
+                    </div>
+                `;
+
+                // Update table
+                const tbody = document.getElementById('valuationTableBody');
+                tbody.innerHTML = data.items.map(item => `
+                    <tr>
+                        <td><strong>${item.item_code}</strong></td>
+                        <td>${item.item_name}</td>
+                        <td>${item.warehouse_name}</td>
+                        <td>${parseFloat(item.quantity_on_hand || 0).toFixed(2)}</td>
+                        <td>${parseFloat(item.average_cost || 0).toFixed(2)}</td>
+                        <td><strong>${parseFloat(item.total_value || 0).toFixed(2)} AED</strong></td>
+                        <td>${item.inventory_account_code || '-'}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading valuation:', error);
+            }
+        }
+
+        // Load Warehouses
+        async function loadWarehouses() {
+            try {
+                const response = await fetch(`${API_URL}/inventory/warehouses?tenant_id=${TENANT_ID}`);
+                const warehouses = await response.json();
+
+                const tbody = document.getElementById('warehousesTableBody');
+                if (warehouses.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No warehouses found</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = warehouses.map(wh => `
+                    <tr>
+                        <td><strong>${wh.warehouse_code}</strong></td>
+                        <td>${wh.warehouse_name}</td>
+                        <td><span class="badge badge-info">${wh.warehouse_type}</span></td>
+                        <td>${wh.city || '-'}, ${wh.country || '-'}</td>
+                        <td>${wh.contact_person || '-'} ${wh.phone ? '(' + wh.phone + ')' : ''}</td>
+                        <td><span class="badge ${wh.is_active ? 'badge-success' : 'badge-danger'}">${wh.is_active ? 'Active' : 'Inactive'}</span></td>
+                        <td>
+                            <button class="action-btn" onclick="viewWarehouse('${wh.warehouse_id}')">View</button>
+                        </td>
+                    </tr>
+                `).join('');
+
+                // Update stats
+                document.getElementById('statWarehouses').textContent = warehouses.length;
+            } catch (error) {
+                console.error('Error loading warehouses:', error);
+            }
+        }
+
+        // Modal functions
+        function showCreateItemModal() {
+            document.getElementById('createItemModal').classList.add('active');
+        }
+
+        function showCreateWarehouseModal() {
+            alert('Create Warehouse functionality coming soon!');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        async function createItem() {
+            const form = document.getElementById('createItemForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+            data.tenant_id = TENANT_ID;
+
+            try {
+                const response = await fetch(`${API_URL}/inventory/items`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    alert('Item created successfully!');
+                    closeModal('createItemModal');
+                    loadItems();
+                } else {
+                    alert('Error creating item');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error creating item');
+            }
+        }
+
+        function viewItem(itemId) {
+            alert('View item: ' + itemId);
+        }
+
+        function editItem(itemId) {
+            alert('Edit item: ' + itemId);
+        }
+
+        function viewWarehouse(warehouseId) {
+            alert('View warehouse: ' + warehouseId);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadItems();
+        });
+    </script>
+</body>
+</html>
